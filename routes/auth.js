@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-// Register
+/* ---------- USER REGISTRATION ---------- */
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -12,8 +13,15 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
 
-    // Create user
-    const user = await User.create({ name, email, password });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Create and save new user (password will be hashed by pre-save middleware)
+    const user = new User({ name, email, password });
+    await user.save();
 
     // Generate JWT token
     const token = jwt.sign(
@@ -28,7 +36,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login
+/* ---------- USER LOGIN ---------- */
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -37,14 +45,14 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user
-    const user = User.findByEmail(email);
+    // Find user by email
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password
-    const isPasswordValid = await User.comparePassword(password, user.password);
+    // Compare password with hashed password stored in DB
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
