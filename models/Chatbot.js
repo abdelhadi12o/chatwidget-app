@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ChatbotSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   websiteUrl: { type: String, required: true },
-  scrapedContent: [String],
+  scrapedContent: { type: mongoose.Schema.Types.Mixed, default: [] },
   widgetId: { type: String, required: true, unique: true },
   isActive: { type: Boolean, default: true },
   conversationCount: { type: Number, default: 0 },
