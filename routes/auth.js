@@ -20,7 +20,8 @@ router.post('/register', async (req, res) => {
     }
 
     // Create and save new user (password will be hashed by pre-save middleware)
-    const user = new User({ name, email, password });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
     // Generate JWT token
