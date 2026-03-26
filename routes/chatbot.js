@@ -102,15 +102,17 @@ router.post('/chat', async (req, res) => {
       context += '\n\nFAQs:\n' + chatbot.faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
     }
 
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY
+    });
     const response = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: 'You are a helpful customer support assistant. Answer based on the business context. Always respond in the same language the customer uses.' },
-        { role: 'user', content: `Context:\n${context}\n\nQuestion: ${message}` }
+        { role: 'user', content: `Context:\n${context.substring(0, 1000)}\n\nQuestion: ${message}` }
       ],
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 500
     });
 
     const answer = response.choices[0].message.content;
