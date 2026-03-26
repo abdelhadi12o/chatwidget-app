@@ -2145,3 +2145,41 @@
   </script>
 </body>
 </html>
+<style>
+/* ===== MOBILE RESPONSIVE FIXES ===== */
+@media (max-width: 768px) {
+  .hero { padding: 48px 0 64px; text-align: center; }
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  .hero-visual { display: none; }
+  .hero p { font-size: 15px; }
+  .languages-strip { justify-content: center; }
+  .hero-buttons { flex-direction: column; align-items: center; gap: 12px; }
+  .hero-buttons .btn { width: 100%; text-align: center; }
+  .url-input-bar { flex-direction: column; }
+  .url-input-bar button { width: 100%; border-radius: 8px; }
+  .stats-grid { grid-template-columns: 1fr; gap: 24px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .comparison-grid { grid-template-columns: 1fr; }
+  .bad .vs-badge { position: relative; top: auto; left: auto; transform: none; margin: 16px auto; display: block; width: fit-content; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .testimonials-carousel { padding: 0 16px; }
+  .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+  .section-header h2 { font-size: 28px; }
+  .how-it-works, .comparison, .features, .demo-section { padding: 64px 0; }
+  .stats-bar { padding: 48px 0; }
+  .announcement { font-size: 12px; padding: 8px 40px 8px 16px; }
+  .cta-section { padding: 64px 0; }
+  .cta-header h2 { font-size: 28px; }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 0 16px; }
+  .hero h1 { font-size: 30px; }
+  .stat-number { font-size: 40px; }
+  .feature-card, .step-card, .comparison-card { padding: 24px; }
+  .pricing-card { padding: 28px; }
+  .logo { font-size: 20px; }
+  .demo-suggestions { gap: 8px; }
+  .suggestion-chip { font-size: 12px; padding: 8px 14px; }
+}
+</style>
