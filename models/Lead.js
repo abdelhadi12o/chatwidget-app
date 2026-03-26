@@ -5,6 +5,7 @@ const LeadSchema = new mongoose.Schema({
   userId: { type: String, default: null },
   name: { type: String, required: true },
   whatsapp: { type: String, required: true },
+  email: { type: String, default: '' },
   question: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });

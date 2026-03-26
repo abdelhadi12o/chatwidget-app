@@ -199,6 +199,8 @@
       width: 100%;
       box-sizing: border-box;
         grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
         padding: 16px !important;
         gap: 16px !important;
       }
@@ -2157,13 +2159,15 @@
       body { width: 100%; max-width: 100vw; }
       .main-layout {
         grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
         padding: 12px !important;
         gap: 12px !important;
         width: 100% !important;
         max-width: 100% !important;
       }
       .main-content { order: 1; width: 100%; }
-      .sidebar { order: 2; width: 100% !important; max-width: 100% !important; }
+      .sidebar { order: 3; width: 100% !important; max-width: 100% !important; }
       .header-content { padding: 0 16px; }
       .user-name { display: none; }
       .card, .sidebar-card { padding: 16px; border-radius: 12px; }
@@ -2217,6 +2221,20 @@
       word-wrap: break-word;
       max-width: 100%;
     }
+
+    /* Leads Table Styles */
+    .leads-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .leads-table th { text-align: left; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 2px solid #e2e8f0; }
+    .leads-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .leads-table tr:last-child td { border-bottom: none; }
+    .leads-table tr:hover td { background: #f8fafc; }
+    .lead-name { font-weight: 600; color: #1e293b; }
+    .lead-whatsapp { color: #10b981; font-weight: 500; }
+    .lead-email { color: #6366f1; }
+    .lead-question { color: #64748b; font-size: 13px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lead-date { color: #94a3b8; font-size: 12px; }
+    .leads-empty { text-align: center; padding: 40px; color: #94a3b8; }
+    .leads-count { display: inline-block; background: #6366f1; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
   </style>
 </head>
 <body>
@@ -2249,8 +2267,8 @@
         </div>
       </div>
 
-      <!-- Chatbot Status Card -->
-      <div class="card hidden" id="chatbotCard">
+      <!-- Chatbot Status Card (Overview Tab) -->
+      <div class="card tab-content hidden" id="tab-overview" data-tab="overview">
         <h2 class="card-title">🤖 Your Chatbot</h2>
         <p class="card-subtitle">Manage your AI assistant</p>
 
@@ -2294,8 +2312,8 @@
         <p class="help-text" style="margin-top: 12px; text-align: center;">Retraining re-scrapes your website to update content. May take a few minutes.</p>
       </div>
 
-      <!-- Install Widget Card (FREE) -->
-      <div class="card hidden" id="installCard">
+      <!-- Install Widget Card (Embed Tab) -->
+      <div class="card tab-content hidden" id="tab-embed" data-tab="embed">
         <h2 class="card-title">🚀 Install Your Widget</h2>
         <p class="card-subtitle">Add this code to your website</p>
 
@@ -2308,7 +2326,14 @@
             <button class="copy-btn" onclick="copyCode('embedCode')">Copy</button>
             <pre class="code-block" id="embedCode"></pre>
           </div>
-          <p class="help-text">Add this script tag to your website's HTML, just before the closing </body> tag.</p>
+          <p class="help-text">Add this script tag to your website's HTML, just before the closing <style>
+@media (max-width: 768px) {
+  .main-layout { display: flex !important; flex-direction: column !important; }
+  .main-content { order: 1 !important; }
+  .sidebar { order: 2 !important; }
+}
+</style>
+</body> tag.</p>
         </div>
 
         <div>
@@ -2324,8 +2349,8 @@
         </div>
       </div>
 
-      <!-- Custom Knowledge Card (FREE) -->
-      <div class="card hidden" id="knowledgeCard">
+      <!-- Custom Knowledge Card (Knowledge Tab) -->
+      <div class="card tab-content hidden" id="tab-knowledge" data-tab="knowledge">
         <h2 class="card-title">📚 Custom Knowledge</h2>
         <p class="card-subtitle">Add info the scraper might have missed</p>
 
@@ -2340,8 +2365,8 @@
         <div id="knowledgeMsg" class="message" style="margin-top: 12px;"></div>
       </div>
 
-      <!-- Test Chat Card (FREE) -->
-      <div class="card test-chat-card hidden" id="testChatCard">
+      <!-- Test Chat Card (Test Tab) -->
+      <div class="card tab-content hidden" id="tab-test" data-tab="test">
         <h2 class="card-title">🧪 Test Your Chatbot</h2>
         <p class="card-subtitle">Try it before sharing it</p>
 
@@ -2361,6 +2386,15 @@
               </svg>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Leads Tab -->
+      <div class="card tab-content hidden" id="tab-leads" data-tab="leads">
+        <div class="card-title">🎯 Collected Leads</div>
+        <div class="card-subtitle">Visitors who left their contact info via the widget</div>
+        <div id="leadsTable">
+          <p style="color: #6b7280; font-size: 14px;">Loading leads...</p>
         </div>
       </div>
 
@@ -3317,6 +3351,48 @@
       }
     }
 
+    // Load Leads
+    async function loadLeads() {
+      const leadsTable = document.getElementById('leadsTable');
+      try {
+        const response = await fetch('/api/chatbot/leads', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok && data.leads && data.leads.length > 0) {
+          const html = `
+            <table class="leads-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>WhatsApp</th>
+                  <th>Email</th>
+                  <th>Question</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.leads.map(lead => `
+                  <tr>
+                    <td class="lead-name">${lead.name}</td>
+                    <td class="lead-whatsapp">📱 ${lead.whatsapp}</td>
+                    <td class="lead-email">${lead.email || '-'}</td>
+                    <td class="lead-question" title="${lead.question}">${lead.question || '-'}</td>
+                    <td class="lead-date">${new Date(lead.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+          leadsTable.innerHTML = html;
+        } else {
+          leadsTable.innerHTML = '<div class="leads-empty">🎯 No leads yet.<br><small>They will appear here once visitors leave their contact info.</small></div>';
+        }
+      } catch (err) {
+        leadsTable.innerHTML = '<p style="color: #ef4444; font-size: 14px;">Error loading leads</p>';
+      }
+    }
+
     // Setup event listeners for Pro features
     function setupProFeatures() {
       // Retrain button
@@ -3349,6 +3425,7 @@
       loadAnalytics();
       loadConversationHistory();
       loadOfflineMessages();
+      loadLeads();
     }
 
     // Override loadChatbot to include Pro features
@@ -3389,12 +3466,21 @@
     // Initialize
     loadChatbot();
   </script>
+<style>
+@media (max-width: 768px) {
+  .main-layout { display: flex !important; flex-direction: column !important; }
+  .main-content { order: 1 !important; }
+  .sidebar { order: 2 !important; }
+}
+</style>
 </body>
 </html><style>
 /* ===== DASHBOARD MOBILE FIXES ===== */
 @media (max-width: 768px) {
   .main-layout {
     grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 12px !important;
     gap: 12px !important;
   }

@@ -4,6 +4,9 @@ class AIWidget {
     this.isOpen = false;
     this.messages = [];
     this.isTyping = false;
+    this.messageCount = 0;
+    this.leadCaptured = false;
+    this.leadFormShown = false;
 
     this.init();
   }
@@ -192,6 +195,12 @@ class AIWidget {
 
       this.addMessage(data.answer, 'ai');
 
+      this.messageCount++;
+      if (this.messageCount === 2 && !this.leadCaptured && !this.leadFormShown) {
+        setTimeout(() => this.showLeadForm(), 1000);
+        this.leadFormShown = true;
+      }
+
     } catch (error) {
       console.error('Error:', error);
       if (this.isTyping) {
@@ -206,6 +215,65 @@ class AIWidget {
     setTimeout(() => {
       this.bubble.style.animation = '';
     }, 6000);
+  }
+
+  showLeadForm() {
+    const formDiv = document.createElement('div');
+    formDiv.className = 'ai-widget-lead-form';
+    formDiv.innerHTML = `
+      <p class="ai-lead-text">👋 Want us to follow up with you? Leave your details — no pressure!</p>
+      <input type="text" id="ai-lead-name" placeholder="Your name" class="ai-lead-input" />
+      <input type="email" id="ai-lead-email" placeholder="Email address (optional)" class="ai-lead-input" />
+      <input type="text" id="ai-lead-whatsapp" placeholder="WhatsApp number" class="ai-lead-input" />
+      <div class="ai-lead-buttons">
+        <button class="ai-lead-submit">Send 📲</button>
+        <button class="ai-lead-skip">Skip →</button>
+      </div>
+      <p class="ai-lead-msg" style="display:none"></p>
+    `;
+    this.messagesContainer.appendChild(formDiv);
+    this.scrollToBottom();
+
+    formDiv.querySelector('.ai-lead-submit').addEventListener('click', () => this.submitLead(formDiv));
+    formDiv.querySelector('.ai-lead-skip').addEventListener('click', () => {
+      formDiv.remove();
+      this.leadCaptured = true;
+    });
+  }
+
+  async submitLead(formDiv) {
+    const name = formDiv.querySelector('#ai-lead-name').value.trim();
+    const email = formDiv.querySelector('#ai-lead-email').value.trim();
+    const whatsapp = formDiv.querySelector('#ai-lead-whatsapp').value.trim();
+    const msg = formDiv.querySelector('.ai-lead-msg');
+
+    if (!name || !whatsapp) {
+      msg.textContent = 'Please fill in both fields.';
+      msg.style.display = 'block';
+      msg.style.color = '#ef4444';
+      return;
+    }
+
+    try {
+      await fetch('/api/chatbot/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          widgetId: this.widgetId,
+          name,
+          whatsapp,
+          email,
+          question: this.messages.length > 0 ? this.messages[0].content : ''
+        })
+      });
+
+      formDiv.innerHTML = '<p style="text-align:center; padding: 16px; color: #10b981; font-weight: 600;">✅ Thank you! We will contact you soon.</p>';
+      this.leadCaptured = true;
+    } catch (err) {
+      msg.textContent = 'Something went wrong. Try again.';
+      msg.style.display = 'block';
+      msg.style.color = '#ef4444';
+    }
   }
 }
 
@@ -578,6 +646,69 @@ function addWidgetStyles() {
       .ai-widget-messages {
         height: calc(100vh - 200px);
       }
+    }
+
+    .ai-widget-lead-form {
+      background: #f5f3ff;
+      border: 1.5px solid #6366f1;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 8px 0;
+    }
+
+    .ai-lead-text {
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .ai-lead-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .ai-lead-input:focus {
+      border-color: #6366f1;
+    }
+
+    .ai-lead-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .ai-lead-submit {
+      flex: 1;
+      padding: 10px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .ai-lead-skip {
+      padding: 10px 16px;
+      background: transparent;
+      color: #6b7280;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .ai-lead-msg {
+      font-size: 12px;
+      margin-top: 6px;
     }
   `;
 

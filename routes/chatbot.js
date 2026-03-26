@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Chatbot = require('../models/Chatbot');
+const Lead = require('../models/Lead');
 const { scrapeWebsite } = require('../scraper/scrape');
 const { authenticateToken } = require('../middleware/auth');
 const Groq = require('groq-sdk');
@@ -230,4 +231,57 @@ router.patch('/customization', authenticateToken, async (req, res) => {
   }
 });
 
+// Lead capture
+router.post('/lead', async (req, res) => {
+  try {
+    const { widgetId, name, whatsapp, email, question } = req.body;
+    if (!widgetId || !name || !whatsapp) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const chatbot = await Chatbot.findOne({ widgetId });
+    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+    const lead = new Lead({
+      widgetId,
+      userId: chatbot.userId,
+      name,
+      whatsapp,
+      email: email || '',
+      question: question || ''
+    });
+    await lead.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
+
+// Get leads
+router.get('/leads', authenticateToken, async (req, res) => {
+  try {
+    const Lead = require('../models/Lead');
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+    const leads = await Lead.find({ widgetId: chatbot.widgetId }).sort({ createdAt: -1 });
+    res.json({ leads });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save lead
+router.post('/lead', async (req, res) => {
+  try {
+    const { widgetId, name, whatsapp, email, question } = req.body;
+    if (!widgetId || !name || !whatsapp) return res.status(400).json({ error: 'Missing required fields' });
+    const chatbot = await Chatbot.findOne({ widgetId });
+    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+    const Lead = require('../models/Lead');
+    const lead = new Lead({ widgetId, userId: chatbot.userId, name, whatsapp, email: email || '', question: question || '' });
+    await lead.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
