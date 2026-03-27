@@ -104,8 +104,21 @@ router.post('/chat', async (req, res) => {
     }
 
     // Build the messages array for the AI with conversation history
+    const systemPrompt = `You are the official customer support assistant for this website. You are here to help the customer, NOT the other way around.
+
+CRITICAL RULES YOU MUST FOLLOW:
+1. THE INITIAL GREETING: Your very first message must ALWAYS be a proactive offer to help the customer (e.g., "Welcome! How can I assist you today?"). This first message MUST be in the primary language of the website data. NEVER ask the customer to help you.
+2. STRICT LANGUAGE MATCHING: After the initial greeting, you MUST instantly adapt to the user's language. If they reply in English, switch to English immediately. If they reply in French, switch to French. Do not stay stuck in the website's default language.
+3. YOUR ROLE (CRITICAL): You are the store's employee. You answer questions, provide product details, and guide the customer. Never act like a confused visitor. Never break character.
+4. CONCISENESS: Keep your answers brief, friendly, and highly relevant. No long essays.
+5. UNKNOWN ANSWERS: If a customer asks something not in the provided website data, politely apologize and state that you do not have that specific information. Do not invent facts or prices.
+
+Here is the knowledge you have about the website:
+${context.substring(0, 8000)}
+`;
+
     const messages = [
-      { role: 'system', content: 'You are a helpful customer support assistant. Answer based on the business context. Always respond in the same language the customer uses.' }
+      { role: 'system', content: systemPrompt }
     ];
 
     // Add conversation history if provided
@@ -113,8 +126,8 @@ router.post('/chat', async (req, res) => {
       messages.push(...history);
     }
 
-    // Add the current user message
-    messages.push({ role: 'user', content: `Context:\n${context.substring(0, 1000)}\n\nQuestion: ${message}` });
+    // Add the current user message (context is already in system prompt)
+    messages.push({ role: 'user', content: message });
 
     const groq = new Groq({
       apiKey: process.env.GROQ_API_KEY
