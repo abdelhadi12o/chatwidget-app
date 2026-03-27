@@ -72,7 +72,7 @@ router.get('/my-bot', authenticateToken, async (req, res) => {
 // Chat endpoint
 router.post('/chat', async (req, res) => {
   try {
-    const { widgetId, message } = req.body;
+    const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
 
     let chatbot;
@@ -103,17 +103,27 @@ router.post('/chat', async (req, res) => {
       context += '\n\nFAQs:\n' + chatbot.faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
     }
 
+    // Build the messages array for the AI with conversation history
+    const messages = [
+      { role: 'system', content: 'You are a helpful customer support assistant. Answer based on the business context. Always respond in the same language the customer uses.' }
+    ];
+
+    // Add conversation history if provided
+    if (Array.isArray(history) && history.length > 0) {
+      messages.push(...history);
+    }
+
+    // Add the current user message
+    messages.push({ role: 'user', content: `Context:\n${context.substring(0, 1000)}\n\nQuestion: ${message}` });
+
     const groq = new Groq({
       apiKey: process.env.GROQ_API_KEY
     });
     const response = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: 'You are a helpful customer support assistant. Answer based on the business context. Always respond in the same language the customer uses.' },
-        { role: 'user', content: `Context:\n${context.substring(0, 1000)}\n\nQuestion: ${message}` }
-      ],
+      messages: messages,
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 1000
     });
 
     const answer = response.choices[0].message.content;

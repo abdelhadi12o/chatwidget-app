@@ -172,6 +172,12 @@ class AIWidget {
 
   async sendToServer(message) {
     try {
+      // Convert message history to the format expected by backend
+      const history = this.messages.slice(-6).map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
       const response = await fetch(`/api/chatbot/chat`, {
         method: 'POST',
         headers: {
@@ -179,7 +185,8 @@ class AIWidget {
         },
         body: JSON.stringify({
           widgetId: this.widgetId,
-          message: message
+          message: message,
+          history: history
         })
       });
 
@@ -205,6 +212,15 @@ class AIWidget {
       console.error('Error:', error);
       if (this.isTyping) {
         this.removeTypingIndicator();
+      }
+      // Remove the user message from history on error
+      if (this.messages.length > 0 && this.messages[this.messages.length - 1].sender === 'user') {
+        this.messages.pop();
+        // Also remove from UI if it was added
+        const lastMessage = this.messagesContainer.lastChild;
+        if (lastMessage) {
+          lastMessage.remove();
+        }
       }
       this.addMessage('Sorry, I couldn\'t process your message.', 'ai');
     }

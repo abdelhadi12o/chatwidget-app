@@ -2124,6 +2124,7 @@
 
     let widgetId = '';
     let chatbotData = null;
+    let sessionHistory = [];
 
     async function loadChatbot() {
       try {
@@ -2133,10 +2134,12 @@
 
         if (response.status === 404) {
           document.getElementById('noChatbot').classList.remove('hidden');
-          document.getElementById('chatbotCard').classList.add('hidden');
-          document.getElementById('installCard').classList.add('hidden');
-          document.getElementById('testChatCard').classList.add('hidden');
-          document.getElementById('knowledgeCard').classList.add('hidden');
+          // FIX: Use the correct IDs from the HTML, with optional chaining (?) to prevent crashes
+          document.getElementById('tab-overview')?.classList.add('hidden');
+          document.getElementById('tab-embed')?.classList.add('hidden');
+          document.getElementById('tab-knowledge')?.classList.add('hidden');
+          document.getElementById('tab-test')?.classList.add('hidden');
+          document.getElementById('tab-leads')?.classList.add('hidden');
           return;
         }
 
@@ -2146,10 +2149,12 @@
         widgetId = chatbotData.widgetId;
 
         document.getElementById('noChatbot').classList.add('hidden');
-        document.getElementById('chatbotCard').classList.remove('hidden');
-        document.getElementById('installCard').classList.remove('hidden');
-        document.getElementById('testChatCard').classList.remove('hidden');
-        document.getElementById('knowledgeCard').classList.remove('hidden');
+        // FIX: Show all the dashboard cards
+        document.getElementById('tab-overview')?.classList.remove('hidden');
+        document.getElementById('tab-embed')?.classList.remove('hidden');
+        document.getElementById('tab-knowledge')?.classList.remove('hidden');
+        document.getElementById('tab-test')?.classList.remove('hidden');
+        document.getElementById('tab-leads')?.classList.remove('hidden');
 
         // Update status badge
         const statusBadge = document.getElementById('botStatusBadge');
@@ -2388,11 +2393,12 @@
             throw new Error(errorData.error || `Delete failed with status ${response.status}`);
           }
 
-          // Hide all chatbot-related elements
-          document.getElementById('chatbotCard').classList.add('hidden');
-          document.getElementById('installCard').classList.add('hidden');
-          document.getElementById('testChatCard').classList.add('hidden');
-          document.getElementById('knowledgeCard').classList.add('hidden');
+          // FIX: Hide the cards using the correct IDs
+          document.getElementById('tab-overview')?.classList.add('hidden');
+          document.getElementById('tab-embed')?.classList.add('hidden');
+          document.getElementById('tab-knowledge')?.classList.add('hidden');
+          document.getElementById('tab-test')?.classList.add('hidden');
+          document.getElementById('tab-leads')?.classList.add('hidden');
           document.getElementById('noChatbot').classList.remove('hidden');
 
           // Reset values
@@ -2450,25 +2456,39 @@
 
       addTestMessage(message, true);
       testInput.value = '';
-
       sendTestBtn.disabled = true;
+
+      // Add the user's new message to the history transcript
+      sessionHistory.push({ role: "user", content: message });
 
       try {
         const response = await fetch('/api/chatbot/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ widgetId, message })
+          // Send the history array to the backend along with the widgetId
+          body: JSON.stringify({
+            widgetId: widgetId,
+            message: message,
+            history: sessionHistory.slice(-6) // Only send the last 6 messages
+          })
         });
 
         const data = await response.json();
 
         if (response.ok) {
           addTestMessage(data.answer, false);
+
+          // Add the AI's response to the history transcript
+          sessionHistory.push({ role: "assistant", content: data.answer });
+
         } else {
           addTestMessage('Error: ' + (data.error || 'Failed to get response'), false);
+          // If it fails, remove the user message from history
+          sessionHistory.pop();
         }
       } catch (err) {
         addTestMessage('Error: Could not connect to server', false);
+        sessionHistory.pop();
       } finally {
         sendTestBtn.disabled = false;
       }
