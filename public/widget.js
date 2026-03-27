@@ -561,13 +561,19 @@ function addWidgetStyles() {
     }
 
     .ai-widget-message-content {
-      flex: 1;
       padding: 10px 14px;
       border-radius: 12px;
       font-size: 14px;
       line-height: 1.5;
       max-width: 70%;
       word-wrap: break-word;
+    }
+
+    /* User messages - WhatsApp style (right aligned, avatar on right) */
+    .user-message {
+      align-self: flex-end !important;
+      text-align: right !important;
+      flex-direction: row-reverse !important;
     }
 
     .user-message .ai-widget-avatar {
@@ -579,6 +585,13 @@ function addWidgetStyles() {
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: white;
       border-radius: 12px 4px 12px 12px;
+    }
+
+    /* AI messages - WhatsApp style (left aligned, avatar on left) */
+    .ai-message {
+      align-self: flex-start !important;
+      text-align: left !important;
+      flex-direction: row !important;
     }
 
     .ai-message .ai-widget-avatar {
@@ -641,26 +654,55 @@ function addWidgetStyles() {
     }
 
     /* Mobile responsive */
-    @media (max-width: 480px) {
-      .ai-widget-container {
-        bottom: 0;
-        right: 0;
-        left: 0;
-        z-index: 1000;
-      }
-
-      .ai-widget-chat {
-        width: 100%;
-        height: 100vh;
-        border-radius: 0;
-      }
-
+    @media (max-width: 768px) {
+      /* Keep closed bubble in normal position, slightly smaller */
       .ai-widget-bubble {
-        display: none;
+        width: 50px !important;
+        height: 50px !important;
+        padding: 14px !important;
+        bottom: 10px !important;
+        right: 10px !important;
       }
 
+      /* When chat is OPEN on mobile - fullscreen overlay */
+      .ai-widget-chat {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100dvh !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      .ai-widget-container:has(.ai-widget-chat[style*="display: block"]) {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10000 !important;
+      }
+
+      /* Messages area must expand and scroll */
       .ai-widget-messages {
-        height: calc(100vh - 200px);
+        flex: 1 !important;
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+
+      /* Input area stays docked at bottom */
+      .ai-widget-input {
+        flex-shrink: 0 !important;
+      }
+
+      /* Hide bubble when chat is open on mobile */
+      .ai-widget-chat:not([style*="display: none"]) + .ai-widget-bubble,
+      .ai-widget-container:has(.ai-widget-chat[style*="display: block"]) .ai-widget-bubble {
+        display: none !important;
       }
     }
 
