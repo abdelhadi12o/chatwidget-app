@@ -178,7 +178,7 @@ class AIWidget {
         content: msg.content
       }));
 
-      const response = await fetch(`/api/chatbot/chat`, {
+      const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -725,6 +725,37 @@ function addWidgetStyles() {
     .ai-lead-msg {
       font-size: 12px;
       margin-top: 6px;
+    }
+
+    /* ===== ISOLATION RULES ===== */
+    /* 1. Force the widget to ignore Arabic Right-to-Left layout */
+    .ai-widget-container {
+      direction: ltr !important;
+      text-align: left !important;
+    }
+
+    /* 2. Protect all elements inside the widget from host website sizing rules */
+    .ai-widget-container * {
+      box-sizing: border-box !important;
+      line-height: normal !important;
+    }
+
+    /* 3. Remove orange/brand outline when typing - use our purple brand color */
+    .ai-widget-input-field:focus {
+      outline: none !important;
+      border: 2px solid #6366f1 !important;
+      box-shadow: none !important;
+    }
+
+    /* 4. Fix user/bot message bubble alignment */
+    .ai-widget-message.user-message {
+      margin-left: auto !important;
+      text-align: right !important;
+    }
+
+    .ai-widget-message.ai-message {
+      margin-right: auto !important;
+      text-align: left !important;
     }
   `;
 
