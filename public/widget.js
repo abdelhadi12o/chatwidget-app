@@ -25,7 +25,6 @@ class AIWidget {
         <span class="ai-widget-icon">💬</span>
         <span class="ai-widget-badge">
           <span class="ai-widget-notification-dot"></span>
-          Chat
         </span>
       </div>
       <div class="ai-widget-chat">
@@ -90,8 +89,9 @@ class AIWidget {
 
   openChat() {
     this.isOpen = true;
+    this.container.classList.add('open');
     this.bubble.style.display = 'none';
-    this.chat.style.display = 'block';
+    this.chat.style.display = 'flex';
     this.chat.style.animation = 'slideUp 0.3s ease-out';
     this.inputField.focus();
 
@@ -109,6 +109,7 @@ class AIWidget {
 
   closeChat() {
     this.isOpen = false;
+    this.container.classList.remove('open');
     this.chat.style.animation = 'slideDown 0.3s ease-out';
     this.chat.style.display = 'none';
     this.bubble.style.display = 'block';
@@ -655,7 +656,7 @@ function addWidgetStyles() {
 
     /* Mobile responsive */
     @media (max-width: 768px) {
-      /* Keep closed bubble in normal position, slightly smaller */
+      /* Closed bubble positioning on mobile */
       .ai-widget-bubble {
         width: 50px !important;
         height: 50px !important;
@@ -664,30 +665,42 @@ function addWidgetStyles() {
         right: 10px !important;
       }
 
-      /* When chat is OPEN on mobile - fullscreen overlay */
-      .ai-widget-chat {
+      /* Fullscreen overlay when chat is OPEN on mobile */
+      .ai-widget-container.open {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        z-index: 2147483647 !important;
+        transform: none !important;
+      }
+
+      .ai-widget-container.open .ai-widget-chat {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
         width: 100% !important;
         height: 100% !important;
         max-height: 100dvh !important;
-        bottom: 0 !important;
-        right: 0 !important;
-        left: 0 !important;
         border-radius: 0 !important;
         display: flex !important;
         flex-direction: column !important;
       }
 
-      .ai-widget-container:has(.ai-widget-chat[style*="display: block"]) {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        z-index: 10000 !important;
+      .ai-widget-container.open .ai-widget-bubble {
+        display: none !important;
       }
 
       /* Messages area must expand and scroll */
-      .ai-widget-messages {
+      .ai-widget-container.open .ai-widget-messages {
         flex: 1 !important;
         overflow-y: auto !important;
         height: auto !important;
@@ -695,14 +708,14 @@ function addWidgetStyles() {
       }
 
       /* Input area stays docked at bottom */
-      .ai-widget-input {
+      .ai-widget-container.open .ai-widget-input {
         flex-shrink: 0 !important;
       }
 
-      /* Hide bubble when chat is open on mobile */
-      .ai-widget-chat:not([style*="display: none"]) + .ai-widget-bubble,
-      .ai-widget-container:has(.ai-widget-chat[style*="display: block"]) .ai-widget-bubble {
-        display: none !important;
+      /* Ensure header and input have proper z-index */
+      .ai-widget-container.open .ai-widget-header {
+        position: relative !important;
+        z-index: 10 !important;
       }
     }
 
