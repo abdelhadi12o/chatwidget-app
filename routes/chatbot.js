@@ -111,7 +111,7 @@ router.post('/chat', async (req, res) => {
         conversationCount: 0,
         faqs: [],
         customKnowledge: '',
-        customization: { botName: "AI Assistant", bubbleColor: "#6366f1", welcomeMessage: "Hi! How can I help you today?", position: "bottom-right" }
+        customization: { botName: "AI Assistant", bubbleColor: "#6366f1", welcomeMessage: "Hi! How can I help you today?", position: "bottom-right", bookingLink: '' }
       };
     } else {
       chatbot = await Chatbot.findOne({ widgetId });
@@ -146,6 +146,9 @@ ${context.substring(0, 8000)}
 
 ADDITIONAL BUSINESS RULES & CUSTOM KNOWLEDGE (PRIORITIZE THIS INFORMATION):
 ${chatbot.customKnowledge ? chatbot.customKnowledge : 'No additional rules provided.'}
+
+BOOKING/ACTION LINK:
+${chatbot.customization.bookingLink ? `If the user wants to book an appointment, make a reservation, or complete a specific action, ALWAYS give them this exact link to do so: ${chatbot.customization.bookingLink}` : ''}
 `;
 
     const messages = [
@@ -275,7 +278,7 @@ router.delete('/faqs/:index', authenticateToken, async (req, res) => {
 // Update customization
 router.patch('/customization', authenticateToken, async (req, res) => {
   try {
-    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo } = req.body;
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink } = req.body;
     const chatbot = await Chatbot.findOne({ userId: req.user.userId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     if (botName) chatbot.customization.botName = botName;
@@ -285,6 +288,7 @@ router.patch('/customization', authenticateToken, async (req, res) => {
     if (leadCaptureTiming !== undefined) chatbot.customization.leadCaptureTiming = leadCaptureTiming;
     if (quickReplies) chatbot.customization.quickReplies = quickReplies;
     if (botLogo !== undefined) chatbot.customization.botLogo = botLogo;
+    if (bookingLink !== undefined) chatbot.customization.bookingLink = bookingLink;
     await chatbot.save();
     res.json({ message: 'Customization updated', customization: chatbot.customization });
   } catch (error) {

@@ -16,7 +16,8 @@ const ChatbotSchema = new mongoose.Schema({
     welcomeMessage: { type: String, default: 'Hi! How can I help you today?' },
     position: { type: String, default: 'bottom-right' },
     quickReplies: { type: [String], default: [] },
-    botLogo: { type: String, default: '' }
+    botLogo: { type: String, default: '' },
+    bookingLink: { type: String, default: '' }
   },
   offlineMessages: { type: Array, default: [] },
   createdAt: { type: Date, default: Date.now }
