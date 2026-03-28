@@ -310,26 +310,34 @@ if (document.readyState === 'loading') {
 }
 
 async function initWidget() {
-  const widgetId = document.currentScript.getAttribute('data-widget-id') || 'default_widget';
+  const scriptTag = document.currentScript || document.querySelector('script[data-widget-id]');
+  if (!scriptTag) return console.error('ChatWidget: Missing script tag');
 
-  let timing = 3; // Default to 3 if not set
+  const widgetId = scriptTag.getAttribute('data-widget-id');
+  if (!widgetId) return console.error('ChatWidget: Missing widget ID');
+
+  // 1. Initialize the widget FIRST so the DOM elements actually exist
+  const widget = new AIWidget(widgetId);
+  widget.leadCaptureTiming = 3; // Default
+  addWidgetStyles();
+
+  // 2. Fetch the customization settings from the server
   try {
     const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
     if (response.ok) {
       const settings = await response.json();
-      applyCustomization(settings.customization, widget);
-      if (settings.customization && settings.customization.leadCaptureTiming !== undefined) {
-        timing = settings.customization.leadCaptureTiming;
+      if (settings.customization) {
+        // Apply lead capture timing
+        if (settings.customization.leadCaptureTiming !== undefined) {
+          widget.leadCaptureTiming = settings.customization.leadCaptureTiming;
+        }
+        // Apply colors and text to the existing widget DOM
+        applyCustomization(settings.customization, widget);
       }
     }
   } catch (error) {
     console.log('Failed to fetch widget settings:', error.message);
   }
-
-  // Pass the timing variable into the widget
-  const widget = new AIWidget(widgetId);
-  widget.leadCaptureTiming = timing;
-  addWidgetStyles();
 }
 
 function applyCustomization(customization, widget) {
