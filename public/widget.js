@@ -139,10 +139,14 @@ class AIWidget {
     messageDiv.className = `ai-widget-message ${sender}-message`;
 
     const avatar = sender === 'user' ? '👤' : '🤖';
-    // Convert newlines to <br>, then convert Markdown [text](url) to styled <a> tags
-    const text = content
-      .replace(/\n/g, '<br>')
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600;">$1</a>');
+    let text = content.replace(/\n/g, '<br>');
+
+    // 1. Convert Markdown links [Text](URL) into clickable styled links
+    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600;">$1</a>');
+
+    // 2. Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
+    // We use word-break to ensure long URLs don't break out of the chat bubble
+    text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
 
     messageDiv.innerHTML = `
       <span class="ai-widget-avatar">${avatar}</span>
