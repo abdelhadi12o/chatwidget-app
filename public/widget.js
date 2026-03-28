@@ -316,27 +316,28 @@ async function initWidget() {
   const widgetId = scriptTag.getAttribute('data-widget-id');
   if (!widgetId) return console.error('ChatWidget: Missing widget ID');
 
-  // 1. Initialize the widget FIRST so the DOM elements actually exist
+  let settings = null;
+
+  // 1. Fetch settings BEFORE building the widget to prevent color flashing
+  try {
+    const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
+    if (response.ok) {
+      settings = await response.json();
+    }
+  } catch (error) {
+    console.log('Failed to fetch widget settings:', error.message);
+  }
+
+  // 2. Now build the widget and apply styles synchronously so the browser paints it perfectly on the first frame
   const widget = new AIWidget(widgetId);
   widget.leadCaptureTiming = 3; // Default
   addWidgetStyles();
 
-  // 2. Fetch the customization settings from the server
-  try {
-    const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
-    if (response.ok) {
-      const settings = await response.json();
-      if (settings.customization) {
-        // Apply lead capture timing
-        if (settings.customization.leadCaptureTiming !== undefined) {
-          widget.leadCaptureTiming = settings.customization.leadCaptureTiming;
-        }
-        // Apply colors and text to the existing widget DOM
-        applyCustomization(settings.customization, widget);
-      }
+  if (settings && settings.customization) {
+    if (settings.customization.leadCaptureTiming !== undefined) {
+      widget.leadCaptureTiming = settings.customization.leadCaptureTiming;
     }
-  } catch (error) {
-    console.log('Failed to fetch widget settings:', error.message);
+    applyCustomization(settings.customization, widget);
   }
 }
 
@@ -866,8 +867,9 @@ function addWidgetStyles() {
       text-align: left !important;
     }
 
-    /* Desktop bubble position adjustment */
+    /* Desktop position adjustment - move both container and bubble up */
     @media (min-width: 768px) {
+      .ai-widget-container,
       .ai-widget-bubble {
         bottom: 53px !important;
       }
