@@ -13,7 +13,8 @@ const ChatbotSchema = new mongoose.Schema({
     botName: { type: String, default: 'AI Assistant' },
     bubbleColor: { type: String, default: '#6366f1' },
     welcomeMessage: { type: String, default: 'Hi! How can I help you today?' },
-    position: { type: String, default: 'bottom-right' }
+    position: { type: String, default: 'bottom-right' },
+    quickReplies: { type: [String], default: [] }
   },
   offlineMessages: { type: Array, default: [] },
   createdAt: { type: Date, default: Date.now }

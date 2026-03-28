@@ -379,6 +379,30 @@ function applyCustomization(customization, widget) {
       container.setAttribute('style', positions[customization.position] || 'bottom: 20px; right: 20px;');
     }
   }
+
+  // Add quick replies if configured
+  if (customization.quickReplies && customization.quickReplies.length > 0) {
+    const chat = document.querySelector('.ai-widget-chat');
+    const input = document.querySelector('.ai-widget-input');
+    if (chat && input) {
+      const quickRepliesDiv = document.createElement('div');
+      quickRepliesDiv.className = 'ai-quick-replies';
+
+      customization.quickReplies.forEach(text => {
+        const btn = document.createElement('button');
+        btn.className = 'ai-quick-reply-btn';
+        btn.textContent = text;
+        btn.addEventListener('click', () => {
+          widget.addMessage(text, 'user');
+          widget.sendToServer(text);
+          quickRepliesDiv.remove();
+        });
+        quickRepliesDiv.appendChild(btn);
+      });
+
+      chat.insertBefore(quickRepliesDiv, input);
+    }
+  }
 }
 
 function adjustColor(color, percent) {
@@ -870,6 +894,35 @@ function addWidgetStyles() {
       html body .ai-widget-chat {
         bottom: 160px !important;
       }
+    }
+
+    /* Quick Replies */
+    .ai-quick-replies {
+      display: flex !important;
+      overflow-x: auto !important;
+      padding: 10px 16px !important;
+      gap: 8px !important;
+      border-bottom: 1px solid #e5e7eb !important;
+      background: #f8fafc !important;
+    }
+
+    .ai-quick-reply-btn {
+      flex-shrink: 0 !important;
+      padding: 8px 16px !important;
+      border: 1.5px solid #6366f1 !important;
+      border-radius: 20px !important;
+      background: white !important;
+      color: #6366f1 !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      white-space: nowrap !important;
+    }
+
+    .ai-quick-reply-btn:hover {
+      background: #6366f1 !important;
+      color: white !important;
     }
   `;
 

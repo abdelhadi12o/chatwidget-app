@@ -264,6 +264,14 @@
             </div>
           </div>
 
+          <div>
+            <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 12px;">Quick Replies (Optional)</label>
+            <p style="font-size: 13px; color: var(--subtext); margin-bottom: 12px;">Add up to 3 common questions users can click:</p>
+            <input type="text" id="qr1" class="create-url-input" placeholder="e.g., Book a demo" style="height: 40px; margin-bottom: 8px;">
+            <input type="text" id="qr2" class="create-url-input" placeholder="e.g., Pricing plans" style="height: 40px; margin-bottom: 8px;">
+            <input type="text" id="qr3" class="create-url-input" placeholder="e.g., Contact support" style="height: 40px; margin-bottom: 0;">
+          </div>
+
           <button class="btn btn-primary" id="saveAppearanceBtn" style="margin-top: 8px; width: 100%;">Save Appearance</button>
           <div id="appearanceMsg" class="message"></div>
         </div>
@@ -382,6 +390,14 @@
           document.getElementById('customBotName').value = chatbotData.customization.botName || 'AI Assistant';
           document.getElementById('customWelcome').value = chatbotData.customization.welcomeMessage || "👋 Hi! I'm your AI assistant. How can I help you today?";
           document.getElementById('customColor').value = chatbotData.customization.bubbleColor || '#6366f1';
+
+          // Load Quick Replies
+          const quickReplies = chatbotData.customization.quickReplies || [];
+          if (quickReplies.length > 0) {
+            document.getElementById('qr1').value = quickReplies[0] || '';
+            document.getElementById('qr2').value = quickReplies[1] || '';
+            document.getElementById('qr3').value = quickReplies[2] || '';
+          }
         }
 
         // Initialize features
@@ -669,6 +685,10 @@
       const botName = document.getElementById('customBotName').value.trim();
       const welcomeMessage = document.getElementById('customWelcome').value.trim();
       const bubbleColor = document.getElementById('customColor').value;
+      const qr1 = document.getElementById('qr1').value.trim();
+      const qr2 = document.getElementById('qr2').value.trim();
+      const qr3 = document.getElementById('qr3').value.trim();
+      const quickReplies = [qr1, qr2, qr3].filter(qr => qr !== '');
 
       btn.innerHTML = '<span class="loading-spinner"></span>Saving...';
       btn.disabled = true;
@@ -677,7 +697,7 @@
         const response = await fetch('/api/chatbot/customization', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ botName, welcomeMessage, bubbleColor })
+          body: JSON.stringify({ botName, welcomeMessage, bubbleColor, quickReplies })
         });
 
         if (response.ok) {
