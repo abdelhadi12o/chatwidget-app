@@ -9,6 +9,7 @@ const ChatbotSchema = new mongoose.Schema({
   conversationCount: { type: Number, default: 0 },
   conversations: { type: Array, default: [] },
   faqs: { type: Array, default: [] },
+  customKnowledge: { type: String, default: '' },
   customization: {
     botName: { type: String, default: 'AI Assistant' },
     bubbleColor: { type: String, default: '#6366f1' },

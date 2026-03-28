@@ -110,6 +110,7 @@ router.post('/chat', async (req, res) => {
         isActive: true,
         conversationCount: 0,
         faqs: [],
+        customKnowledge: '',
         customization: { botName: "AI Assistant", bubbleColor: "#6366f1", welcomeMessage: "Hi! How can I help you today?", position: "bottom-right" }
       };
     } else {
@@ -142,6 +143,9 @@ CRITICAL RULES YOU MUST FOLLOW:
 
 Here is the knowledge you have about the website:
 ${context.substring(0, 8000)}
+
+ADDITIONAL BUSINESS RULES & CUSTOM KNOWLEDGE (PRIORITIZE THIS INFORMATION):
+${chatbot.customKnowledge ? chatbot.customKnowledge : 'No additional rules provided.'}
 `;
 
     const messages = [
@@ -283,6 +287,19 @@ router.patch('/customization', authenticateToken, async (req, res) => {
     if (botLogo !== undefined) chatbot.customization.botLogo = botLogo;
     await chatbot.save();
     res.json({ message: 'Customization updated', customization: chatbot.customization });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save custom knowledge
+router.patch('/knowledge', authenticateToken, async (req, res) => {
+  try {
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+    chatbot.customKnowledge = req.body.customKnowledge || '';
+    await chatbot.save();
+    res.json({ message: 'Knowledge saved' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

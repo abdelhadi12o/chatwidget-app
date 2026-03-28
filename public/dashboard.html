@@ -419,6 +419,9 @@
           }
         }
 
+        // Load Custom Knowledge
+        document.getElementById('knowledgeInput').value = chatbotData.customKnowledge || '';
+
         // Initialize features
         document.getElementById('leadTimingSelect').value = chatbotData.customization?.leadCaptureTiming ?? 3;
         setupStatusToggle(chatbotData.isActive);
@@ -647,26 +650,21 @@
 
     // Add Custom Knowledge
     document.getElementById('saveKnowledgeBtn').addEventListener('click', async () => {
-      const knowledge = document.getElementById('knowledgeInput').value.trim();
+      const customKnowledge = document.getElementById('knowledgeInput').value;
       const msg = document.getElementById('knowledgeMsg');
 
-      if (!knowledge) return;
-
       try {
-        const response = await fetch('/api/chatbot/add-knowledge', {
-          method: 'POST',
+        const response = await fetch('/api/chatbot/knowledge', {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ knowledge })
+          body: JSON.stringify({ customKnowledge })
         });
 
-        if (response.ok) {
-          msg.textContent = '✓ Knowledge saved successfully!';
-          msg.className = 'message success show';
-          document.getElementById('knowledgeInput').value = '';
-          setTimeout(() => msg.className = 'message', 3000);
-        } else {
-          throw new Error('Failed to save');
-        }
+        if (!response.ok) throw new Error('Failed to save');
+
+        msg.textContent = '✓ Knowledge saved successfully!';
+        msg.className = 'message success show';
+        setTimeout(() => msg.className = 'message', 3000);
       } catch (err) {
         msg.textContent = 'Error saving knowledge.';
         msg.className = 'message error show';
