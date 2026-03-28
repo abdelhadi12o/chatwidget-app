@@ -867,11 +867,13 @@ function addWidgetStyles() {
       text-align: left !important;
     }
 
-    /* Desktop position adjustment - move both container and bubble up */
+    /* Force Desktop Positioning Above WhatsApp Widget */
     @media (min-width: 768px) {
-      .ai-widget-container,
-      .ai-widget-bubble {
-        bottom: 53px !important;
+      html body .ai-widget-bubble {
+        bottom: 85px !important;
+      }
+      html body .ai-widget-container {
+        bottom: 160px !important;
       }
     }
   `;
