@@ -128,7 +128,10 @@ class AIWidget {
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-widget-message ${sender}-message`;
 
-    const avatar = sender === 'user' ? '👤' : '🤖';
+    const avatarContent = sender === 'user'
+      ? '👤'
+      : (this.botLogo ? `<img src="${this.botLogo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '🤖');
+
     let text = content.replace(/\n/g, '<br>');
 
     // 1. Convert Markdown links [Text](URL) into clickable styled links
@@ -139,8 +142,8 @@ class AIWidget {
     text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
 
     messageDiv.innerHTML = `
-      <span class="ai-widget-avatar">${avatar}</span>
-      <div class="ai-widget-message-content">${text}</div>
+      <span class="ai-widget-avatar">${avatarContent}</span>
+      <div class="ai-widget-message-content" dir="auto">${text}</div>
     `;
 
     this.messagesContainer.appendChild(messageDiv);
@@ -377,6 +380,15 @@ function applyCustomization(customization, widget) {
         'top-left': 'top: 20px; left: 20px;'
       };
       container.setAttribute('style', positions[customization.position] || 'bottom: 20px; right: 20px;');
+    }
+  }
+
+  // Apply custom bot logo
+  if (customization.botLogo) {
+    widget.botLogo = customization.botLogo;
+    const icon = document.querySelector('.ai-widget-icon');
+    if (icon) {
+      icon.innerHTML = `<img src="${customization.botLogo}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block;">`;
     }
   }
 
@@ -734,23 +746,23 @@ function addWidgetStyles() {
         padding: 14px !important;
       }
 
-      /* MOBILE BOTTOM SHEET STYLE */
+      /* MOBILE FLOATING CARD STYLE */
       .ai-widget-container {
-        bottom: 0 !important;
-        right: 0 !important;
-        left: 0 !important;
+        bottom: 16px !important;
+        right: 16px !important;
+        left: 16px !important;
         margin: 0 !important;
       }
 
       .ai-widget-chat {
-        width: 100vw !important;
-        height: 85vh !important;
-        bottom: 0 !important;
-        right: 0 !important;
-        left: 0 !important;
-        border-radius: 20px 20px 0 0 !important;
+        width: calc(100vw - 32px) !important;
+        height: 80vh !important;
+        bottom: 16px !important;
+        right: 16px !important;
+        left: 16px !important;
+        border-radius: 16px !important;
         margin: 0 !important;
-        max-height: none !important;
+        max-height: 85vh !important;
       }
 
       /* Messages area must expand and scroll */

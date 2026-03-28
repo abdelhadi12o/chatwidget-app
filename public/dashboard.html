@@ -252,6 +252,15 @@
           </div>
 
           <div>
+            <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Bot Logo / Avatar</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <img id="logoPreview" src="" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: none; border: 1px solid #d1d5db;">
+              <input type="file" id="customLogoInput" accept="image/png, image/jpeg, image/jpg" style="font-size: 14px;">
+            </div>
+            <input type="hidden" id="botLogoBase64" value="">
+          </div>
+
+          <div>
             <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">First Message (Greeting)</label>
             <input type="text" id="customWelcome" class="create-url-input" placeholder="e.g., Hi! How can I help you shop today?" style="height: 45px; margin-bottom: 0;">
           </div>
@@ -397,6 +406,16 @@
             document.getElementById('qr1').value = quickReplies[0] || '';
             document.getElementById('qr2').value = quickReplies[1] || '';
             document.getElementById('qr3').value = quickReplies[2] || '';
+          }
+
+          // Load Bot Logo
+          const botLogo = chatbotData.customization.botLogo;
+          if (botLogo) {
+            const logoPreview = document.getElementById('logoPreview');
+            const botLogoBase64Input = document.getElementById('botLogoBase64');
+            logoPreview.src = botLogo;
+            logoPreview.style.display = 'block';
+            botLogoBase64Input.value = botLogo;
           }
         }
 
@@ -677,6 +696,34 @@
       }
     });
 
+    // Logo Upload Handler
+    const logoInput = document.getElementById('customLogoInput');
+    const logoPreview = document.getElementById('logoPreview');
+    const botLogoBase64 = document.getElementById('botLogoBase64');
+
+    if (logoInput) {
+      logoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Check file size (1MB limit)
+        if (file.size > 1024 * 1024) {
+          alert('Image size must be less than 1MB');
+          e.target.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target.result;
+          logoPreview.src = base64;
+          logoPreview.style.display = 'block';
+          botLogoBase64.value = base64;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     // Save Appearance Settings
     document.getElementById('saveAppearanceBtn').addEventListener('click', async () => {
       const btn = document.getElementById('saveAppearanceBtn');
@@ -689,6 +736,7 @@
       const qr2 = document.getElementById('qr2').value.trim();
       const qr3 = document.getElementById('qr3').value.trim();
       const quickReplies = [qr1, qr2, qr3].filter(qr => qr !== '');
+      const botLogo = botLogoBase64.value;
 
       btn.innerHTML = '<span class="loading-spinner"></span>Saving...';
       btn.disabled = true;
@@ -697,7 +745,7 @@
         const response = await fetch('/api/chatbot/customization', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ botName, welcomeMessage, bubbleColor, quickReplies })
+          body: JSON.stringify({ botName, welcomeMessage, bubbleColor, quickReplies, botLogo })
         });
 
         if (response.ok) {
