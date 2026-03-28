@@ -194,6 +194,23 @@
         <div style="display: flex; gap: 12px;">
           <button class="btn btn-danger" id="deleteBtn" style="width: 100%;">Delete Chatbot</button>
         </div>
+
+        <!-- Lead Capture Timing Settings -->
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--dark);">Lead Capture Timing</h3>
+          <p style="font-size: 13px; color: var(--subtext); margin-bottom: 12px;">Choose when the contact form appears to balance engagement and conversion.</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <select id="leadTimingSelect" class="create-url-input" style="height: 40px; margin-bottom: 0; max-width: 250px; cursor: pointer; padding: 0 12px;">
+              <option value="1">After 1 message (Aggressive)</option>
+              <option value="2">After 2 messages (Fast)</option>
+              <option value="3">After 3 messages (Recommended)</option>
+              <option value="4">After 4 messages (Delayed)</option>
+              <option value="0">Never show form (Off)</option>
+            </select>
+            <button id="saveTimingBtn" class="btn btn-outline" style="padding: 8px 16px;">Save</button>
+            <span id="timingMsg" style="font-size: 13px; display: none;"></span>
+          </div>
+        </div>
       </div>
 
       <div class="card hidden" id="tab-embed">
@@ -331,6 +348,7 @@
         document.getElementById('dynamicCode').textContent = `<script>\n  const widgetScript = document.createElement('script');\n  widgetScript.src = '${baseUrl}/widget.js';\n  widgetScript.setAttribute('data-widget-id', '${widgetId}');\n  document.body.appendChild(widgetScript);\n<\/script>`;
 
         // Initialize features
+        document.getElementById('leadTimingSelect').value = chatbotData.customization?.leadCaptureTiming ?? 3;
         setupStatusToggle(chatbotData.isActive);
         loadLeads();
 
@@ -544,6 +562,29 @@
       } catch (err) {
         msg.textContent = 'Error saving knowledge.';
         msg.className = 'message error show';
+      }
+    });
+
+    // --- LEAD TIMING SETTINGS ---
+    document.getElementById('saveTimingBtn').addEventListener('click', async () => {
+      const val = document.getElementById('leadTimingSelect').value;
+      const msg = document.getElementById('timingMsg');
+
+      try {
+        const res = await fetch('/api/chatbot/customization', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ leadCaptureTiming: parseInt(val) })
+        });
+
+        if (res.ok) {
+          msg.textContent = '✅ Saved!';
+          msg.style.color = '#10b981';
+          msg.style.display = 'inline';
+          setTimeout(() => msg.style.display = 'none', 2000);
+        }
+      } catch (err) {
+        alert('Failed to save settings');
       }
     });
 

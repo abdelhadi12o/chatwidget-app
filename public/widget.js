@@ -210,7 +210,7 @@ class AIWidget {
       this.addMessage(data.answer, 'ai');
 
       this.messageCount++;
-      if (this.messageCount === 2 && !this.leadCaptured && !this.leadFormShown) {
+      if (this.leadCaptureTiming > 0 && this.messageCount === this.leadCaptureTiming && !this.leadCaptured && !this.leadFormShown) {
         setTimeout(() => this.showLeadForm(), 1000);
         this.leadFormShown = true;
       }
@@ -310,18 +310,23 @@ if (document.readyState === 'loading') {
 async function initWidget() {
   const widgetId = document.currentScript.getAttribute('data-widget-id') || 'default_widget';
 
-  // Fetch widget settings
+  let timing = 3; // Default to 3 if not set
   try {
-    const response = await fetch(`/api/chatbot/settings/${widgetId}`);
+    const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
     if (response.ok) {
       const settings = await response.json();
       applyCustomization(settings.customization);
+      if (settings.customization && settings.customization.leadCaptureTiming !== undefined) {
+        timing = settings.customization.leadCaptureTiming;
+      }
     }
   } catch (error) {
     console.log('Failed to fetch widget settings:', error.message);
   }
 
-  new AIWidget(widgetId);
+  // Pass the timing variable into the widget
+  const widget = new AIWidget(widgetId);
+  widget.leadCaptureTiming = timing;
   addWidgetStyles();
 }
 

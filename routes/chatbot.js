@@ -240,13 +240,14 @@ router.delete('/faqs/:index', authenticateToken, async (req, res) => {
 // Update customization
 router.patch('/customization', authenticateToken, async (req, res) => {
   try {
-    const { botName, bubbleColor, welcomeMessage, position } = req.body;
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming } = req.body;
     const chatbot = await Chatbot.findOne({ userId: req.user.userId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     if (botName) chatbot.customization.botName = botName;
     if (bubbleColor) chatbot.customization.bubbleColor = bubbleColor;
     if (welcomeMessage) chatbot.customization.welcomeMessage = welcomeMessage;
     if (position) chatbot.customization.position = position;
+    if (leadCaptureTiming !== undefined) chatbot.customization.leadCaptureTiming = leadCaptureTiming;
     await chatbot.save();
     res.json({ message: 'Customization updated', customization: chatbot.customization });
   } catch (error) {
