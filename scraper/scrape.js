@@ -9,74 +9,25 @@ const extractTextFromPage = (html, pageUrl) => {
   // Remove unwanted elements
   $('script, style, nav, header, footer, aside, .ads, .advert, .sidebar, .menu, .navigation, [role="navigation"], .navbar, .footer, .header').remove();
 
-  const texts = [];
   const pageContent = [];
 
-  // Helper function to find the closest link and convert to absolute URL
-  const findAssociatedLink = (el) => {
-    const $el = $(el);
-
-    // Helper to convert href to absolute URL
-    const toAbsolute = (href) => {
-      if (!href) return null;
-      try {
-        return new URL(href, pageUrl).href;
-      } catch (e) {
-        // If URL constructor fails, return as-is if it looks like a URL
-        if (href.startsWith('http')) return href;
-        return null;
-      }
-    };
-
-    // 1. Check if element itself contains a direct <a> (e.g., <p>with <a>link</a></p>)
-    const selfLink = $el.find('a').first();
-    if (selfLink.length) {
-      const href = selfLink.attr('href');
-      if (href) return toAbsolute(href);
+  // Helper to convert any href to absolute URL
+  const toAbsoluteUrl = (href) => {
+    if (!href) return null;
+    try {
+      return new URL(href, pageUrl).href;
+    } catch (e) {
+      if (href.startsWith('http')) return href;
+      return null;
     }
-
-    // 2. Check if element is wrapped by an <a> tag (ancestor)
-    const ancestorLink = $el.closest('a');
-    if (ancestorLink.length) {
-      const href = ancestorLink.attr('href');
-      if (href) return toAbsolute(href);
-    }
-
-    // 3. Search among siblings (within the same parent)
-    const parent = $el.parent();
-    if (parent.length) {
-      // Find any <a> within this parent (including deeper descendants)
-      const parentLink = parent.find('a').first();
-      if (parentLink.length && !parentLink.closest($el).length) {
-        const href = parentLink.attr('href');
-        if (href) return toAbsolute(href);
-      }
-    }
-
-    // 4. Check grandparent (to catch links in adjacent columns/sections)
-    const grandparent = parent.parent();
-    if (grandparent.length) {
-      const gpLink = grandparent.find('a').first();
-      if (gpLink.length) {
-        // Only accept if the link is not too far away (within 2 levels up)
-        const href = gpLink.attr('href');
-        if (href) return toAbsolute(href);
-      }
-    }
-
-    return null;
   };
 
-  // Process headings (likely product titles)
+  // ===== STANDARD TEXT EXTRACTION (FAQs, descriptions, etc.) =====
+  // Process headings
   $('h1, h2, h3').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 5) {
-      const link = findAssociatedLink(el);
-      if (link) {
-        pageContent.push(`${text} | Link: ${link}`);
-      } else {
-        pageContent.push(text);
-      }
+      pageContent.push(text);
     }
   });
 
@@ -84,50 +35,49 @@ const extractTextFromPage = (html, pageUrl) => {
   $('p').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 50) {
-      const link = findAssociatedLink(el);
-      if (link) {
-        pageContent.push(`${text} | Link: ${link}`);
-      } else {
-        pageContent.push(text);
-      }
+      pageContent.push(text);
     }
   });
 
-  // Get list items (often product listings)
+  // Get list items
   $('li').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 20) {
-      const link = findAssociatedLink(el);
-      if (link) {
-        pageContent.push(`${text} | Link: ${link}`);
-      } else {
-        pageContent.push(text);
-      }
+      pageContent.push(text);
     }
   });
 
-  // Get table cells (useful for pricing, features)
+  // Get table cells
   $('td, th').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 10) {
-      const link = findAssociatedLink(el);
-      if (link) {
-        pageContent.push(`${text} | Link: ${link}`);
-      } else {
-        pageContent.push(text);
-      }
+      pageContent.push(text);
     }
   });
 
-  // Get span content (often contains important info)
+  // Get span content
   $('span').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 30 && !text.match(/^\$?\d+\.?\d*$/)) {
-      const link = findAssociatedLink(el);
-      if (link) {
-        pageContent.push(`${text} | Link: ${link}`);
-      } else {
-        pageContent.push(text);
+      pageContent.push(text);
+    }
+  });
+
+  // ===== AGGRESSIVE LINK HUNTING =====
+  // Hunt for ALL <a> tags that have text content and href
+  $('a[href]').each((i, el) => {
+    const $el = $(el);
+    const href = $el.attr('href');
+    const text = $el.text().trim();
+
+    // Only process if we have both a valid href and text
+    if (text && text.length > 2 && href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+      const absoluteUrl = toAbsoluteUrl(href);
+      if (absoluteUrl) {
+        // Extract product name/text. If too long, truncate for clarity
+        const cleanText = text.length > 100 ? text.substring(0, 100) + '...' : text;
+        // Forcefully inject into content array with explicit format
+        pageContent.push(`Product Name: ${cleanText} | Direct Link: ${absoluteUrl}`);
       }
     }
   });
