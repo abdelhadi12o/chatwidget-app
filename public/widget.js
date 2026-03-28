@@ -58,11 +58,6 @@ class AIWidget {
     this.closeBtn = this.container.querySelector('.ai-widget-close');
     this.notificationDot = this.container.querySelector('.ai-widget-notification-dot');
 
-    // Force launcher bubble to right side (bypass RTL conflicts)
-    this.bubble.style.setProperty('left', 'auto', 'important');
-    this.bubble.style.setProperty('right', '20px', 'important');
-    this.bubble.style.setProperty('bottom', '24px', 'important');
-
     // Enforce hidden on creation
     this.chat.style.setProperty('display', 'none', 'important');
   }
@@ -872,7 +867,7 @@ function addWidgetStyles() {
       html body .ai-widget-bubble {
         bottom: 85px !important;
       }
-      html body .ai-widget-container {
+      html body .ai-widget-chat {
         bottom: 160px !important;
       }
     }
