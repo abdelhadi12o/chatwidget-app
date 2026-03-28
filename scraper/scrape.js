@@ -12,34 +12,55 @@ const extractTextFromPage = (html, pageUrl) => {
   const texts = [];
   const pageContent = [];
 
-  // Helper function to find the closest link in the element's parent or ancestors
+  // Helper function to find the closest link and convert to absolute URL
   const findAssociatedLink = (el) => {
-    // First check if the element itself is inside an <a> tag
-    let parentLink = $(el).closest('a');
-    if (parentLink.length) {
-      const href = parentLink.attr('href');
-      if (href) {
-        try {
-          return new URL(href, pageUrl).href;
-        } catch (e) {
-          return href;
-        }
+    const $el = $(el);
+
+    // Helper to convert href to absolute URL
+    const toAbsolute = (href) => {
+      if (!href) return null;
+      try {
+        return new URL(href, pageUrl).href;
+      } catch (e) {
+        // If URL constructor fails, return as-is if it looks like a URL
+        if (href.startsWith('http')) return href;
+        return null;
+      }
+    };
+
+    // 1. Check if element itself contains a direct <a> (e.g., <p>with <a>link</a></p>)
+    const selfLink = $el.find('a').first();
+    if (selfLink.length) {
+      const href = selfLink.attr('href');
+      if (href) return toAbsolute(href);
+    }
+
+    // 2. Check if element is wrapped by an <a> tag (ancestor)
+    const ancestorLink = $el.closest('a');
+    if (ancestorLink.length) {
+      const href = ancestorLink.attr('href');
+      if (href) return toAbsolute(href);
+    }
+
+    // 3. Search among siblings (within the same parent)
+    const parent = $el.parent();
+    if (parent.length) {
+      // Find any <a> within this parent (including deeper descendants)
+      const parentLink = parent.find('a').first();
+      if (parentLink.length && !parentLink.closest($el).length) {
+        const href = parentLink.attr('href');
+        if (href) return toAbsolute(href);
       }
     }
 
-    // Then look for the nearest <a> sibling or parent child
-    const parent = $(el).parent();
-    if (parent.length) {
-      const link = parent.find('a').first();
-      if (link.length) {
-        const href = link.attr('href');
-        if (href) {
-          try {
-            return new URL(href, pageUrl).href;
-          } catch (e) {
-            return href;
-          }
-        }
+    // 4. Check grandparent (to catch links in adjacent columns/sections)
+    const grandparent = parent.parent();
+    if (grandparent.length) {
+      const gpLink = grandparent.find('a').first();
+      if (gpLink.length) {
+        // Only accept if the link is not too far away (within 2 levels up)
+        const href = gpLink.attr('href');
+        if (href) return toAbsolute(href);
       }
     }
 
