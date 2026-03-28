@@ -58,7 +58,13 @@ class AIWidget {
     this.closeBtn = this.container.querySelector('.ai-widget-close');
     this.notificationDot = this.container.querySelector('.ai-widget-notification-dot');
 
-    this.chat.style.display = 'none';
+    // Force launcher bubble to right side (bypass RTL conflicts)
+    this.bubble.style.setProperty('left', 'auto', 'important');
+    this.bubble.style.setProperty('right', '20px', 'important');
+    this.bubble.style.setProperty('bottom', '24px', 'important');
+
+    // Enforce hidden on creation
+    this.chat.style.setProperty('display', 'none', 'important');
   }
 
   bindEvents() {
@@ -90,8 +96,8 @@ class AIWidget {
   openChat() {
     this.isOpen = true;
     this.container.classList.add('open');
-    this.bubble.style.display = 'none';
-    this.chat.style.display = 'flex';
+    this.bubble.style.setProperty('display', 'none', 'important');
+    this.chat.style.setProperty('display', 'flex', 'important');
     this.chat.style.animation = 'slideUp 0.3s ease-out';
     this.inputField.focus();
 
@@ -111,8 +117,8 @@ class AIWidget {
     this.isOpen = false;
     this.container.classList.remove('open');
     this.chat.style.animation = 'slideDown 0.3s ease-out';
-    this.chat.style.display = 'none';
-    this.bubble.style.display = 'block';
+    this.chat.style.setProperty('display', 'none', 'important');
+    this.bubble.style.setProperty('display', 'flex', 'important');
     this.inputField.value = '';
   }
 
@@ -427,24 +433,38 @@ function addWidgetStyles() {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      z-index: 999999;
+      z-index: 2147483647;
+    }
+
+    /* Mobile container positioning - bottom sheet */
+    @media (max-width: 768px) {
+      .ai-widget-container {
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        margin: 0 !important;
+      }
     }
 
     .ai-widget-bubble {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: white;
-      padding: 18px;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
-      transition: all 0.3s ease;
-      width: 60px;
-      height: 60px;
-      font-size: 20px;
-      position: relative;
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      left: auto !important;
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      z-index: 2147483646 !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+      color: white !important;
+      padding: 18px !important;
+      transition: all 0.3s ease !important;
+      font-size: 20px !important;
     }
 
     .ai-widget-bubble:hover {
@@ -477,12 +497,25 @@ function addWidgetStyles() {
 
     .ai-widget-chat {
       display: none;
-      width: 370px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      position: fixed !important;
+      bottom: 20px !important;
+      right: 20px !important;
+      width: 350px !important;
+      height: 540px !important;
+      max-height: 80vh !important;
+      border-radius: 10px !important;
+      background: white !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15) !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       animation: slideUp 0.3s ease-out;
+    }
+
+    /* Open state - applied via inline style from JS */
+    .ai-widget-chat.open {
+      display: flex !important;
     }
 
     .ai-widget-header {
@@ -538,10 +571,14 @@ function addWidgetStyles() {
     }
 
     .ai-widget-messages {
-      height: 300px;
-      overflow-y: auto;
-      padding: 16px;
-      background: white;
+      flex: 1 1 auto !important;
+      overflow-y: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 16px !important;
+      background: #f8fafc !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
 
     .ai-widget-message {
@@ -567,7 +604,8 @@ function addWidgetStyles() {
       font-size: 14px;
       line-height: 1.5;
       max-width: 70%;
-      word-wrap: break-word;
+      white-space: pre-wrap !important;
+      word-break: normal !important;
     }
 
     /* User messages - WhatsApp style (right aligned, avatar on right) */
@@ -658,53 +696,37 @@ function addWidgetStyles() {
     @media (max-width: 768px) {
       /* Closed bubble positioning on mobile */
       .ai-widget-bubble {
-        width: 50px !important;
-        height: 50px !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        left: auto !important;
+        width: 54px !important;
+        height: 54px !important;
         padding: 14px !important;
-        bottom: 10px !important;
-        right: 10px !important;
       }
 
-      /* Fullscreen overlay when chat is OPEN on mobile */
-      .ai-widget-container.open {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
+      /* MOBILE BOTTOM SHEET STYLE */
+      .ai-widget-container {
         bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        height: 100dvh !important;
-        border-radius: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
         margin: 0 !important;
-        z-index: 2147483647 !important;
-        transform: none !important;
       }
 
-      .ai-widget-container.open .ai-widget-chat {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
+      .ai-widget-chat {
+        width: 100vw !important;
+        height: 85vh !important;
         bottom: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        max-height: 100dvh !important;
-        border-radius: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
-
-      .ai-widget-container.open .ai-widget-bubble {
-        display: none !important;
+        right: 0 !important;
+        left: 0 !important;
+        border-radius: 20px 20px 0 0 !important;
+        margin: 0 !important;
+        max-height: none !important;
       }
 
       /* Messages area must expand and scroll */
-      .ai-widget-container.open .ai-widget-messages {
-        flex: 1 !important;
-        overflow-y: auto !important;
-        height: auto !important;
-        min-height: 0 !important;
+      .ai-widget-messages {
+        padding: 16px !important;
+        background: #f8fafc !important;
       }
 
       /* Input area stays docked at bottom */
