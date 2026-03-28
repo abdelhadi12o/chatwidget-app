@@ -532,7 +532,7 @@ function addWidgetStyles() {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid #e5e7eb;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       border-radius: 16px 16px 0 0;
@@ -864,6 +864,13 @@ function addWidgetStyles() {
     .ai-widget-message.ai-message {
       margin-right: auto !important;
       text-align: left !important;
+    }
+
+    /* Desktop bubble position adjustment */
+    @media (min-width: 768px) {
+      .ai-widget-bubble {
+        bottom: 53px !important;
+      }
     }
   `;
 
