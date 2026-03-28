@@ -2250,7 +2250,7 @@
         // Widget code (formatted with line breaks)
         const baseUrl = window.location.hostname === 'localhost' ? `http://localhost:${location.port}` : `https://${window.location.hostname}`;
         const widgetCode = `<script\n  src="${baseUrl}/widget.js"\n  data-widget-id="${widgetId}">\n<\/script>`;
-        const dynamicCode = `const script = document.createElement('script');\nscript.src = '${baseUrl}/widget.js';\nscript.setAttribute('data-widget-id', '${widgetId}');\ndocument.body.appendChild(script);`;
+        const dynamicCode = `<script>\n  const widgetScript = document.createElement('script');\n  widgetScript.src = '${baseUrl}/widget.js';\n  widgetScript.setAttribute('data-widget-id', '${widgetId}');\n  document.body.appendChild(widgetScript);\n<\/script>`;
 
         document.getElementById('embedCode').textContent = widgetCode;
         document.getElementById('dynamicCode').textContent = dynamicCode;
