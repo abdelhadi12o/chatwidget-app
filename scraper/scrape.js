@@ -12,11 +12,50 @@ const extractTextFromPage = (html, pageUrl) => {
   const texts = [];
   const pageContent = [];
 
-  // Get headings
+  // Helper function to find the closest link in the element's parent or ancestors
+  const findAssociatedLink = (el) => {
+    // First check if the element itself is inside an <a> tag
+    let parentLink = $(el).closest('a');
+    if (parentLink.length) {
+      const href = parentLink.attr('href');
+      if (href) {
+        try {
+          return new URL(href, pageUrl).href;
+        } catch (e) {
+          return href;
+        }
+      }
+    }
+
+    // Then look for the nearest <a> sibling or parent child
+    const parent = $(el).parent();
+    if (parent.length) {
+      const link = parent.find('a').first();
+      if (link.length) {
+        const href = link.attr('href');
+        if (href) {
+          try {
+            return new URL(href, pageUrl).href;
+          } catch (e) {
+            return href;
+          }
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // Process headings (likely product titles)
   $('h1, h2, h3').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 5) {
-      pageContent.push(text);
+      const link = findAssociatedLink(el);
+      if (link) {
+        pageContent.push(`${text} | Link: ${link}`);
+      } else {
+        pageContent.push(text);
+      }
     }
   });
 
@@ -24,15 +63,25 @@ const extractTextFromPage = (html, pageUrl) => {
   $('p').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 50) {
-      pageContent.push(text);
+      const link = findAssociatedLink(el);
+      if (link) {
+        pageContent.push(`${text} | Link: ${link}`);
+      } else {
+        pageContent.push(text);
+      }
     }
   });
 
-  // Get list items
+  // Get list items (often product listings)
   $('li').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 20) {
-      pageContent.push(text);
+      const link = findAssociatedLink(el);
+      if (link) {
+        pageContent.push(`${text} | Link: ${link}`);
+      } else {
+        pageContent.push(text);
+      }
     }
   });
 
@@ -40,7 +89,12 @@ const extractTextFromPage = (html, pageUrl) => {
   $('td, th').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 10) {
-      pageContent.push(text);
+      const link = findAssociatedLink(el);
+      if (link) {
+        pageContent.push(`${text} | Link: ${link}`);
+      } else {
+        pageContent.push(text);
+      }
     }
   });
 
@@ -48,7 +102,12 @@ const extractTextFromPage = (html, pageUrl) => {
   $('span').each((i, el) => {
     const text = $(el).text().trim();
     if (text && text.length > 30 && !text.match(/^\$?\d+\.?\d*$/)) {
-      pageContent.push(text);
+      const link = findAssociatedLink(el);
+      if (link) {
+        pageContent.push(`${text} | Link: ${link}`);
+      } else {
+        pageContent.push(text);
+      }
     }
   });
 

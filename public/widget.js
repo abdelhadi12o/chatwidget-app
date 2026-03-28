@@ -139,7 +139,10 @@ class AIWidget {
     messageDiv.className = `ai-widget-message ${sender}-message`;
 
     const avatar = sender === 'user' ? '👤' : '🤖';
-    const text = content.replace(/\n/g, '<br>');
+    // Convert newlines to <br>, then convert Markdown [text](url) to styled <a> tags
+    const text = content
+      .replace(/\n/g, '<br>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600;">$1</a>');
 
     messageDiv.innerHTML = `
       <span class="ai-widget-avatar">${avatar}</span>
