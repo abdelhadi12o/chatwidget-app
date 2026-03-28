@@ -103,13 +103,8 @@ class AIWidget {
 
     // Show welcome message
     if (this.messages.length === 0) {
-      let welcomeMessage;
-      if (this.widgetId === 'demo-widget') {
-        welcomeMessage = "👋 Hi! I'm the ChatWidget AI. Ask me anything about our product — pricing, how it works, or getting started!";
-      } else {
-        welcomeMessage = "Hi! I'm your AI assistant. How can I help you today?";
-      }
-      this.addMessage(welcomeMessage, 'ai');
+      const welcome = this.customWelcome || "👋 Hi! I'm your AI assistant. How can I help you today?";
+      this.addMessage(welcome, 'ai');
     }
   }
 
@@ -322,7 +317,7 @@ async function initWidget() {
     const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
     if (response.ok) {
       const settings = await response.json();
-      applyCustomization(settings.customization);
+      applyCustomization(settings.customization, widget);
       if (settings.customization && settings.customization.leadCaptureTiming !== undefined) {
         timing = settings.customization.leadCaptureTiming;
       }
@@ -337,39 +332,34 @@ async function initWidget() {
   addWidgetStyles();
 }
 
-function applyCustomization(customization) {
-  // Apply customization settings to existing elements
-  const bubble = document.querySelector('.ai-widget-bubble');
-  const header = document.querySelector('.ai-widget-header');
-  const input = document.querySelector('.ai-widget-input');
-  const sendBtn = document.querySelector('.ai-widget-send');
-
-  if (bubble && customization.bubbleColor) {
-    bubble.style.background = customization.bubbleColor;
+function applyCustomization(customization, widget) {
+  // Apply bot name
+  if (customization.botName) {
+    const titleEl = document.querySelector('.ai-widget-title');
+    if (titleEl) titleEl.textContent = customization.botName;
   }
 
-  if (header && customization.bubbleColor) {
-    header.style.background = customization.bubbleColor;
-  }
-
-  if (input && customization.bubbleColor) {
-    input.style.borderTopColor = customization.bubbleColor;
-    input.style.background = `linear-gradient(135deg, ${customization.bubbleColor}, ${adjustColor(customization.bubbleColor, 20)})`;
-  }
-
-  if (sendBtn && customization.bubbleColor) {
-    sendBtn.style.background = customization.bubbleColor;
-  }
-
-  // Update welcome message if available
+  // Store welcome message on widget instance for use in openChat
   if (customization.welcomeMessage) {
-    const existingWidget = document.querySelector('.ai-widget-container');
-    if (existingWidget) {
-      const inputField = existingWidget.querySelector('.ai-widget-input-field');
-      if (inputField) {
-        inputField.setAttribute('placeholder', customization.welcomeMessage);
+    widget.customWelcome = customization.welcomeMessage;
+  }
+
+  // Apply theme color via dynamic CSS for consistent styling
+  if (customization.bubbleColor) {
+    // Create a dynamic style block to override the CSS gradient classes safely
+    const dynamicStyle = document.createElement('style');
+    dynamicStyle.textContent = `
+      .ai-widget-bubble, .ai-widget-header, .ai-widget-send, .user-message .ai-widget-avatar, .user-message .ai-widget-message-content, .ai-lead-submit {
+        background: ${customization.bubbleColor} !important;
       }
-    }
+      .ai-widget-input-field:focus {
+        border-color: ${customization.bubbleColor} !important;
+      }
+      .ai-message .ai-widget-avatar {
+        background: ${customization.bubbleColor} !important;
+      }
+    `;
+    document.head.appendChild(dynamicStyle);
   }
 
   // Update position if specified

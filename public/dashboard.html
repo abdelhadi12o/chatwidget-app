@@ -192,7 +192,8 @@
           <div class="info-row"><span class="info-icon">📅</span><span class="info-label">Created</span><span class="info-value" id="createdAt">-</span></div>
         </div>
         <div style="display: flex; gap: 12px;">
-          <button class="btn btn-danger" id="deleteBtn" style="width: 100%;">Delete Chatbot</button>
+          <button class="btn btn-outline" id="retrainBtn" style="flex: 1;">🔄 Retrain AI</button>
+          <button class="btn btn-danger" id="deleteBtn" style="flex: 1;">Delete Chatbot</button>
         </div>
 
         <!-- Lead Capture Timing Settings -->
@@ -237,6 +238,34 @@
         <p class="card-subtitle">Visitors who left their contact info</p>
         <div id="leadsTable">
           <p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">Loading leads...</p>
+        </div>
+      </div>
+
+      <div class="card hidden" id="tab-appearance">
+        <h2 class="card-title">🎨 Widget Appearance</h2>
+        <p class="card-subtitle">Customize how your bot looks and talks</p>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+          <div>
+            <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Bot Name</label>
+            <input type="text" id="customBotName" class="create-url-input" placeholder="e.g., Support Bot, Sarah" style="height: 45px; margin-bottom: 0;">
+          </div>
+
+          <div>
+            <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">First Message (Greeting)</label>
+            <input type="text" id="customWelcome" class="create-url-input" placeholder="e.g., Hi! How can I help you shop today?" style="height: 45px; margin-bottom: 0;">
+          </div>
+
+          <div>
+            <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Theme Color</label>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <input type="color" id="customColor" value="#6366f1" style="width: 50px; height: 45px; border: none; border-radius: 8px; cursor: pointer; background: transparent; padding: 0;">
+              <span style="font-size: 14px; color: var(--subtext);">Pick your brand color</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="saveAppearanceBtn" style="margin-top: 8px; width: 100%;">Save Appearance</button>
+          <div id="appearanceMsg" class="message"></div>
         </div>
       </div>
 
@@ -324,6 +353,7 @@
         document.getElementById('noChatbot').classList.add('hidden');
         document.getElementById('tab-overview').classList.remove('hidden');
         document.getElementById('tab-embed').classList.remove('hidden');
+        document.getElementById('tab-appearance').classList.remove('hidden');
         document.getElementById('tab-knowledge').classList.remove('hidden');
         document.getElementById('tab-test').classList.remove('hidden');
         document.getElementById('tab-leads').classList.remove('hidden');
@@ -346,6 +376,13 @@
         const baseUrl = window.location.hostname === 'localhost' ? `http://localhost:${location.port}` : `https://${window.location.hostname}`;
         document.getElementById('embedCode').textContent = `<script\n  src="${baseUrl}/widget.js"\n  data-widget-id="${widgetId}">\n<\/script>`;
         document.getElementById('dynamicCode').textContent = `<script>\n  const widgetScript = document.createElement('script');\n  widgetScript.src = '${baseUrl}/widget.js';\n  widgetScript.setAttribute('data-widget-id', '${widgetId}');\n  document.body.appendChild(widgetScript);\n<\/script>`;
+
+        // Load Appearance Settings
+        if (chatbotData.customization) {
+          document.getElementById('customBotName').value = chatbotData.customization.botName || 'AI Assistant';
+          document.getElementById('customWelcome').value = chatbotData.customization.welcomeMessage || "👋 Hi! I'm your AI assistant. How can I help you today?";
+          document.getElementById('customColor').value = chatbotData.customization.bubbleColor || '#6366f1';
+        }
 
         // Initialize features
         document.getElementById('leadTimingSelect').value = chatbotData.customization?.leadCaptureTiming ?? 3;
@@ -505,6 +542,42 @@
       } catch (err) { alert('Error deleting chatbot'); }
     });
 
+    // Retrain Chatbot
+    const retrainBtn = document.getElementById('retrainBtn');
+    if (retrainBtn) {
+      retrainBtn.addEventListener('click', async () => {
+        const originalText = retrainBtn.innerHTML;
+        retrainBtn.disabled = true;
+        retrainBtn.innerHTML = '<span class="loading-spinner"></span>Retraining...';
+
+        try {
+          const response = await fetch('/api/chatbot/retrain', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+              const data = await response.json();
+              throw new Error(data.error || 'Failed to retrain');
+            } else {
+              throw new Error('Server is still updating or route not found. Please wait 2 minutes and try again.');
+            }
+          }
+
+          alert('✅ Chatbot retrained successfully with the latest website content!');
+          loadChatbot(); // Refresh the stats
+        } catch (err) {
+          console.error('Retrain error:', err);
+          alert(err.message);
+        } finally {
+          retrainBtn.disabled = false;
+          retrainBtn.innerHTML = originalText;
+        }
+      });
+    }
+
     // Test Chat
     document.getElementById('sendTestBtn').addEventListener('click', async () => {
       const input = document.getElementById('testInput');
@@ -585,6 +658,41 @@
         }
       } catch (err) {
         alert('Failed to save settings');
+      }
+    });
+
+    // Save Appearance Settings
+    document.getElementById('saveAppearanceBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveAppearanceBtn');
+      const msg = document.getElementById('appearanceMsg');
+
+      const botName = document.getElementById('customBotName').value.trim();
+      const welcomeMessage = document.getElementById('customWelcome').value.trim();
+      const bubbleColor = document.getElementById('customColor').value;
+
+      btn.innerHTML = '<span class="loading-spinner"></span>Saving...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/api/chatbot/customization', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ botName, welcomeMessage, bubbleColor })
+        });
+
+        if (response.ok) {
+          msg.textContent = '✓ Appearance saved successfully!';
+          msg.className = 'message success show';
+          setTimeout(() => msg.className = 'message', 3000);
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (err) {
+        msg.textContent = 'Error saving appearance.';
+        msg.className = 'message error show';
+      } finally {
+        btn.innerHTML = 'Save Appearance';
+        btn.disabled = false;
       }
     });
 

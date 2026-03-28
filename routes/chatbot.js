@@ -48,6 +48,32 @@ router.post('/create', authenticateToken, async (req, res) => {
   }
 });
 
+// Retrain chatbot
+router.post('/retrain', authenticateToken, async (req, res) => {
+  try {
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+    let scrapeResult;
+    try {
+      scrapeResult = await scrapeWebsite(chatbot.websiteUrl);
+    } catch (scrapeError) {
+      return res.status(400).json({ error: 'Failed to scrape website: ' + scrapeError.message });
+    }
+
+    if (!scrapeResult || scrapeResult.pages.length === 0) {
+      return res.status(400).json({ error: 'No content found on the website' });
+    }
+
+    chatbot.scrapedContent = scrapeResult;
+    await chatbot.save();
+
+    res.json({ message: 'Chatbot retrained successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get user's chatbot
 router.get('/my-bot', authenticateToken, async (req, res) => {
   try {
