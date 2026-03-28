@@ -281,7 +281,8 @@ router.post('/lead', async (req, res) => {
 // Get leads by widgetId (protected)
 router.get('/leads/:widgetId', authenticateToken, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.user.id });
+    // FIX: Changed req.user.id to req.user.userId
+    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.user.userId });
     if (!chatbot) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
