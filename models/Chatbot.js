@@ -10,6 +10,7 @@ const ChatbotSchema = new mongoose.Schema({
   conversations: { type: Array, default: [] },
   faqs: { type: Array, default: [] },
   customKnowledge: { type: String, default: '' },
+  trainedFiles: [{ fileName: String, uploadDate: { type: Date, default: Date.now } }],
   customization: {
     botName: { type: String, default: 'AI Assistant' },
     bubbleColor: { type: String, default: '#6366f1' },

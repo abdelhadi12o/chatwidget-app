@@ -5,6 +5,17 @@ const Lead = require('../models/Lead');
 const { scrapeWebsite } = require('../scraper/scrape');
 const { authenticateToken } = require('../middleware/auth');
 const Groq = require('groq-sdk');
+const multer = require('multer');
+
+// --- NEW MODERN PDF LIBRARY ---
+const { PDFExtract } = require('pdf.js-extract');
+const pdfExtract = new PDFExtract();
+
+// Configure multer for in-memory file storage (5MB limit)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 const generateWidgetId = () => {
   return 'widget_' + Math.random().toString(36).substr(2, 16) + Date.now().toString(36);
@@ -88,7 +99,9 @@ router.get('/my-bot', authenticateToken, async (req, res) => {
       createdAt: chatbot.createdAt,
       faqs: chatbot.faqs || [],
       customization: chatbot.customization,
-      scrapedContent: chatbot.scrapedContent
+      scrapedContent: chatbot.scrapedContent,
+      customKnowledge: chatbot.customKnowledge || '',
+      trainedFiles: chatbot.trainedFiles || []
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -130,16 +143,15 @@ router.post('/chat', async (req, res) => {
       context += '\n\nFAQs:\n' + chatbot.faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
     }
 
-    // Build the messages array for the AI with conversation history
     const systemPrompt = `You are the official customer support assistant for this website. You are here to help the customer, NOT the other way around.
 
 CRITICAL RULES YOU MUST FOLLOW:
-1. THE INITIAL GREETING: Your very first message must ALWAYS be a proactive offer to help the customer (e.g., "Welcome! How can I assist you today?"). This first message MUST be in the primary language of the website data. NEVER ask the customer to help you.
-2. STRICT LANGUAGE MATCHING: After the initial greeting, you MUST instantly adapt to the user's language. If they reply in English, switch to English immediately. If they reply in French, switch to French. Do not stay stuck in the website's default language.
-3. YOUR ROLE (CRITICAL): You are the store's employee. You answer questions, provide product details, and guide the customer. Never act like a confused visitor. Never break character.
-4. CONCISENESS: Keep your answers brief, friendly, and highly relevant. No long essays.
-5. UNKNOWN ANSWERS: If a customer asks something not in the provided website data, politely apologize and state that you do not have that specific information. Do not invent facts or prices.
-6. PRODUCT LINKS: If the provided knowledge context explicitly contains a website link for a product, you must share it like this: [Product Name](https://actual-link.com). IF NO LINK IS PROVIDED IN THE CONTEXT, just type the product name normally. DO NOT use brackets or parentheses if you don't have a real link.
+1. THE INITIAL GREETING: Your very first message must ALWAYS be a proactive offer to help the customer.
+2. STRICT LANGUAGE MATCHING: Instantly adapt to the user's language.
+3. YOUR ROLE (CRITICAL): You are the store's employee. Never act like a confused visitor.
+4. CONCISENESS: Keep your answers brief, friendly, and highly relevant.
+5. UNKNOWN ANSWERS: If a customer asks something not in the provided website data, politely apologize. Do not invent facts.
+6. PRODUCT LINKS: If the provided knowledge context explicitly contains a website link for a product, share it. DO NOT use brackets if you don't have a real link.
 
 Here is the knowledge you have about the website:
 ${context.substring(0, 8000)}
@@ -148,24 +160,20 @@ ADDITIONAL BUSINESS RULES & CUSTOM KNOWLEDGE (PRIORITIZE THIS INFORMATION):
 ${chatbot.customKnowledge ? chatbot.customKnowledge : 'No additional rules provided.'}
 
 BOOKING/ACTION LINK:
-${chatbot.customization.bookingLink ? `If the user wants to book an appointment, make a reservation, or complete a specific action, ALWAYS give them this exact link to do so: ${chatbot.customization.bookingLink}` : ''}
+${chatbot.customization.bookingLink ? `If the user wants to book an appointment, ALWAYS give them this exact link: ${chatbot.customization.bookingLink}` : ''}
 `;
 
     const messages = [
       { role: 'system', content: systemPrompt }
     ];
 
-    // Add conversation history if provided
     if (Array.isArray(history) && history.length > 0) {
       messages.push(...history);
     }
 
-    // Add the current user message (context is already in system prompt)
     messages.push({ role: 'user', content: message });
 
-    const groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY
-    });
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const response = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: messages,
@@ -175,9 +183,8 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
 
     const answer = response.choices[0].message.content;
 
-    // Safety net: If AI hallucinates a literal "URL" or "غير متوفر" in brackets, strip the brackets and just keep the text.
     let cleanedAnswer = answer.replace(/\[([^\]]+)\]\((?:URL|URL[^)]*|غير متوفر[^)]*)\)/ig, '$1');
-    cleanedAnswer = cleanedAnswer.replace(/\[([^\]]+)\]\(\)/g, '$1'); // Catches empty ()
+    cleanedAnswer = cleanedAnswer.replace(/\[([^\]]+)\]\(\)/g, '$1'); 
 
     if (widgetId !== 'demo-widget') {
       await Chatbot.findByIdAndUpdate(chatbot._id, {
@@ -217,7 +224,7 @@ router.patch('/update-status', authenticateToken, async (req, res) => {
   }
 });
 
-// Add knowledge
+// Add knowledge (Text)
 router.post('/add-knowledge', authenticateToken, async (req, res) => {
   try {
     const { knowledge } = req.body;
@@ -228,6 +235,52 @@ router.post('/add-knowledge', authenticateToken, async (req, res) => {
     await Chatbot.findByIdAndUpdate(chatbot._id, { $push: { scrapedContent: { $each: newChunks } } });
     res.json({ message: 'Knowledge added successfully', addedChunks: newChunks.length });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload PDF and extract text
+router.post('/upload-pdf', authenticateToken, upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    pdfExtract.extractBuffer(req.file.buffer, {}, async (err, data) => {
+      if (err) {
+        console.error('PDF extraction error:', err);
+        return res.status(500).json({ error: 'Failed to read PDF file structure.' });
+      }
+
+      try {
+        const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+        if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+        let extractedText = data.pages
+          .map(page => page.content.map(item => item.str).join(' '))
+          .join('\n\n');
+
+        extractedText = extractedText.trim();
+        if (!extractedText) return res.status(400).json({ error: 'No text extracted from PDF' });
+
+        const newChunks = extractedText.split('\n\n').filter(chunk => chunk.trim() !== '');
+        
+        if (chatbot.customKnowledge) {
+          chatbot.customKnowledge += '\n\n' + newChunks.join('\n\n');
+        } else {
+          chatbot.customKnowledge = newChunks.join('\n\n');
+        }
+
+        if (!chatbot.trainedFiles) chatbot.trainedFiles = [];
+        chatbot.trainedFiles.push({ fileName: req.file.originalname, uploadDate: Date.now() });
+
+        await chatbot.save();
+        res.json({ message: 'Success', fileName: req.file.originalname });
+      } catch (dbError) {
+        console.error('DB Error:', dbError);
+        res.status(500).json({ error: dbError.message });
+      }
+    });
+  } catch (error) {
+    console.error('Upload Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -309,6 +362,45 @@ router.patch('/knowledge', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete a specific knowledge source (Text or File)
+router.delete('/knowledge/:type/:index', authenticateToken, async (req, res) => {
+  try {
+    const { type, index } = req.params;
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+    const idx = parseInt(index, 10);
+
+    if (type === 'text') {
+      if (!chatbot.customKnowledge) return res.status(400).json({ error: 'No text to delete' });
+      // Split the text into an array, remove the specific index, and stitch it back together
+      let chunks = chatbot.customKnowledge.split('\n\n').filter(chunk => chunk.trim() !== '');
+      if (idx >= 0 && idx < chunks.length) {
+        chunks.splice(idx, 1);
+        chatbot.customKnowledge = chunks.join('\n\n');
+      }
+    } else if (type === 'file') {
+      if (!chatbot.trainedFiles || chatbot.trainedFiles.length === 0) return res.status(400).json({ error: 'No files to delete' });
+      // Remove the file from the array
+      if (idx >= 0 && idx < chatbot.trainedFiles.length) {
+        chatbot.trainedFiles.splice(idx, 1);
+      }
+    }
+
+    await chatbot.save();
+
+    // Send the updated lists back to the frontend
+    res.json({
+      message: 'Deleted successfully',
+      customKnowledge: chatbot.customKnowledge || '',
+      trainedFiles: chatbot.trainedFiles || []
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Lead capture
 router.post('/lead', async (req, res) => {
   try {
@@ -333,18 +425,14 @@ router.post('/lead', async (req, res) => {
   }
 });
 
-// Get leads by widgetId (protected)
+// Get leads by widgetId
 router.get('/leads/:widgetId', authenticateToken, async (req, res) => {
   try {
-    // FIX: Changed req.user.id to req.user.userId
     const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.user.userId });
-    if (!chatbot) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+    if (!chatbot) return res.status(403).json({ error: 'Unauthorized' });
     const leads = await Lead.find({ widgetId: req.params.widgetId }).sort({ createdAt: -1 });
     res.json(leads);
   } catch (error) {
-    console.error('Error fetching leads:', error);
     res.status(500).json({ error: 'Server error fetching leads' });
   }
 });

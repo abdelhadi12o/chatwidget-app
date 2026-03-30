@@ -10,7 +10,7 @@
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --primary: #6366f1; --accent: #f59e0b; --dark: #0f172a; --text: #1e293b; --subtext: #64748b; --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0; }
+    :root { --primary: #6366f1; --accent: #f59e0b; --dark: #ffffff; --text: #f8fafc; --subtext: #94a3b8; --bg: #0b0f19; --card: #111827; --border: #1e293b; }
     html { scroll-behavior: smooth; overflow-x: hidden; }
     body { width: 100%; max-width: 100vw; font-family: 'Satoshi', sans-serif; color: var(--text); background: var(--bg); overflow-x: hidden; }
     
@@ -123,6 +123,30 @@
     .message.show { display: block; }
     .hidden { display: none !important; }
 
+    /* --- PREMIUM UI OVERRIDES --- */
+    .card {
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid #f1f5f9;
+      padding: 32px;
+    }
+    .card#noChatbot { background: #f8fafc; border: 2px dashed #cbd5e1; box-shadow: none; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin: 28px 0; }
+    .metric-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.02); transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; overflow: hidden; }
+    .metric-card:hover { transform: translateY(-3px); box-shadow: 0 12px 25px -5px rgba(15, 23, 42, 0.08); }
+    .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--primary), #8b5cf6); opacity: 0; transition: opacity 0.3s; }
+    .metric-card:hover::before { opacity: 1; }
+    .metric-title { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .metric-value { font-size: 36px; font-weight: 700; color: var(--dark); font-family: 'Clash Display', sans-serif; line-height: 1; }
+
+    .info-list-container { background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 28px; }
+    .info-row { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; transition: background 0.2s; margin: 0; }
+    .info-row:hover { background: white; }
+    .info-icon { font-size: 20px; width: 42px; height: 42px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0; }
+    .info-label { color: var(--subtext); font-size: 14px; font-weight: 500; flex: 1; }
+    .info-value { color: var(--dark); font-weight: 600; font-size: 14px; text-align: right; word-break: break-all; }
+    /* ---------------------------- */
+
     /* ===== DASHBOARD MOBILE FIXES ===== */
     @media (max-width: 768px) {
       body { width: 100%; max-width: 100vw; overflow-x: hidden; }
@@ -146,15 +170,17 @@
       .info-value { text-align: left; }
       .code-block { font-size: 11px; padding: 12px; }
       pre.code-block { white-space: pre-wrap; word-wrap: break-word; max-width: 100%; }
+      #tab-overview > div:nth-child(3) { grid-template-columns: 1fr !important; }
     }
       body { margin: 0; background-color: #f8fafc; overflow-x: hidden; min-height: 100vh; }
 .dashboard-layout { display: flex; min-height: 100vh; }
 .sidebar { width: 260px; background-color: #1e1e2f; color: white; padding: 20px 0; display: flex; flex-direction: column; flex-shrink: 0; }
 .sidebar-logo { padding: 0 20px 20px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #333; margin-bottom: 20px; }
-.nav-item { padding: 10px 16px; margin: 4px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #a1a1aa; transition: 0.2s; border-radius: 8px; font-weight: 500; font-size: 15px; border: none; }
+.nav-item { padding: 10px 16px; margin: 4px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #94a3b8; transition: 0.2s; border-radius: 8px; font-weight: 500; font-size: 14px; border: none !important; box-shadow: none !important; outline: none !important; }
 .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
-.nav-item.active { color: white; background: #6366f1; }
-.main-content { flex: 1; padding: 40px; overflow-y: auto; }
+.nav-item.active { color: white; background: linear-gradient(90deg, #6366f1, #8b5cf6) !important; border: none !important; font-weight: 600; }
+.nav-item.active::after { content: '›'; margin-left: auto; font-size: 18px; font-weight: 400; color: rgba(255,255,255,0.7); }
+.main-content { flex: 1; padding: 40px; overflow-y: auto; background-color: #0b0f19; }
     /* Hide old header permanently */
     header { display: none !important; }
 
@@ -164,21 +190,60 @@
 
     .mobile-top-bar { display: none; }
 
-    /* ===== LIVE PREVIEW STYLES ===== */
-    .appearance-layout { display: grid; grid-template-columns: 1fr 350px; gap: 32px; align-items: start; margin-top: 20px; }
-    @media (max-width: 900px) { .appearance-layout { grid-template-columns: 1fr; } }
+    /* --- PREMIUM FORM STYLES --- */
+    .settings-panel { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); margin-bottom: 24px; }
+    .settings-panel-title { font-size: 16px; font-weight: 600; color: var(--dark); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+    .form-group { margin-bottom: 16px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 8px; }
+    .form-sublabel { font-size: 12px; color: var(--subtext); margin-bottom: 8px; display: block; line-height: 1.4; }
+    .saas-input { width: 100%; height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 14px; font-family: inherit; font-size: 14px; color: var(--dark); background: #ffffff; transition: all 0.2s; outline: none; box-sizing: border-box; }
+    .saas-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    .color-picker-wrapper { display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 8px 12px; border-radius: 8px; border: 1px solid #e2e8f0; width: max-content; }
+    .custom-color-input { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; padding: 0; background: transparent; }
+    .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+    .custom-color-input::-webkit-color-swatch { border: none; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-    .live-preview-widget { border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: white; font-family: 'Satoshi', sans-serif; display: flex; flex-direction: column; height: 500px; position: sticky; top: 20px; }
-    .lp-header { padding: 16px; color: white; display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 16px; transition: background-color 0.3s; }
-    .lp-avatar { width: 32px; height: 32px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #1f2937; font-size: 18px; }
-    .lp-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .lp-body { padding: 16px; flex: 1; background: #f9fafb; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    .lp-bubble { background: white; border: 1px solid #e5e7eb; padding: 12px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; color: #1f2937; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.05); line-height: 1.4; }
-    .lp-qrs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-    .lp-qr { padding: 8px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s; background: white; }
-    .lp-input-area { padding: 12px 16px; background: white; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; align-items: center; }
-    .lp-input { flex: 1; background: #f3f4f6; border: none; border-radius: 20px; padding: 10px 16px; font-size: 14px; color: #9ca3af; outline: none; }
-    .lp-send { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; transition: background-color 0.3s; }
+    /* --- DARK MODE FORM STYLES --- */
+    .dark-panel { background: #111827; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .dark-panel-title { font-size: 15px; font-weight: 600; color: white; margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 12px; }
+    .dark-input { width: 100%; height: 42px; background: #0b0f19; border: 1px solid #1e293b; border-radius: 8px; color: white; padding: 0 14px; font-family: 'Satoshi', sans-serif; font-size: 13px; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+    .dark-input:focus { border-color: #6366f1; }
+    .dark-input::placeholder { color: #64748b; }
+
+    /* --- INGESTION UI STYLES (DARK MODE) --- */
+    .drop-zone { border: 1px dashed #334155; border-radius: 8px; padding: 24px; text-align: center; background: #0b0f19; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+    .drop-zone:hover { border-color: #6366f1; background: rgba(99, 102, 241, 0.05); }
+    .enterprise-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; color: #f8fafc; }
+    .enterprise-table th { padding: 12px 16px; font-weight: 600; color: #94a3b8; background: #0b0f19; border-bottom: 1px solid #1e293b; }
+    .enterprise-table td { padding: 12px 16px; border-bottom: 1px solid #1e293b; color: #e2e8f0; vertical-align: top; }
+    .enterprise-table tr:last-child td { border-bottom: none; }
+    .badge-text { background: rgba(99, 102, 241, 0.1); color: #818cf8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(99, 102, 241, 0.2); }
+    .badge-pdf { background: rgba(239, 68, 68, 0.1); color: #f87171; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    /* --- PREMIUM LIVE PREVIEW CONTAINER --- */
+    .live-preview-website { border: 1px solid #1e293b; border-radius: 12px; background: #111827; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; position: sticky; top: 20px; }
+    .website-placeholder { text-align: center; margin-bottom: 24px; }
+    .website-placeholder-title { font-size: 14px; font-weight: 600; color: white; margin: 0 0 8px 0; }
+    .website-placeholder-text { font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0; max-width: 320px; }
+
+    .live-preview-container-inner { width: 100%; max-width: 350px; height: 500px; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid #cbd5e1; margin: 0 auto; }
+
+    /* Internal Chat Styles (Forced to Light Mode for Website Simulation) */
+    .lp-body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; background: #f8fafc; }
+    .lp-header { padding: 16px; display: flex; align-items: center; gap: 12px; }
+    .lp-bubble-website { background: #ffffff; color: #1f2937; padding: 12px 16px; border-radius: 4px 16px 16px 16px; font-size: 13px; line-height: 1.5; border: 1px solid #e2e8f0; max-width: 85%; }
+    .lp-qrs { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 32px; }
+    .lp-input-area-website { padding: 12px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; align-items: center; }
+    .lp-input-website { flex: 1; background: #f1f5f9; border: none; border-radius: 20px; padding: 8px 16px; color: #475569; font-size: 13px; outline: none; }
+
+    /* --- PREMIUM CHOOSE FILE INPUT --- */
+    .custom-file-upload-wrapper { display: flex; align-items: center; gap: 12px; background: #0b0f19; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; transition: border-color 0.2s; width: 100%; box-sizing: border-box; }
+    .custom-file-upload-wrapper:hover { border-color: #6366f1; }
+    .file-upload-btn { background: #1e293b; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+    .file-upload-btn:hover { background: #334155; }
+    .file-upload-btn i { width: 14px; height: 14px; color: #94a3b8; }
+    .file-name-display { font-size: 12px; color: #94a3b8; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
 
     @media (max-width: 768px) {
       .dashboard-layout { display: flex; flex-direction: column; min-height: 100vh; }
@@ -233,11 +298,12 @@
       .main-content { padding: 20px; }
     }
   </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <header>
     <div class="header-content">
-      <div class="logo">💬 ChatWidget</div>
+      <div class="logo"><i data-lucide="message-square" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"></i> ChatWidget</div>
       <div class="user">
         <span class="user-name" id="userName"></span>
         <button class="btn btn-outline" id="logout">Logout</button>
@@ -247,102 +313,153 @@
 
   <div class="dashboard-layout">
     <div class="mobile-top-bar">
-      <div style="font-weight: bold; font-size: 18px; color: white;">🤖 ChatWidget</div>
+      <div style="font-weight: bold; font-size: 18px; color: white; display: flex; align-items: center; gap: 8px;"><i data-lucide="message-square" style="width: 20px; height: 20px;"></i> ChatWidget</div>
       <button id="hamburgerBtn" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0;">☰</button>
     </div>
     <aside class="sidebar" id="dashboardSidebar" style="display: none;">
       <div class="sidebar-logo">
-        <span>🤖 ChatWidget</span>
+        <span>ChatWidget</span>
         <button id="closeSidebarBtn" class="mobile-close-btn">&times;</button>
       </div>
-      <div class="nav-item active" onclick="switchTab('tab-overview', this)">📊 Overview</div>
-      <div class="nav-item" onclick="switchTab('tab-appearance', this)">🎨 Appearance</div>
-      <div class="nav-item" onclick="switchTab('tab-knowledge', this)">📚 Knowledge Base</div>
-      <div class="nav-item" onclick="switchTab('tab-integrations', this)">🔌 Integrations</div>
-      <div class="nav-item" onclick="switchTab('tab-leads', this)">👥 Collected Leads</div>
-      <div class="nav-item" onclick="switchTab('tab-test', this)">🧪 Test Chatbot</div>
-      <div class="nav-item" onclick="switchTab('tab-embed', this)">💻 Install Code</div>
+      <div class="nav-item active" onclick="switchTab('tab-overview', this)"><i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i> Overview</div>
+      <div class="nav-item" onclick="switchTab('tab-appearance', this)"><i data-lucide="palette" style="width: 18px; height: 18px;"></i> Appearance</div>
+      <div class="nav-item" onclick="switchTab('tab-knowledge', this)"><i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Knowledge Base</div>
+      <div class="nav-item" onclick="switchTab('tab-integrations', this)"><i data-lucide="plug" style="width: 18px; height: 18px;"></i> Integrations</div>
+      <div class="nav-item" onclick="switchTab('tab-leads', this)"><i data-lucide="users" style="width: 18px; height: 18px;"></i> Collected Leads</div>
+      <div class="nav-item" onclick="switchTab('tab-test', this)"><i data-lucide="test-tube" style="width: 18px; height: 18px;"></i> Test Chatbot</div>
+      <div class="nav-item" onclick="switchTab('tab-embed', this)"><i data-lucide="code" style="width: 18px; height: 18px;"></i> Install Code</div>
+
+      <div style="flex: 1;"></div>
+      <a href="/" style="padding: 10px 16px; margin: 20px 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #ef4444; transition: 0.2s; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; border-top: 1px solid #1e293b;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Back to Home
+      </a>
     </aside>
     <main class="main-content">
       
       <div class="card" id="noChatbot">
         <div class="empty-state">
-          <div class="empty-icon">🤖</div>
+          <div class="empty-icon"><i data-lucide="bot" style="width: 64px; height: 64px; color: #6366f1;"></i></div>
           <h2>Create Your First Chatbot</h2>
           <p>Enter a website URL to scrape and create an AI chatbot that knows everything about that content.</p>
           <form id="createForm">
             <input type="url" id="websiteUrl" class="create-url-input" placeholder="https://example.com" required>
             <button type="submit" class="create-btn" id="createBtn">
-              🚀 Create My Chatbot
+              <i data-lucide="rocket" style="width: 18px; height: 18px;"></i> Create My Chatbot
             </button>
             <div class="error" id="createError" style="color: #ef4444; margin-top: 8px; display:none;"></div>
           </form>
         </div>
       </div>
 
-      <div class="card hidden" id="tab-overview">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+      <div class="hidden" id="tab-overview" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
           <div>
-            <h2 class="card-title">🤖 Your Chatbot</h2>
-            <p class="card-subtitle">Manage your AI assistant</p>
-            <div class="status-badge" id="botStatusBadge">
-              <span class="status-dot"></span>
-              <span id="statusText">Active</span>
+            <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; line-height: 1.2; margin-bottom: 4px;">Dashboard Overview</h2>
+            <p style="color: #94a3b8; font-size: 14px;">Monitor your AI assistant's performance and settings.</p>
+          </div>
+          <div style="display: flex; gap: 24px; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 13px;">
+              <span id="topUserEmail">admin@chatwidget.com</span>
+              <div style="width: 28px; height: 28px; border-radius: 50%; background: #c084fc; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">A</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; background: #111827; padding: 8px 16px; border-radius: 50px; border: 1px solid #1e293b;">
+              <span class="status-dot" id="headerStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+              <span id="sidebarStatus" style="font-size: 13px; font-weight: 600; color: white;">Active</span>
+              <div class="toggle-switch active" id="statusToggle" style="margin-left: 4px; background: #6366f1;"><div class="toggle-thumb" style="background: white;"></div></div>
+              <div id="botStatusBadge" style="display:none;"></div><div id="statusText" style="display:none;"></div>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0;">
-            <span id="sidebarStatus" style="font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 6px;">Active</span>
-            <div class="toggle-switch" id="statusToggle"><div class="toggle-thumb"></div></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px;">
+          <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+              <i data-lucide="message-square" style="color: #8b5cf6; width: 18px; height: 18px;"></i>
+              <span style="color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">CONVERSATIONS</span>
+            </div>
+            <div id="metric-conversations" style="font-size: 32px; font-weight: 700; color: white; font-family: 'Clash Display', sans-serif;">0</div>
+          </div>
+          <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+              <i data-lucide="users" style="color: #6366f1; width: 18px; height: 18px;"></i>
+              <span style="color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">LEADS CAPTURED</span>
+            </div>
+            <div id="metric-leads" style="font-size: 32px; font-weight: 700; color: white; font-family: 'Clash Display', sans-serif;">0</div>
+          </div>
+          <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+              <i data-lucide="zap" style="color: #6366f1; width: 18px; height: 18px;"></i>
+              <span style="color: #94a3b8; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;">SYSTEM STATUS</span>
+            </div>
+            <div id="metric-status" style="font-size: 32px; font-weight: 700; color: #10b981; font-family: 'Clash Display', sans-serif;">Online</div>
           </div>
         </div>
 
-        <!-- Top Metrics Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0;">
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Total Conversations</div>
-            <div id="metric-conversations" style="font-size: 28px; font-weight: 700; color: #111827; margin-top: 8px;">0</div>
-          </div>
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Total Leads Captured</div>
-            <div id="metric-leads" style="font-size: 28px; font-weight: 700; color: #111827; margin-top: 8px;">0</div>
-          </div>
-          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-            <div style="font-size: 14px; color: #6b7280; font-weight: 500;">Bot Status</div>
-            <div id="metric-status" style="font-size: 28px; font-weight: 700; color: #10b981; margin-top: 8px;">Active</div>
-          </div>
-        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
 
-        <div style="display: flex; flex-direction: column; gap: 0; margin-bottom: 24px;">
-          <div class="info-row"><span class="info-icon">🌐</span><span class="info-label">Website</span><span class="info-value" id="botUrl"></span></div>
-          <div class="info-row"><span class="info-icon">📚</span><span class="info-label">Pages Scraped</span><span class="info-value" id="contentCount">-</span></div>
-          <div class="info-row"><span class="info-icon">💬</span><span class="info-label">Conversations</span><span class="info-value" id="convCount">0</span></div>
-          <div class="info-row"><span class="info-icon">📅</span><span class="info-label">Created</span><span class="info-value" id="createdAt">-</span></div>
-        </div>
-        <div style="display: flex; gap: 12px;">
-          <button class="btn btn-outline" id="retrainBtn" style="flex: 1;">🔄 Retrain AI</button>
-          <button class="btn btn-danger" id="deleteBtn" style="flex: 1;">Delete Chatbot</button>
-        </div>
+          <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+            <h3 style="color: white; font-size: 15px; font-weight: 600; margin-bottom: 24px;">System Configuration</h3>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: 13px;">
+                  <i data-lucide="globe" style="color: #6366f1; width: 16px; height: 16px;"></i> Source Website
+                </div>
+                <a href="#" id="botUrl" target="_blank" style="color: white; font-weight: 500; font-size: 13px; text-decoration: none;">...</a>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: 13px;">
+                  <i data-lucide="layers" style="color: #6366f1; width: 16px; height: 16px;"></i> Knowledge Chunks
+                </div>
+                <span id="contentCount" style="color: white; font-weight: 600; font-size: 13px;">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: 13px;">
+                  <i data-lucide="message-square" style="color: #6366f1; width: 16px; height: 16px;"></i> Total Interactions
+                </div>
+                <span id="convCount" style="color: white; font-weight: 600; font-size: 13px;">0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px; color: #94a3b8; font-size: 13px;">
+                  <i data-lucide="calendar" style="color: #6366f1; width: 16px; height: 16px;"></i> Deployment Date
+                </div>
+                <span id="createdAt" style="color: white; font-weight: 600; font-size: 13px;">-</span>
+              </div>
+            </div>
+          </div>
 
-        <!-- Lead Capture Timing Settings -->
-        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
-          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--dark);">Lead Capture Timing</h3>
-          <p style="font-size: 13px; color: var(--subtext); margin-bottom: 12px;">Choose when the contact form appears to balance engagement and conversion.</p>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <select id="leadTimingSelect" class="create-url-input" style="height: 40px; margin-bottom: 0; max-width: 250px; cursor: pointer; padding: 0 12px;">
-              <option value="1">After 1 message (Aggressive)</option>
-              <option value="2">After 2 messages (Fast)</option>
-              <option value="3">After 3 messages (Recommended)</option>
-              <option value="4">After 4 messages (Delayed)</option>
-              <option value="0">Never show form (Off)</option>
-            </select>
-            <button id="saveTimingBtn" class="btn btn-outline" style="padding: 8px 16px;">Save</button>
-            <span id="timingMsg" style="font-size: 13px; display: none;"></span>
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+              <h3 style="color: white; font-size: 15px; font-weight: 600; margin-bottom: 16px;">Quick Actions</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button id="retrainBtn" style="width: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; gap: 8px; align-items: center;">
+                  <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Sync Latest Data
+                </button>
+                <button id="deleteBtn" style="width: 100%; background: transparent; color: #ef4444; border: 1px solid #7f1d1d; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; gap: 8px; align-items: center;">
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Delete Chatbot
+                </button>
+              </div>
+            </div>
+
+            <div style="background: #111827; border-radius: 12px; border: 1px solid #1e293b; padding: 24px;">
+              <h3 style="color: white; font-size: 15px; font-weight: 600; margin-bottom: 8px;">Lead Capture Strategy</h3>
+              <p style="color: #64748b; font-size: 12px; margin-bottom: 16px;">When should the bot ask for contact details?</p>
+              <select id="leadTimingSelect" style="width: 100%; background: #0b0f19; color: white; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; font-size: 13px; outline: none;">
+                <option value="1">After 1 msg (Aggressive)</option>
+                <option value="2">After 2 msgs (Fast)</option>
+                <option value="3">After 3 msgs (Recommended)</option>
+                <option value="4">After 4 msgs (Delayed)</option>
+                <option value="0">Never ask (Off)</option>
+              </select>
+              <button id="saveTimingBtn" style="width: 100%; background: #1e293b; color: white; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px;">Save Strategy</button>
+              <div id="timingMsg" style="font-size: 12px; text-align: center; margin-top: 8px; display: none;"></div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="card hidden" id="tab-embed">
-        <h2 class="card-title">🚀 Install Your Widget</h2>
+        <h2 class="card-title"><i data-lucide="rocket" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"></i> Install Your Widget</h2>
         <p class="card-subtitle">Add this code to your website</p>
         <div style="margin-bottom: 24px;">
           <p style="font-weight: 600; margin-bottom: 8px; color: var(--dark);">Step 1: Embed Code</p>
@@ -364,82 +481,160 @@
       </div>
       
       <div class="card hidden" id="tab-leads">
-        <h2 class="card-title">🎯 Collected Leads</h2>
+        <h2 class="card-title"><i data-lucide="target" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"></i> Collected Leads</h2>
         <p class="card-subtitle">Visitors who left their contact info</p>
         <div id="leadsTable">
           <p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">Loading leads...</p>
         </div>
       </div>
 
-      <div class="card hidden" id="tab-appearance">
-        <h2 class="card-title">🎨 Widget Appearance</h2>
-        <p class="card-subtitle">Customize how your bot looks and talks</p>
+      <div class="hidden" id="tab-integrations" style="width: 100%;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; line-height: 1.2; margin-bottom: 4px;">Integrations</h2>
+          <p style="color: #94a3b8; font-size: 14px;">Connect your AI chatbot with your favorite tools and platforms.</p>
+        </div>
 
-        <div class="appearance-layout">
-          <div class="appearance-settings" style="display: flex; flex-direction: column; gap: 16px;">
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Bot Name</label>
-              <input type="text" id="customBotName" class="create-url-input" placeholder="e.g., Support Bot, Sarah" style="height: 45px; margin-bottom: 0;">
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+          <div class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title">
+              <i data-lucide="plug" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #6366f1;"></i> Internal API Key
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <p style="font-size: 13px; color: #94a3b8; margin: 0;">This key allows other applications (like Zapier or your CRM) to securely integrate with your chatbot's data. Keep it safe!</p>
 
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Bot Logo / Avatar</label>
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <img id="logoPreview" src="" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; display: none; border: 1px solid #d1d5db;">
-                <input type="file" id="customLogoInput" accept="image/png, image/jpeg, image/jpg" style="font-size: 14px;">
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Your API Key</label>
+                <div style="position: relative;">
+                  <input type="password" id="integrationsApiKey" class="dark-input" style="padding-right: 40px; font-family: monospace; color: white;" readonly placeholder="Generating key...">
+                  <button id="toggleApiVisibility" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                  </button>
+                </div>
               </div>
-              <input type="hidden" id="botLogoBase64" value="">
-            </div>
 
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">First Message (Greeting)</label>
-              <input type="text" id="customWelcome" class="create-url-input" placeholder="e.g., Hi! How can I help you shop today?" style="height: 45px; margin-bottom: 0;">
-            </div>
-
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Booking / Action Link (Optional)</label>
-              <input type="text" id="customBookingLink" class="create-url-input" placeholder="e.g., https://calendly.com/... or /booking" style="height: 45px; margin-bottom: 0;">
-              <p style="font-size: 12px; color: var(--subtext); margin-top: 4px;">The AI will hand this link out when customers ask to book or reserve.</p>
-            </div>
-
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 8px;">Theme Color</label>
               <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="color" id="customColor" value="#6366f1" style="width: 50px; height: 45px; border: none; border-radius: 8px; cursor: pointer; background: transparent; padding: 0;">
-                <span style="font-size: 14px; color: var(--subtext);">Pick your brand color</span>
+                <button id="saveIntegrationsBtn" style="flex: 1; background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <i data-lucide="save" style="width: 16px; height: 16px;"></i> Save API Key
+                </button>
+                <button id="generateNewKeyBtn" style="flex: 1; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Generate New
+                </button>
               </div>
+              <div id="integrationMsg" style="margin-top: 8px; font-size: 12px; text-align: center; display: none;"></div>
             </div>
-
-            <div>
-              <label style="font-size: 14px; font-weight: 600; color: var(--dark); display: block; margin-bottom: 12px;">Quick Replies (Optional)</label>
-              <p style="font-size: 13px; color: var(--subtext); margin-bottom: 12px;">Add up to 3 common questions users can click:</p>
-              <input type="text" id="qr1" class="create-url-input" placeholder="e.g., Book a demo" style="height: 40px; margin-bottom: 8px;">
-              <input type="text" id="qr2" class="create-url-input" placeholder="e.g., Pricing plans" style="height: 40px; margin-bottom: 8px;">
-              <input type="text" id="qr3" class="create-url-input" placeholder="e.g., Contact support" style="height: 40px; margin-bottom: 0;">
-            </div>
-
-            <button class="btn btn-primary" id="saveAppearanceBtn" style="margin-top: 8px; width: 100%;">Save Appearance</button>
-            <div id="appearanceMsg" class="message"></div>
           </div>
 
-          <div class="appearance-preview">
-            <p style="font-weight: 600; margin-bottom: 12px; color: var(--dark);">Live Preview</p>
-            <div class="live-preview-widget">
-              <div class="lp-header" id="lp-header" style="background-color: #6366f1;">
-                <div class="lp-avatar">
-                  <span id="lp-avatar-fallback">🤖</span>
-                  <img id="lp-avatar-img" src="" style="display: none;">
+          <div class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title">
+              <i data-lucide="webhook" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #6366f1;"></i> Webhooks
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <p style="font-size: 13px; color: #94a3b8; margin: 0;">Configure webhooks to receive real-time notifications about collected leads and conversation events directly to your server.</p>
+
+              <button id="configureWebhooksBtn" style="background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="settings" style="width: 16px; height: 16px;"></i> Configure Webhooks
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hidden" id="tab-appearance" style="width: 100%;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; line-height: 1.2; margin-bottom: 4px;">Widget Appearance</h2>
+          <p style="color: #94a3b8; font-size: 14px;">Customize how your bot looks and talks to match your brand.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+          <div style="display: flex; flex-direction: column;">
+
+            <div class="dark-panel">
+              <h3 class="dark-panel-title">Bot Identity</h3>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Bot Name</label>
+                  <input type="text" id="customBotName" class="dark-input" placeholder="AI Assistant">
                 </div>
-                <span id="lp-name">AI Assistant</span>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Brand Color</label>
+                  <div style="display: flex; align-items: center; gap: 12px; background: #0b0f19; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; width: max-content;">
+                    <input type="color" id="customColor" value="#6366f1" style="width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; background: transparent; padding: 0;">
+                    <span style="font-size: 13px; font-weight: 600; color: white; font-family: monospace;">Theme Color</span>
+                  </div>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Bot Avatar</label>
+                  <div class="custom-file-upload-wrapper">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: #1e293b; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                      <i data-lucide="bot" style="color: #94a3b8; width: 20px; height: 20px;" id="lp-avatar-fallback"></i>
+                      <img id="logoPreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0;">
+                    </div>
+                    <label for="customLogoInput" class="file-upload-btn">
+                      <i data-lucide="upload" style="width: 14px; height: 14px;"></i>
+                      Upload
+                    </label>
+                    <input type="file" id="customLogoInput" accept="image/png, image/jpeg, image/jpg" style="display: none;">
+                    <span id="logoFileName" class="file-name-display">No file chosen</span>
+                  </div>
+                  <input type="hidden" id="botLogoBase64" value="">
+                </div>
               </div>
+            </div>
+
+            <div class="dark-panel">
+              <h3 class="dark-panel-title">Welcome Flow</h3>
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">First Message (Greeting)</label>
+                  <input type="text" id="customWelcome" class="dark-input" placeholder="👋 Hi! I'm your AI assistant. How can I help you today?">
+                </div>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 4px;">Quick Reply Buttons</label>
+                  <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Suggested questions visitors can click</p>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" id="qr1" class="dark-input" placeholder="Pricing">
+                    <input type="text" id="qr2" class="dark-input" placeholder="Features">
+                    <input type="text" id="qr3" class="dark-input" placeholder="Contact">
+                  </div>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 4px;">Booking Link (optional)</label>
+                  <input type="text" id="customBookingLink" class="dark-input" placeholder="https://calendly.com/your-link">
+                </div>
+              </div>
+            </div>
+
+            <button id="saveAppearanceBtn" style="background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; max-width: 200px;">Save Appearance</button>
+            <div id="appearanceMsg" class="message" style="margin-top: 8px;"></div>
+          </div>
+
+          <div class="live-preview-website">
+            <div class="website-placeholder">
+              <h4 class="website-placeholder-title">Your Website Layout</h4>
+              <p class="website-placeholder-text">This perfectly simulates how the floating widget will look to customers on your live website.</p>
+            </div>
+
+            <div class="live-preview-container-inner">
+              <div id="lp-header" class="lp-header" style="background: #6366f1;">
+                 <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0;">
+                   <i data-lucide="bot" style="color: white; width: 16px; height: 16px;" id="lp-avatar-fallback-header"></i>
+                   <img id="lp-avatar-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0;">
+                 </div>
+                 <span id="lp-name" style="color: white; font-weight: 600; font-size: 15px;">AI Assistant</span>
+              </div>
+
               <div class="lp-body">
-                <div class="lp-bubble" id="lp-welcome">👋 Hi! I'm your AI assistant. How can I help you today?</div>
-                <div class="lp-qrs" id="lp-qrs"></div>
+                 <div style="display: flex; gap: 8px; max-width: 85%;">
+                    <div id="lp-send-avatar" style="width: 24px; height: 24px; border-radius: 50%; background: #6366f1; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: white;"><i data-lucide="bot" style="width: 14px; height: 14px;"></i></div>
+                    <div id="lp-welcome" class="lp-bubble-website">👋 Hi! I'm your AI assistant. How can I help you today?</div>
+                 </div>
+                 <div id="lp-qrs" class="lp-qrs"></div>
               </div>
-              <div class="lp-input-area">
-                <div class="lp-input">Type your message...</div>
-                <div class="lp-send" id="lp-send" style="background-color: #6366f1;">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+
+              <div class="lp-input-area-website">
+                <input type="text" placeholder="Type a message..." readonly class="lp-input-website">
+                <div id="lp-send" style="width: 32px; height: 32px; border-radius: 50%; background: #6366f1; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                  <i data-lucide="send" style="width: 14px; height: 14px; margin-left: -2px;"></i>
                 </div>
               </div>
             </div>
@@ -447,21 +642,75 @@
         </div>
       </div>
 
-      <div class="card hidden" id="tab-knowledge">
-        <h2 class="card-title">📚 Custom Knowledge</h2>
-        <p class="card-subtitle">Add info the scraper might have missed</p>
-        <textarea id="knowledgeInput" class="create-url-input" rows="8" placeholder="Type all your custom business rules here...&#10;&#10;Examples:&#10;- Delivery costs 120 Riyals.&#10;- We are closed on Fridays.&#10;&#10;*Note: Do not delete your old rules! Just press Enter and add new rules on a new line.*" style="height: auto; min-height: 150px; resize: vertical; padding: 12px; line-height: 1.5;"></textarea>
-        <button class="btn btn-primary" id="saveKnowledgeBtn" style="width: 100%;">Save Knowledge</button>
-        <div id="knowledgeMsg" class="message"></div>
+      <div class="hidden" id="tab-knowledge" style="width: 100%;">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; line-height: 1.2; margin-bottom: 4px;">Knowledge Base</h2>
+          <p style="color: #94a3b8; font-size: 14px;">Train your AI with specific business rules, FAQs, and documents.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
+
+          <div class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title">
+              <i data-lucide="file-text" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #6366f1;"></i> Add Text Source
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <textarea id="newKnowledgeText" class="dark-input" style="height: 120px; resize: vertical; padding: 12px;" placeholder="Type a new rule, pricing info, or FAQ..."></textarea>
+              <button id="addTextBtn" style="background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Train on Text
+              </button>
+            </div>
+          </div>
+
+          <div class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title">
+              <i data-lucide="file-up" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #6366f1;"></i> Upload Document
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <label class="drop-zone" for="pdfFileInput">
+                <i data-lucide="upload-cloud" style="width: 24px; height: 24px; color: #64748b;"></i>
+                <span style="font-weight: 600; color: white; font-size: 13px;">Click to upload PDF</span>
+                <span style="font-size: 11px; color: #64748b;">Max size: 5MB</span>
+                <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+              </label>
+              <button id="uploadPdfBtn" style="background: #1e293b; color: white; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="upload" style="width: 16px; height: 16px;"></i> Upload File
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dark-panel">
+          <h3 class="dark-panel-title">
+            <i data-lucide="database" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: #6366f1;"></i> Trained Sources
+          </h3>
+          <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #1e293b;">
+            <table class="enterprise-table">
+              <thead>
+                <tr>
+                  <th>Content / File Name</th>
+                  <th style="width: 100px;">Type</th>
+                  <th style="width: 150px;">Status</th>
+                  <th style="width: 60px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="knowledgeListBody">
+                <tr>
+                  <td colspan="4" style="text-align: center; color: #64748b; padding: 24px;">No custom knowledge added yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div class="card hidden" id="tab-test">
-        <h2 class="card-title">🧪 Test Chatbot</h2>
+        <h2 class="card-title"><i data-lucide="test-tube" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"></i> Test Chatbot</h2>
         <p class="card-subtitle">Try it out</p>
         <div class="test-chat-container">
           <div class="test-chat-messages" id="testMessages">
             <div class="test-message ai">
-              <div class="test-avatar">🤖</div>
+              <i data-lucide="bot" class="test-avatar" style="width: 20px; height: 20px;"></i>
               <div class="test-message-content">👋 Hi! I'm your AI assistant. How can I help you today?</div>
             </div>
           </div>
@@ -478,6 +727,8 @@
   </div>
 
   <script>
+    lucide.createIcons();
+
     // --- AUTHENTICATION ---
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -499,14 +750,17 @@
     // --- TAB SWITCHING FUNCTION ---
     // Function to switch between dashboard tabs
     function switchTab(tabId, element) {
-      // Hide all cards
-      document.querySelectorAll('.main-content .card').forEach(card => card.classList.add('hidden'));
+      // Hide all tabs (looks for any div whose ID starts with "tab-")
+      document.querySelectorAll('[id^="tab-"]').forEach(tab => tab.classList.add('hidden'));
       // Remove active class from all nav items
       document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
 
-      // Show selected card and highlight nav item
-      const targetCard = document.getElementById(tabId);
-      if (targetCard) targetCard.classList.remove('hidden');
+      // Show selected tab and highlight nav item
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
+      }
 
       // If an element was passed, make it active
       if (element) {
@@ -617,12 +871,17 @@
         updateLivePreview();
 
         // Load Custom Knowledge
-        document.getElementById('knowledgeInput').value = chatbotData.customKnowledge || '';
+        renderKnowledgeList(chatbotData.customKnowledge || '', chatbotData.trainedFiles || []);
 
         // Initialize features
         document.getElementById('leadTimingSelect').value = chatbotData.customization?.leadCaptureTiming ?? 3;
         setupStatusToggle(chatbotData.isActive);
         loadLeads();
+        if (chatbotData.apiKey) {
+          document.getElementById('integrationsApiKey').value = chatbotData.apiKey;
+        } else {
+          document.getElementById('integrationsApiKey').value = 'cw_sk_' + widgetId;
+        }
 
       } catch (err) { 
         console.error('Error loading chatbot:', err); 
@@ -763,7 +1022,7 @@
         errorDiv.textContent = err.message;
         errorDiv.style.display = 'block';
         btn.disabled = false;
-        btn.innerHTML = '🚀 Create My Chatbot';
+        btn.innerHTML = '<i data-lucide="rocket" style="width: 18px; height: 18px;"></i> Create My Chatbot';
         
         const steps = document.querySelector('.progress-steps');
         if(steps) steps.remove();
@@ -834,9 +1093,10 @@
           body: JSON.stringify({ widgetId, message: msg, history: sessionHistory.slice(-6) })
         });
         const data = await res.json();
-        msgsDiv.innerHTML += `<div class="test-message ai"><div class="test-avatar">🤖</div><div class="test-message-content">${data.answer}</div></div>`;
+        msgsDiv.innerHTML += `<div class="test-message ai"><i data-lucide="bot" class="test-avatar" style="width: 20px; height: 20px;"></i><div class="test-message-content">${data.answer}</div></div>`;
         sessionHistory.push({ role: "assistant", content: data.answer });
         msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        lucide.createIcons();
       } catch (err) { 
         msgsDiv.innerHTML += `<div class="test-message ai"><div class="test-message-content" style="color:red;">Network Error</div></div>`;
       }
@@ -848,25 +1108,178 @@
     });
 
     // Add Custom Knowledge
-    document.getElementById('saveKnowledgeBtn').addEventListener('click', async () => {
-      const customKnowledge = document.getElementById('knowledgeInput').value;
-      const msg = document.getElementById('knowledgeMsg');
+    // --- KNOWLEDGE BASE LOGIC ---
+    function renderKnowledgeList(textData, trainedFiles = []) {
+      const tbody = document.getElementById('knowledgeListBody');
+      tbody.innerHTML = '';
+
+      let hasData = false;
+
+      // Render uploaded PDFs first
+      if (trainedFiles && trainedFiles.length > 0) {
+        hasData = true;
+        trainedFiles.forEach((file, index) => {
+          tbody.innerHTML += `
+            <tr>
+              <td style="font-family: monospace;">${file.fileName}</td>
+              <td><span class="badge-pdf">PDF</span></td>
+              <td style="color: #10b981; font-weight: 500;">✓ Processed</td>
+              <td style="text-align: right;">
+                <button onclick="deleteKnowledgeSource('file', ${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      // Render text blocks
+      if (textData && textData.trim() !== '') {
+        hasData = true;
+        const blocks = textData.split('\n\n').filter(b => b.trim() !== '');
+        blocks.forEach((block, index) => {
+          const preview = block.length > 80 ? block.substring(0, 80) + '...' : block;
+          tbody.innerHTML += `
+            <tr>
+              <td>${preview}</td>
+              <td><span class="badge-text">Text</span></td>
+              <td style="color: #10b981; font-weight: 500;">✓ Trained</td>
+              <td style="text-align: right;">
+                <button onclick="deleteKnowledgeSource('text', ${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      if (!hasData) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 24px;">No custom knowledge added yet.</td></tr>';
+      }
+
+      // Refresh icons so the trash cans appear
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    // Handle deleting a knowledge source
+    window.deleteKnowledgeSource = async function(type, index) {
+      const confirmDelete = confirm('Are you sure you want to delete this source? Your AI will immediately forget this information.');
+      if (!confirmDelete) return;
+
+      try {
+        const response = await fetch(`/api/chatbot/knowledge/${type}/${index}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+
+        let data;
+        const responseText = await response.text();
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          data = { error: 'Non-JSON response: ' + responseText.substring(0, 100) };
+        }
+
+        if (response.ok) {
+          // Update the local dashboard memory so it doesn't reappear
+          if (typeof chatbotData !== 'undefined') {
+             chatbotData.customKnowledge = data.customKnowledge;
+             chatbotData.trainedFiles = data.trainedFiles;
+          }
+          // Visually remove it from the table
+          renderKnowledgeList(data.customKnowledge, data.trainedFiles);
+        } else {
+          alert('Delete failed: ' + (data.error || 'Unknown error') + '\nStatus: ' + response.status);
+          console.error('Delete error response:', data, 'Status:', response.status);
+        }
+      } catch (err) {
+        console.error('Delete error:', err);
+        alert('Network error while deleting: ' + err.message);
+      }
+    };
+
+    // Add Text Logic (Appends to existing)
+    document.getElementById('addTextBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('addTextBtn');
+      const inputArea = document.getElementById('newKnowledgeText');
+      const newText = inputArea.value.trim();
+
+      if (!newText) return;
+
+      btn.innerHTML = '<span class="loading-spinner"></span>...';
+      btn.disabled = true;
+
+      // Append new text with a double line break separator
+      const updatedKnowledge = chatbotData.customKnowledge ? chatbotData.customKnowledge + '\n\n' + newText : newText;
 
       try {
         const response = await fetch('/api/chatbot/knowledge', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ customKnowledge })
+          body: JSON.stringify({ customKnowledge: updatedKnowledge })
         });
 
-        if (!response.ok) throw new Error('Failed to save');
-
-        msg.textContent = '✓ Knowledge saved successfully!';
-        msg.className = 'message success show';
-        setTimeout(() => msg.className = 'message', 3000);
+        if (response.ok) {
+          chatbotData.customKnowledge = updatedKnowledge;
+          renderKnowledgeList(updatedKnowledge, chatbotData.trainedFiles || []);
+          inputArea.value = '';
+        } else {
+          alert('Failed to save knowledge.');
+        }
       } catch (err) {
-        msg.textContent = 'Error saving knowledge.';
-        msg.className = 'message error show';
+        alert('Network error.');
+      } finally {
+        btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Train on Text';
+        btn.disabled = false;
+      }
+    });
+
+    // PDF Upload UI Logic
+    document.getElementById('pdfFileInput').addEventListener('change', function(e) {
+      if(e.target.files.length > 0) {
+        document.querySelector('.drop-zone span').textContent = e.target.files[0].name;
+      }
+    });
+
+    document.getElementById('uploadPdfBtn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('pdfFileInput');
+      if (!fileInput.files.length) return alert('Please select a PDF first.');
+
+      const btn = document.getElementById('uploadPdfBtn');
+      btn.innerHTML = '<span class="loading-spinner"></span>Uploading...';
+      btn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('widgetId', widgetId);
+
+      try {
+        // Note to Developer: Ensure your backend has this route configured using multer and pdf-parse
+        const response = await fetch('/api/chatbot/upload-pdf', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (response.ok) {
+          alert('PDF uploaded successfully! (Ensure backend vectorizes this data).');
+          fileInput.value = '';
+          document.querySelector('.drop-zone span').textContent = 'Click to upload PDF';
+
+          // Add to local trainedFiles array and re-render list
+          if (!chatbotData.trainedFiles) chatbotData.trainedFiles = [];
+          chatbotData.trainedFiles.push({ fileName: fileInput.files[0].name, uploadDate: Date.now() });
+          renderKnowledgeList(chatbotData.customKnowledge || '', chatbotData.trainedFiles);
+        } else {
+          alert('Upload failed. Check backend configuration.');
+        }
+      } catch (err) {
+        alert('Network error during upload.');
+      } finally {
+        btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Upload File';
+        btn.disabled = false;
       }
     });
 
@@ -893,34 +1306,36 @@
       }
     });
 
-    // Logo Upload Handler
-    const logoInput = document.getElementById('customLogoInput');
-    const logoPreview = document.getElementById('logoPreview');
-    const botLogoBase64 = document.getElementById('botLogoBase64');
+    // Update both base64 and premium filename display
+    document.getElementById('customLogoInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const fileNameDisplay = document.getElementById('logoFileName');
 
-    if (logoInput) {
-      logoInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Check file size (1MB limit)
-        if (file.size > 1024 * 1024) {
-          alert('Image size must be less than 1MB');
-          e.target.value = '';
-          return;
-        }
+      if (file) {
+        // Update filename display
+        fileNameDisplay.textContent = file.name;
+        fileNameDisplay.style.color = "white"; // Make it visible when chosen
 
         const reader = new FileReader();
-        reader.onload = (event) => {
-          const base64 = event.target.result;
-          logoPreview.src = base64;
-          logoPreview.style.display = 'block';
-          botLogoBase64.value = base64;
-          updateLivePreview();
+        reader.onload = function(event) {
+          document.getElementById('botLogoBase64').value = event.target.result;
+          // Force logo and preview update
+          const logoUrl = event.target.result;
+          chatbotData.logoUrl = logoUrl;
+          document.getElementById('logoPreview').src = logoUrl;
+          document.getElementById('logoPreview').style.display = 'block';
+          document.getElementById('lp-avatar-fallback').style.display = 'none';
+          // Re-render preview immediately
+          if (window.updateLivePreview) window.updateLivePreview();
+          // Ensure icons are rendered after logo update
+          lucide.createIcons();
         };
         reader.readAsDataURL(file);
-      });
-    }
+      } else {
+        fileNameDisplay.textContent = "No file chosen";
+        fileNameDisplay.style.color = "#94a3b8"; // Reset subtext color
+      }
+    });
 
     // Live Preview Updater
     function updateLivePreview() {
@@ -950,10 +1365,16 @@
           btn.className = 'lp-qr';
           btn.style.border = `1px solid ${color}`;
           btn.style.color = color;
+          btn.style.background = 'transparent'; // Dark mode fix
+          btn.style.borderRadius = '20px';
+          btn.style.padding = '6px 14px';
+          btn.style.fontSize = '12px';
+          btn.style.cursor = 'pointer';
           btn.textContent = qr;
           qrContainer.appendChild(btn);
         }
       });
+      lucide.createIcons();
     }
 
     // Attach listeners to all inputs for real-time preview
@@ -1002,6 +1423,56 @@
         btn.disabled = false;
       }
     });
+
+    // --- INTEGRATIONS LOGIC ---
+    const integrationsApiKeyInput = document.getElementById('integrationsApiKey');
+    const saveIntegrationsBtn = document.getElementById('saveIntegrationsBtn');
+    const generateNewKeyBtn = document.getElementById('generateNewKeyBtn');
+    const integrationMsg = document.getElementById('integrationMsg');
+    const toggleApiVisibilityBtn = document.getElementById('toggleApiVisibility');
+
+    // Initialize API Key visibility toggle
+    if (toggleApiVisibilityBtn && integrationsApiKeyInput) {
+      toggleApiVisibilityBtn.addEventListener('click', () => {
+        if (integrationsApiKeyInput.type === 'password') {
+          integrationsApiKeyInput.type = 'text';
+          toggleApiVisibilityBtn.innerHTML = '<i data-lucide="eye-off" style="width: 16px; height: 16px;"></i>';
+        } else {
+          integrationsApiKeyInput.type = 'password';
+          toggleApiVisibilityBtn.innerHTML = '<i data-lucide="eye" style="width: 16px; height: 16px;"></i>';
+        }
+        lucide.createIcons();
+      });
+    }
+
+    // Generate New Key logic
+    if (generateNewKeyBtn) {
+      generateNewKeyBtn.addEventListener('click', async () => {
+        const proceed = confirm('Are you sure you want to generate a new API key? This will invalidate any old keys and could break existing integrations.');
+        if (!proceed) return;
+
+        generateNewKeyBtn.innerHTML = '<span class="loading-spinner"></span;';
+        generateNewKeyBtn.disabled = true;
+
+        try {
+          // Note: You will need an actual backend route for this. For now we simulate generation on the frontend to test the UI.
+          const newKey = 'cw_sk_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          integrationsApiKeyInput.value = newKey;
+
+          integrationMsg.textContent = '✅ New key generated. Click Save API Key to apply.';
+          integrationMsg.style.color = '#10b981';
+          integrationMsg.style.display = 'block';
+        } catch (err) {
+          integrationMsg.textContent = '❌ Error generating key.';
+          integrationMsg.style.color = '#ef4444';
+          integrationMsg.style.display = 'block';
+        } finally {
+          generateNewKeyBtn.innerHTML = '<i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Generate New';
+          generateNewKeyBtn.disabled = false;
+          lucide.createIcons();
+        }
+      });
+    }
 
     // Hamburger menu toggle for mobile
     document.getElementById('hamburgerBtn').addEventListener('click', () => {
