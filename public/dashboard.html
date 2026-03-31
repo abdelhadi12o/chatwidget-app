@@ -95,14 +95,14 @@
 
   <div class="dashboard-layout">
     
-    <div class="mobile-header">
+    <div id="mobileHeader" class="mobile-header">
       <div style="font-family: 'Clash Display', sans-serif; font-weight: 700; font-size: 20px; color: white; display: flex; align-items: center; gap: 8px;">
         <i data-lucide="bot" style="color: var(--primary);"></i> ChatWidget
       </div>
       <button id="hamburgerBtn" style="background: none; border: none; color: white; cursor: pointer;"><i data-lucide="menu"></i></button>
     </div>
 
-    <aside class="sidebar" id="dashboardSidebar">
+    <aside class="sidebar" id="dashboardSidebar" style="display: none;">
       <div class="sidebar-logo">
         <i data-lucide="bot" style="color: var(--primary);"></i> ChatWidget
         <button id="closeSidebarBtn" style="margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; display: none;" class="mobile-only-btn"><i data-lucide="x"></i></button>
@@ -592,17 +592,29 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
+        // 1. IF NO CHATBOT (404)
         if (response.status === 404) {
-          document.getElementById('createSection').classList.remove('hidden');
-          document.getElementById('mainContent').style.display = 'flex';
-          return;
+          // Force hide all dashboard tabs
+          document.querySelectorAll('div[id^="tab-"]').forEach(tab => tab.classList.add('hidden'));
+
+          // Show the Create screen
+          const createSec = document.getElementById('createSection');
+          if (createSec) {
+            createSec.classList.remove('hidden');
+            createSec.style.display = 'flex';
+          }
+          return; // STOP RUNNING CODE HERE
         }
+
+        // 2. IF CHATBOT EXISTS (200) -> TURN ON THE SIDEBAR
+        document.getElementById('dashboardSidebar').style.display = 'flex';
+
 
         chatbotData = await response.json();
         widgetId = chatbotData.widgetId;
 
         document.getElementById('createSection').classList.add('hidden');
-        
+
         // Restore tab
         const savedTab = localStorage.getItem('activeTab') || 'tab-overview';
         switchTab(savedTab, null);
@@ -697,7 +709,7 @@
           body: JSON.stringify({ websiteUrl: document.getElementById('websiteUrl').value })
         });
         if (!res.ok) throw new Error((await res.json()).error || 'Failed to create');
-        localStorage.setItem('activeTab', 'tab-embed');
+        localStorage.setItem('activeTab', 'tab-overview');
         window.location.reload();
       } catch(err) {
         errDiv.textContent = err.message;
