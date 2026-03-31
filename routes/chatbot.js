@@ -101,7 +101,9 @@ router.get('/my-bot', authenticateToken, async (req, res) => {
       customization: chatbot.customization,
       scrapedContent: chatbot.scrapedContent,
       customKnowledge: chatbot.customKnowledge || '',
-      trainedFiles: chatbot.trainedFiles || []
+      trainedFiles: chatbot.trainedFiles || [],
+      apiKey: chatbot.apiKey || '',
+      webhookUrl: chatbot.webhookUrl || ''
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -401,15 +403,18 @@ router.delete('/knowledge/:type/:index', authenticateToken, async (req, res) => 
   }
 });
 
-// Lead capture
+// Lead capture & Webhook Firing
 router.post('/lead', async (req, res) => {
   try {
     const { widgetId, name, whatsapp, email, question } = req.body;
     if (!widgetId || !name || !whatsapp) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
     const chatbot = await Chatbot.findOne({ widgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+
+    // 1. Save lead to your database
     const lead = new Lead({
       widgetId,
       userId: chatbot.userId,
@@ -419,6 +424,33 @@ router.post('/lead', async (req, res) => {
       question: question || ''
     });
     await lead.save();
+
+    // 2. FIRE THE WEBHOOK (If the user has one configured)
+    if (chatbot.webhookUrl && chatbot.webhookUrl.trim() !== '') {
+      try {
+        // We don't await this because we don't want to slow down the user's chat experience!
+        // It fires silently in the background.
+        fetch(chatbot.webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'new_lead_captured',
+            botName: chatbot.customization?.botName || 'AI Assistant',
+            websiteUrl: chatbot.websiteUrl,
+            lead: {
+              name: name,
+              whatsapp: whatsapp,
+              email: email || 'Not provided',
+              question: question || 'No context'
+            },
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => console.error('Webhook delivery failed (Network):', err.message));
+      } catch (webhookError) {
+        console.error('Webhook execution error:', webhookError.message);
+      }
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -434,6 +466,38 @@ router.get('/leads/:widgetId', authenticateToken, async (req, res) => {
     res.json(leads);
   } catch (error) {
     res.status(500).json({ error: 'Server error fetching leads' });
+  }
+});
+
+// Save API Key
+router.patch('/api-key', authenticateToken, async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+    chatbot.apiKey = apiKey;
+    await chatbot.save();
+
+    res.json({ message: 'API Key saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save Webhook URL
+router.patch('/webhook', authenticateToken, async (req, res) => {
+  try {
+    const { webhookUrl } = req.body;
+    const chatbot = await Chatbot.findOne({ userId: req.user.userId });
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+    chatbot.webhookUrl = webhookUrl;
+    await chatbot.save();
+
+    res.json({ message: 'Webhook saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

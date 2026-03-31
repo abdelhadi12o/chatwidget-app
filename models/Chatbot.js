@@ -5,6 +5,8 @@ const ChatbotSchema = new mongoose.Schema({
   websiteUrl: { type: String, required: true },
   scrapedContent: { type: mongoose.Schema.Types.Mixed, default: [] },
   widgetId: { type: String, required: true, unique: true },
+  apiKey: { type: String },
+  webhookUrl: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
   conversationCount: { type: Number, default: 0 },
   conversations: { type: Array, default: [] },
