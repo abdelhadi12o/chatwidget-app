@@ -1,20 +1,13 @@
-const jwt = require('jsonwebtoken');
+const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+// Clerk's middleware automatically reads the token from the frontend,
+// verifies it cryptographically, and extracts the user data.
+const requireAuth = ClerkExpressRequireAuth({
+  // This catches errors (like missing tokens) and sends a clean JSON response
+  onError: (err, req, res, next) => {
+    console.error("Auth Error:", err.message);
+    return res.status(401).json({ error: 'Unauthorized: Please log in again.' });
   }
+});
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-module.exports = { authenticateToken };
+module.exports = requireAuth;
