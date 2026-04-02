@@ -9,6 +9,12 @@
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600&display=swap" rel="stylesheet">
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_c29jaWFsLWdvcGhlci02My5jbGVyay5hY2NvdW50cy5kZXYk"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js">
+  </script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -1062,10 +1068,16 @@
     }
 
     // --- ACCOUNT LOGIC ---
-    document.getElementById('signOutBtn').addEventListener('click', () => {
+    document.getElementById('signOutBtn').addEventListener('click', async () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = 'login.html';
+      try {
+        if (window.Clerk) {
+          await window.Clerk.load();
+          await window.Clerk.signOut();
+        }
+      } catch(e) {}
+      window.location.href = window.location.origin + '/login.html';
     });
 
     document.getElementById('updateProfileForm').addEventListener('submit', (e) => {
