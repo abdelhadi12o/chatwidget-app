@@ -45,6 +45,16 @@ connectDB().then(() => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 
+// Config route - returns Clerk and app URLs to frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+    clerkSignInUrl: process.env.CLERK_SIGN_IN_URL,
+    clerkSignUpUrl: process.env.CLERK_SIGN_UP_URL,
+    appUrl: process.env.APP_URL
+  });
+});
+
 // Serve static files
 app.use(express.static('public'));
 

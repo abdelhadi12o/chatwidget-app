@@ -1551,6 +1551,25 @@
   </style>
 </head>
 <body>
+<script>
+(async function() {
+  try {
+    const res = await fetch('/api/config');
+    const config = await res.json();
+    window.__config = config;
+    const signIn = config.clerkSignInUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
+    const signUp = config.clerkSignUpUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
+    document.querySelectorAll('[data-clerk-signin]').forEach(el => {
+      if (el.tagName === 'A') el.href = signIn;
+      else el.onclick = () => window.location.href = signIn;
+    });
+    document.querySelectorAll('[data-clerk-signup]').forEach(el => {
+      if (el.tagName === 'A') el.href = signUp;
+      else el.onclick = () => window.location.href = signUp;
+    });
+  } catch(e) { console.error('Config load failed:', e); }
+})();
+</script>
   <!-- Announcement Bar -->
   <div class="announcement" id="announcement">
     🎉 Free plan available — No credit card required
@@ -1567,8 +1586,8 @@
           <a href="#how-it-works">How It Works</a>
           <a href="#pricing">Pricing</a>
           <a href="#languages">Languages</a>
-          <a href="https://social-gopher-63.accounts.dev/sign-in?redirect_url=https://chatwidget-app-production.up.railway.app/dashboard.html">Login</a>
-          <a href="https://social-gopher-63.accounts.dev/sign-up?redirect_url=https://chatwidget-app-production.up.railway.app/dashboard.html" class="btn btn-primary btn-pill">Get Started Free</a>
+          <a data-clerk-signin>Login</a>
+          <a data-clerk-signup class="btn btn-primary btn-pill">Get Started Free</a>
         </nav>
         <button class="mobile-menu-btn" aria-label="Toggle menu">☰</button>
       </div>
@@ -1599,7 +1618,7 @@
           </div>
           <div class="url-input-bar">
             <input type="text" placeholder="Enter your website URL... e.g. mystore.com">
-            <button onclick="window.location.href='https://social-gopher-63.accounts.dev/sign-up?redirect_url=https://chatwidget-app-production.up.railway.app/dashboard.html'">Build My Chatbot →</button>
+            <button data-clerk-signup>Build My Chatbot →</button>
           </div>
           <div class="trust-text">
             <span>✓ Free forever</span>
@@ -1858,7 +1877,7 @@
             <li>Embed on any site</li>
             <li>Basic dashboard</li>
           </ul>
-          <a href="https://social-gopher-63.accounts.dev/sign-up?redirect_url=https://chatwidget-app-production.up.railway.app/dashboard.html" class="btn btn-primary">Get Started Free</a>
+          <a data-clerk-signup class="btn btn-primary">Get Started Free</a>
         </div>
         <div class="pricing-card fade-up">
           <span class="coming-soon-badge">Coming Soon</span>
@@ -1936,7 +1955,7 @@
       <div class="cta-input-bar fade-up">
         <div class="url-input-bar">
           <input type="text" placeholder="Enter your website URL...">
-          <button onclick="window.location.href='https://social-gopher-63.accounts.dev/sign-up?redirect_url=https://chatwidget-app-production.up.railway.app/dashboard.html'">Get Started Free →</button>
+          <button data-clerk-signup>Get Started Free →</button>
         </div>
         <p style="margin-top: 12px; font-size: 13px; text-align: center; opacity: 0.8;">
           Free forever • No credit card • 5 min setup
@@ -1965,8 +1984,8 @@
         <div class="footer-col">
           <h4>Account</h4>
           <ul>
-            <li><a href="register.html">Register</a></li>
-            <li><a href="login.html">Login</a></li>
+            <li><a data-clerk-signup>Register</a></li>
+            <li><a data-clerk-signin>Login</a></li>
             <li><a href="dashboard.html">Dashboard</a></li>
           </ul>
         </div>
@@ -1990,7 +2009,7 @@
     <span class="text">💬 Automate your customer support today</span>
     <div style="display: flex; gap: 12px; align-items: center;">
       <button class="close-btn" id="closeSticky">×</button>
-      <a href="register.html" class="btn btn-primary btn-pill">Get Started Free</a>
+      <a data-clerk-signup class="btn btn-primary btn-pill">Get Started Free</a>
     </div>
   </div>
 

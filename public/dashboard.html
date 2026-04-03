@@ -552,11 +552,45 @@
     lucide.createIcons();
 
     // --- AUTHENTICATION & GLOBAL VARS ---
-    const token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
     let user = {};
     try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) {}
-    
-    if (!token) window.location.href = 'login.html';
+
+    async function getToken() {
+      try {
+        if (window.Clerk && window.Clerk.session) {
+          const fresh = await window.Clerk.session.getToken();
+          if (fresh) { token = fresh; localStorage.setItem('token', fresh); }
+        }
+      } catch(e) {}
+      return token;
+    }
+
+    window.addEventListener('load', async function() {
+      try {
+        if (window.Clerk) {
+          await window.Clerk.load();
+          if (!window.Clerk.user) {
+            window.location.href = '/';
+            return;
+          }
+          const freshToken = await window.Clerk.session.getToken();
+          token = freshToken;
+          localStorage.setItem('token', freshToken);
+          localStorage.setItem('user', JSON.stringify({
+            name: window.Clerk.user.fullName || window.Clerk.user.primaryEmailAddress?.emailAddress,
+            email: window.Clerk.user.primaryEmailAddress?.emailAddress
+          }));
+          user = JSON.parse(localStorage.getItem('user') || '{}');
+        } else {
+          if (!token) { window.location.href = '/'; return; }
+        }
+      } catch(e) { 
+        console.error('Clerk load failed:', e);
+        if (!token) { window.location.href = '/'; return; }
+      }
+      loadChatbot();
+    });
     
     let widgetId = '';
     let chatbotData = null;
@@ -1068,17 +1102,25 @@
     }
 
     // --- ACCOUNT LOGIC ---
-    document.getElementById('signOutBtn').addEventListener('click', async () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    async function signOut() {
       try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
         if (window.Clerk) {
           await window.Clerk.load();
           await window.Clerk.signOut();
         }
-      } catch(e) {}
-      window.location.href = window.location.origin + '/login.html';
-    });
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = config.clerkSignInUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
+      } catch(e) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
+    }
+
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
 
     document.getElementById('updateProfileForm').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1106,7 +1148,6 @@
     });
 
     // Boot
-    loadChatbot();
   </script>
 </body>
 </html>
