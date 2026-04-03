@@ -574,8 +574,19 @@
       return token;
     }
 
+    async function initClerk() {
+      return new Promise((resolve) => {
+        if (window.Clerk) { resolve(); return; }
+        const interval = setInterval(() => {
+          if (window.Clerk) { clearInterval(interval); resolve(); }
+        }, 100);
+        setTimeout(() => { clearInterval(interval); resolve(); }, 5000);
+      });
+    }
+
     window.addEventListener('load', async function() {
       try {
+        await initClerk();
         if (window.Clerk) {
           await window.Clerk.load();
           if (!window.Clerk.user) {
