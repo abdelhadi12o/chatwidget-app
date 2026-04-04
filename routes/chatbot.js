@@ -119,6 +119,9 @@ router.post('/chat', async (req, res) => {
     const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
 
+    // === THE BOUNCER: Domain Origin Check ===
+    const requestOrigin = req.headers.origin;
+
     let chatbot;
     if (widgetId === 'demo-widget') {
       chatbot = {
@@ -134,6 +137,18 @@ router.post('/chat', async (req, res) => {
     } else {
       chatbot = await Chatbot.findOne({ widgetId });
       if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+
+      // Domain mismatch check (allow localhost for local dev)
+      if (requestOrigin && !requestOrigin.includes('localhost')) {
+        const cleanOrigin = requestOrigin.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const cleanBotUrl = chatbot.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+        if (!cleanOrigin.includes(cleanBotUrl) && !cleanBotUrl.includes(cleanOrigin)) {
+          console.warn(`🚨 SECURITY BLOCK: ${requestOrigin} tried to use widget ${widgetId}`);
+          return res.status(403).json({ error: 'Unauthorized: This widget is not registered for this domain.' });
+        }
+      }
+
       if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
     }
 

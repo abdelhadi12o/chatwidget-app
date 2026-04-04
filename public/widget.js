@@ -311,15 +311,19 @@ if (document.readyState === 'loading') {
 }
 
 async function initWidget() {
-  const scriptTag = document.currentScript || document.querySelector('script[data-widget-id]');
+  // 1. Find the script tag that loaded this file
+  const scriptTag = document.currentScript || document.querySelector('script[src*="widget.js"]');
   if (!scriptTag) return console.error('ChatWidget: Missing script tag');
 
-  const widgetId = scriptTag.getAttribute('data-widget-id');
-  if (!widgetId) return console.error('ChatWidget: Missing widget ID');
+  // 2. Extract the ID — prefer data-chatbot-id, fall back to data-widget-id
+  const widgetId = scriptTag.getAttribute('data-chatbot-id') || scriptTag.getAttribute('data-widget-id');
+  if (!widgetId) return console.error('ChatWidget: Missing widget ID (look for data-chatbot-id in the embed script)');
+
+  console.log('ChatWidget: Initializing for bot:', widgetId);
 
   let settings = null;
 
-  // 1. Fetch settings BEFORE building the widget to prevent color flashing
+  // 3. Fetch settings BEFORE building the widget to prevent color flashing
   try {
     const response = await fetch(`https://ultramora.com/api/chatbot/settings/${widgetId}`);
     if (response.ok) {
@@ -329,10 +333,16 @@ async function initWidget() {
     console.log('Failed to fetch widget settings:', error.message);
   }
 
-  // 2. Now build the widget and apply styles synchronously so the browser paints it perfectly on the first frame
+  // 4. Now build the widget and apply styles synchronously so the browser paints it perfectly on the first frame
   const widget = new AIWidget(widgetId);
   widget.leadCaptureTiming = 3; // Default
   addWidgetStyles();
+
+  // 5. Ensure maximum z-index so no website hides the widget
+  const container = document.querySelector('.ai-widget-container');
+  if (container) {
+    container.style.cssText = 'position:fixed; z-index:2147483647; pointer-events:auto;';
+  }
 
   if (settings && settings.customization) {
     if (settings.customization.leadCaptureTiming !== undefined) {
@@ -483,6 +493,13 @@ function addWidgetStyles() {
       }
     }
 
+    .ai-widget-container {
+      pointer-events: none !important;
+    }
+    .ai-widget-bubble,
+    .ai-widget-chat {
+      pointer-events: auto !important;
+    }
     .ai-widget-bubble {
       position: fixed !important;
       bottom: 24px !important;
@@ -491,7 +508,7 @@ function addWidgetStyles() {
       width: 60px !important;
       height: 60px !important;
       border-radius: 50% !important;
-      z-index: 2147483646 !important;
+      z-index: 2147483647 !important;
       box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
       cursor: pointer !important;
       display: flex !important;
