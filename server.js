@@ -81,7 +81,7 @@ connectDB().then(() => {
 
 // Routes
 app.use('/api/auth', strictCors, require('./routes/auth'));
-app.use('/api/chatbot', strictCors, require('./routes/chatbot'));
+app.use('/api/chatbot', require('./routes/chatbot')); // CORS handled per-route inside router
 
 // Config route - returns Clerk and app URLs to frontend
 app.get('/api/config', (req, res) => {

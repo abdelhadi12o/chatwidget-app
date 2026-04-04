@@ -81,6 +81,11 @@ const publicCors = (req, res, next) => {
   next();
 };
 
+// Explicit OPTIONS handlers for public routes (preflight)
+router.options('/chat', publicCors);
+router.options('/settings/:widgetId', publicCors);
+router.options('/lead', publicCors);
+
 // Strict CORS for dashboard/auth routes — only allows specified origins
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
 const strictCors = (req, res, next) => {
@@ -99,6 +104,25 @@ const strictCors = (req, res, next) => {
     return res.status(403).json({ error: 'Not allowed by CORS' });
   }
 };
+
+// OPTIONS handlers for all protected routes (preflight)
+router.options('/create', strictCors);
+router.options('/retrain', strictCors);
+router.options('/my-bot', strictCors);
+router.options('/delete/:id', strictCors);
+router.options('/update-status', strictCors);
+router.options('/list', strictCors);
+router.options('/:id', strictCors);
+router.options('/add-knowledge', strictCors);
+router.options('/upload-pdf', strictCors);
+router.options('/faqs', strictCors);
+router.options('/faqs/:index', strictCors);
+router.options('/customization/:id', strictCors);
+router.options('/knowledge', strictCors);
+router.options('/knowledge/:type/:index', strictCors);
+router.options('/leads/:widgetId', strictCors);
+router.options('/api-key', strictCors);
+router.options('/webhook', strictCors);
 
 // --- NEW MODERN PDF LIBRARY ---
 const { PDFExtract } = require('pdf.js-extract');
