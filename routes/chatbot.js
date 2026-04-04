@@ -7,6 +7,98 @@ const { scrapeWebsite } = require('../scraper/scrape');
 const requireAuth = require('../middleware/auth'); // CLERK: Updated import
 const Groq = require('groq-sdk');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
+const dns = require('dns');
+const net = require('net');
+
+// SSRF Protection: Validate that a URL does not resolve to a private/internal IP
+const validatePublicUrl = (urlString) => {
+  try {
+    const url = new URL(urlString);
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return { valid: false, reason: 'Only HTTP and HTTPS protocols are allowed' };
+    }
+    const hostname = url.hostname;
+    // Block obvious internal hostnames
+    if (['localhost', '169.254.169.254', 'metadata.google.internal'].includes(hostname)) {
+      return { valid: false, reason: 'Access to internal services is not allowed' };
+    }
+    // Resolve hostname to IP and check
+    return new Promise((resolve) => {
+      dns.lookup(hostname, { all: true }, (err, addresses) => {
+        if (err || !addresses) {
+          return resolve({ valid: false, reason: 'Could not resolve hostname' });
+        }
+        for (const addr of addresses) {
+          const ip = addr.address;
+          // Check if any IP is private/internal
+          if (
+            ip.startsWith('10.') ||                      // 10.0.0.0/8
+            ip.startsWith('127.') ||                     // 127.0.0.0/8 (loopback)
+            ip === '169.254.169.254' ||                   // AWS metadata
+            ip.startsWith('169.254.') ||                  // 169.254.0.0/16 (link-local)
+            ip.startsWith('::1') ||                       // ::1 (IPv6 loopback)
+            ip.startsWith('fd') ||                         // IPv6 unique local
+            ip.startsWith('fc') ||                         // IPv6 unique local
+            (ip.startsWith('fe80:') && ip.startsWith('fe80:')) || // IPv6 link-local
+            net.isIPv4(ip) && (                          // 172.16.0.0/12 and 192.168.0.0/16
+              ip.split('.')[0] === '172' && parseInt(ip.split('.')[1]) >= 16 && parseInt(ip.split('.')[1]) <= 31 ||
+              ip.startsWith('192.168.')
+            )
+          ) {
+            return resolve({ valid: false, reason: 'Access to internal/private networks is not allowed' });
+          }
+        }
+        resolve({ valid: true });
+      });
+    });
+  } catch {
+    return { valid: false, reason: 'Invalid URL format' };
+  }
+};
+
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: "You are sending messages too fast. Please wait a moment." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// CORS middleware for public endpoints (chat, lead, settings) —
+// allows ANY origin so embedded widgets work on client sites
+const publicCors = (req, res, next) => {
+  const origin = req.headers.origin || '*';
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Max-Age', '86400');
+    return res.sendStatus(204);
+  }
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Credentials', 'false');
+  next();
+};
+
+// Strict CORS for dashboard/auth routes — only allows specified origins
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+const strictCors = (req, res, next) => {
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+  } else {
+    // For preflight, still respond properly
+    if (req.method === 'OPTIONS') {
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return res.status(403).json({ error: 'Not allowed by CORS' });
+    }
+    return res.status(403).json({ error: 'Not allowed by CORS' });
+  }
+};
 
 // --- NEW MODERN PDF LIBRARY ---
 const { PDFExtract } = require('pdf.js-extract');
@@ -36,10 +128,21 @@ function getTimeAgo(date) {
 }
 
 // Create chatbot
-router.post('/create', requireAuth, async (req, res) => {
+router.post('/create', strictCors, requireAuth, async (req, res) => {
   try {
     const { websiteUrl } = req.body;
     if (!websiteUrl) return res.status(400).json({ error: 'Website URL is required' });
+
+    // Validate URL format
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(websiteUrl);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ error: 'Website URL must use HTTP or HTTPS' });
+      }
+    } catch (urlError) {
+      return res.status(400).json({ error: 'Invalid website URL format' });
+    }
 
     // CLERK: Updated to req.auth.userId
     // (One bot per user limit removed — users can now create multiple chatbots)
@@ -70,12 +173,13 @@ router.post('/create', requireAuth, async (req, res) => {
       createdAt: chatbot.createdAt
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Retrain chatbot
-router.post('/retrain', requireAuth, async (req, res) => {
+router.post('/retrain', strictCors, requireAuth, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
@@ -96,12 +200,13 @@ router.post('/retrain', requireAuth, async (req, res) => {
 
     res.json({ message: 'Chatbot retrained successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get user's chatbot
-router.get('/my-bot', requireAuth, async (req, res) => {
+router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
@@ -121,15 +226,30 @@ router.get('/my-bot', requireAuth, async (req, res) => {
       webhookUrl: chatbot.webhookUrl || ''
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Chat endpoint (Public - No Auth Required)
-router.post('/chat', async (req, res) => {
+router.post('/chat', chatLimiter, publicCors, async (req, res) => {
   try {
     const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
+
+    // Input validation
+    if (message.length > 5000) {
+      return res.status(400).json({ error: 'Message is too long. Keep it under 5000 characters.' });
+    }
+    if (!Array.isArray(history) || history.length > 20) {
+      return res.status(400).json({ error: 'Invalid history or too many messages' });
+    }
+    // Validate history items
+    for (const item of history) {
+      if (typeof item.role !== 'string' || typeof item.content !== 'string' || item.content.length > 5000) {
+        return res.status(400).json({ error: 'Invalid history format' });
+      }
+    }
 
     // === THE BOUNCER: Domain Origin Check ===
     const requestOrigin = req.headers.origin;
@@ -229,15 +349,21 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
 
     res.json({ answer: cleanedAnswer });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Delete chatbot (specific by ID)
-router.delete('/delete/:id', requireAuth, async (req, res) => {
+router.delete('/delete/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const botIdToDelete = req.params.id;
     const userId = req.auth.userId; // CLERK: from middleware
+
+    // Validate ID is a non-empty string
+    if (!botIdToDelete || typeof botIdToDelete !== 'string') {
+      return res.status(400).json({ error: 'Invalid bot ID' });
+    }
 
     // Find EXACTLY that bot, belonging to EXACTLY that user, and delete it
     const deletedBot = await Chatbot.findOneAndDelete({
@@ -257,7 +383,7 @@ router.delete('/delete/:id', requireAuth, async (req, res) => {
 });
 
 // Update status
-router.patch('/update-status', requireAuth, async (req, res) => {
+router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
   try {
     const { isActive } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
@@ -265,12 +391,13 @@ router.patch('/update-status', requireAuth, async (req, res) => {
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // NEW: LIST ALL BOTS
-router.get('/list', requireAuth, async (req, res) => {
+router.get('/list', strictCors, requireAuth, async (req, res) => {
   try {
     const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt');  // CLERK: use userId from req.auth
     res.status(200).json(bots);
@@ -280,7 +407,7 @@ router.get('/list', requireAuth, async (req, res) => {
 });
 
 // NEW: GET SINGLE BOT BY ID
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
@@ -343,24 +470,38 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // Add knowledge (Text)
-router.post('/add-knowledge', requireAuth, async (req, res) => {
+router.post('/add-knowledge', strictCors, requireAuth, async (req, res) => {
   try {
     const { knowledge } = req.body;
     if (!knowledge) return res.status(400).json({ error: 'Knowledge content is required' });
+    if (knowledge.length > 50000) {
+      return res.status(400).json({ error: 'Knowledge is too long. Keep it under 50,000 characters.' });
+    }
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     const newChunks = knowledge.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     await Chatbot.findByIdAndUpdate(chatbot._id, { $push: { scrapedContent: { $each: newChunks } } });
     res.json({ message: 'Knowledge added successfully', addedChunks: newChunks.length });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Upload PDF and extract text
-router.post('/upload-pdf', requireAuth, upload.single('file'), (req, res) => {
+router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    // Validate file type
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Only PDF files are allowed' });
+    }
+
+    // Validate file size (5MB limit)
+    if (req.file.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File size exceeds 5MB limit' });
+    }
 
     pdfExtract.extractBuffer(req.file.buffer, {}, async (err, data) => {
       if (err) {
@@ -394,29 +535,31 @@ router.post('/upload-pdf', requireAuth, upload.single('file'), (req, res) => {
         res.json({ message: 'Success', fileName: req.file.originalname });
       } catch (dbError) {
         console.error('DB Error:', dbError);
-        res.status(500).json({ error: dbError.message });
+        res.status(500).json({ error: 'Internal server error' });
       }
     });
   } catch (error) {
     console.error('Upload Error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get widget settings (public)
-router.get('/settings/:widgetId', async (req, res) => {
+router.get('/settings/:widgetId', publicCors, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
     res.json({ customization: chatbot.customization });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Add FAQ
-router.post('/faqs', requireAuth, async (req, res) => {
+router.post('/faqs', strictCors, requireAuth, async (req, res) => {
   try {
     const { question, answer } = req.body;
     if (!question || !answer) return res.status(400).json({ error: 'Question and answer are required' });
@@ -428,12 +571,13 @@ router.post('/faqs', requireAuth, async (req, res) => {
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'FAQ added successfully', faqs: chatbot.faqs });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Delete FAQ
-router.delete('/faqs/:index', requireAuth, async (req, res) => {
+router.delete('/faqs/:index', strictCors, requireAuth, async (req, res) => {
   try {
     const index = parseInt(req.params.index);
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
@@ -442,12 +586,13 @@ router.delete('/faqs/:index', requireAuth, async (req, res) => {
     await chatbot.save();
     res.json({ message: 'FAQ removed successfully', faqs: chatbot.faqs });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Update customization (specific bot by ID)
-router.patch('/customization/:id', requireAuth, async (req, res) => {
+router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const botIdToUpdate = req.params.id;
     const userId = req.auth.userId; // CLERK: from middleware
@@ -457,38 +602,73 @@ router.patch('/customization/:id', requireAuth, async (req, res) => {
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt } = req.body;
-    if (botName) chatbot.customization.botName = botName;
-    if (bubbleColor) chatbot.customization.bubbleColor = bubbleColor;
-    if (welcomeMessage) chatbot.customization.welcomeMessage = welcomeMessage;
-    if (position) chatbot.customization.position = position;
+    // Validate string field lengths
+    if (botName) {
+      if (botName.length > 50) return res.status(400).json({ error: 'Bot name is too long' });
+      chatbot.customization.botName = botName;
+    }
+    if (bubbleColor) {
+      if (!/^#[0-9A-Fa-f]{6}$/.test(bubbleColor)) return res.status(400).json({ error: 'Invalid color format (use hex like #6366f1)' });
+      chatbot.customization.bubbleColor = bubbleColor;
+    }
+    if (welcomeMessage) {
+      if (welcomeMessage.length > 500) return res.status(400).json({ error: 'Welcome message is too long' });
+      chatbot.customization.welcomeMessage = welcomeMessage;
+    }
+    if (position) {
+      const validPositions = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
+      if (!validPositions.includes(position)) return res.status(400).json({ error: 'Invalid position value' });
+      chatbot.customization.position = position;
+    }
     if (leadCaptureTiming !== undefined) chatbot.customization.leadCaptureTiming = leadCaptureTiming;
-    if (quickReplies) chatbot.customization.quickReplies = quickReplies;
-    if (botLogo !== undefined) chatbot.customization.botLogo = botLogo;
-    if (bookingLink !== undefined) chatbot.customization.bookingLink = bookingLink;
-    if (systemPrompt !== undefined) chatbot.customization.systemPrompt = systemPrompt;
+    if (quickReplies) {
+      if (!Array.isArray(quickReplies) || quickReplies.length > 5) return res.status(400).json({ error: 'Invalid quick replies' });
+      for (const qr of quickReplies) {
+        if (typeof qr !== 'string' || qr.length > 50) return res.status(400).json({ error: 'Quick reply items must be strings under 50 chars' });
+      }
+      chatbot.customization.quickReplies = quickReplies;
+    }
+    if (botLogo !== undefined) {
+      if (typeof botLogo !== 'string' || botLogo.length > 500) return res.status(400).json({ error: 'Invalid bot logo URL' });
+      chatbot.customization.botLogo = botLogo;
+    }
+    if (bookingLink !== undefined) {
+      if (typeof bookingLink !== 'string' || (bookingLink.length > 500 && bookingLink !== '')) return res.status(400).json({ error: 'Invalid booking link' });
+      chatbot.customization.bookingLink = bookingLink;
+    }
+    if (systemPrompt !== undefined) {
+      if (systemPrompt.length > 5000) return res.status(400).json({ error: 'System prompt is too long (5000 chars max)' });
+      chatbot.customization.systemPrompt = systemPrompt;
+    }
 
     await chatbot.save();
     res.json({ message: 'Customization updated', customization: chatbot.customization });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Save custom knowledge
-router.patch('/knowledge', requireAuth, async (req, res) => {
+router.patch('/knowledge', strictCors, requireAuth, async (req, res) => {
   try {
+    const { customKnowledge } = req.body;
+    if (typeof customKnowledge !== 'string' || customKnowledge.length > 50000) {
+      return res.status(400).json({ error: 'Custom knowledge must be a string under 50,000 characters.' });
+    }
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
-    chatbot.customKnowledge = req.body.customKnowledge || '';
+    chatbot.customKnowledge = customKnowledge;
     await chatbot.save();
     res.json({ message: 'Knowledge saved' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Delete a specific knowledge source (Text or File)
-router.delete('/knowledge/:type/:index', requireAuth, async (req, res) => {
+router.delete('/knowledge/:type/:index', strictCors, requireAuth, async (req, res) => {
   try {
     const { type, index } = req.params;
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
@@ -519,16 +699,28 @@ router.delete('/knowledge/:type/:index', requireAuth, async (req, res) => {
       trainedFiles: chatbot.trainedFiles || []
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Lead capture & Webhook Firing (Public)
-router.post('/lead', async (req, res) => {
+router.post('/lead', publicCors, async (req, res) => {
   try {
     const { widgetId, name, whatsapp, email, question } = req.body;
     if (!widgetId || !name || !whatsapp) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Input validation
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'Name is too long' });
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    if (whatsapp.length > 20) {
+      return res.status(400).json({ error: 'WhatsApp number is too long' });
     }
 
     const chatbot = await Chatbot.findOne({ widgetId });
@@ -569,12 +761,13 @@ router.post('/lead', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get leads by widgetId
-router.get('/leads/:widgetId', requireAuth, async (req, res) => {
+router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(403).json({ error: 'Unauthorized' });
@@ -586,7 +779,7 @@ router.get('/leads/:widgetId', requireAuth, async (req, res) => {
 });
 
 // Save API Key
-router.patch('/api-key', requireAuth, async (req, res) => {
+router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
   try {
     const { apiKey } = req.body;
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
@@ -597,23 +790,32 @@ router.patch('/api-key', requireAuth, async (req, res) => {
 
     res.json({ message: 'API Key saved successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Save Webhook URL
-router.patch('/webhook', requireAuth, async (req, res) => {
+router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
   try {
     const { webhookUrl } = req.body;
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+
+    if (webhookUrl) {
+      const validation = await validatePublicUrl(webhookUrl);
+      if (!validation.valid) {
+        return res.status(400).json({ error: 'Invalid webhook URL: ' + validation.reason });
+      }
+    }
 
     chatbot.webhookUrl = webhookUrl;
     await chatbot.save();
 
     res.json({ message: 'Webhook saved successfully' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Webhook save error:', error);
+    res.status(500).json({ error: 'Failed to save webhook' });
   }
 });
 

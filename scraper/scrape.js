@@ -130,7 +130,7 @@ const scrapeWebsite = async (url, onProgress) => {
 
     const response = await axios.get(url, {
       timeout: 15000,
-      httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+      httpsAgent: new (require('https').Agent)({ rejectUnauthorized: true }),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
@@ -172,7 +172,7 @@ const scrapeWebsite = async (url, onProgress) => {
       try {
         const pageResponse = await axios.get(pageUrl, {
           timeout: 10000,
-          httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+          httpsAgent: new (require('https').Agent)({ rejectUnauthorized: true }),
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }

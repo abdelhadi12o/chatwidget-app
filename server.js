@@ -1,15 +1,53 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./database');
 const Chatbot = require('./models/Chatbot');
 
 const app = express();
 
 // Middleware
-app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(mongoSanitize()); // Strip MongoDB operator injection attempts
+
+// Global rate limiter for all API routes
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: "Too many requests from this IP, please try again later." }
+});
+
+// Stricter rate limiter for authentication endpoints (prevents brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per 15 minutes
+  message: { error: "Too many authentication attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api', globalLimiter);
+app.use('/api/auth', authLimiter);
+
+// Strict CORS for dashboard routes only (auth, chatbot management, config)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
+const strictCors = cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+});
+
+app.use('/api/auth', strictCors);
+app.use('/api/config', strictCors);
 
 // Seed demo chatbot on startup
 const seedDemoChatbot = async () => {
@@ -42,8 +80,8 @@ connectDB().then(() => {
 });
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/chatbot', require('./routes/chatbot'));
+app.use('/api/auth', strictCors, require('./routes/auth'));
+app.use('/api/chatbot', strictCors, require('./routes/chatbot'));
 
 // Config route - returns Clerk and app URLs to frontend
 app.get('/api/config', (req, res) => {

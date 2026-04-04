@@ -33,7 +33,8 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -67,7 +68,8 @@ router.post('/login', async (req, res) => {
 
     res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Server error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

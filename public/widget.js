@@ -144,7 +144,13 @@ class AIWidget {
     // We use word-break to ensure long URLs don't break out of the chat bubble
     text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
 
-    messageDiv.innerHTML = `
+    const purify = window.DOMPurify;
+    messageDiv.innerHTML = purify
+      ? purify.sanitize(`
+      <span class="ai-widget-avatar">${avatarContent}</span>
+      <div class="ai-widget-message-content" dir="auto">${text}</div>
+    `)
+      : `
       <span class="ai-widget-avatar">${avatarContent}</span>
       <div class="ai-widget-message-content" dir="auto">${text}</div>
     `;
@@ -310,7 +316,29 @@ if (document.readyState === 'loading') {
   initWidget();
 }
 
+// Dynamically load DOMPurify from CDN for XSS sanitization
+async function loadDOMPurify() {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js';
+    script.crossOrigin = 'anonymous';
+    script.onload = () => {
+      if (window.DOMPurify) {
+        resolve(window.DOMPurify);
+      } else {
+        reject(new Error('DOMPurify failed to load'));
+      }
+    };
+    script.onerror = () => reject(new Error('Failed to load DOMPurify CDN'));
+    document.head.appendChild(script);
+  });
+}
+
 async function initWidget() {
+  // 0. Load DOMPurify for XSS protection before rendering anything
+  const DOMPurify = await loadDOMPurify();
+  window.DOMPurify = DOMPurify;
+
   // 1. Find the script tag that loaded this file
   const scriptTag = document.currentScript || document.querySelector('script[src*="widget.js"]');
   if (!scriptTag) return console.error('ChatWidget: Missing script tag');
@@ -392,7 +420,10 @@ function applyCustomization(customization, widget) {
     widget.botLogo = customization.botLogo;
     const icon = document.querySelector('.ai-widget-header-avatar');
     if (icon) {
-      icon.innerHTML = `<img src="${customization.botLogo}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block;">`;
+      const imgHTML = `<img src="${customization.botLogo}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block;">`;
+      icon.innerHTML = window.DOMPurify
+        ? window.DOMPurify.sanitize(imgHTML, { ALLOWED_TAGS: ['img'], ALLOWED_ATTR: ['src', 'style'] })
+        : imgHTML;
     }
   }
 
