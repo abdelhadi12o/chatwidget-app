@@ -238,6 +238,9 @@
         <a class="nav-item active" onclick="switchTab('tab-overview', this)"><i data-lucide="bar-chart-2"></i> Overview</a>
         <a class="nav-item" onclick="switchTab('tab-appearance', this)"><i data-lucide="palette"></i> Appearance</a>
         <a class="nav-item" onclick="switchTab('tab-knowledge', this)"><i data-lucide="database"></i> Knowledge Base</a>
+
+        <a class="nav-item" onclick="switchTab('tab-brain', this)"><i data-lucide="brain-circuit"></i> AI Brain</a>
+
         <a class="nav-item" onclick="switchTab('tab-integrations', this)"><i data-lucide="blocks"></i> Integrations</a>
         <a class="nav-item" onclick="switchTab('tab-leads', this)"><i data-lucide="users"></i> Collected Leads</a>
         <a class="nav-item" onclick="switchTab('tab-test', this)"><i data-lucide="smartphone"></i> Test Chatbot</a>
@@ -527,6 +530,24 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div id="tab-brain" class="hidden">
+        <div style="margin-bottom: 32px;">
+          <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin-bottom: 4px;">AI Brain & Behavior</h2>
+          <p style="color: var(--text-muted); font-size: 14px;">Define the personality, tone, and strict rules your AI must follow.</p>
+        </div>
+
+        <div class="dark-panel">
+          <h3 class="dark-panel-title"><i data-lucide="cpu" style="color: var(--primary);"></i> Master System Prompt</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">This is the secret core instruction that guides your AI. Tell it how to act, what limits to have, and what its primary goal is.</p>
+
+          <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Custom Instructions</label>
+          <textarea id="systemPromptInput" class="dark-input" style="height: 250px; resize: vertical; padding: 16px; margin-bottom: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;" placeholder="Example: You are an aggressive sales closer. Always speak in a friendly but persuasive tone. Keep answers under 3 sentences. Never mention competitors. Your primary goal is to collect the user's phone number."></textarea>
+
+          <button id="saveBrainBtn" class="btn-primary" style="width: 100%;"><i data-lucide="save"></i> Update AI Brain</button>
+          <div id="brainMsg" style="margin-top: 12px; font-size: 13px; display: none; text-align: center;"></div>
         </div>
       </div>
 
@@ -1016,11 +1037,13 @@
       const btn = document.getElementById('saveAppearanceBtn');
       btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
       try {
-        await fetch('/api/chatbot/customization', {
+        const freshToken = await window.Clerk.session.getToken();
+        await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
           body: JSON.stringify({
             botName: document.getElementById('customBotName').value,
+            systemPrompt: document.getElementById('systemPromptInput').value,
             welcomeMessage: document.getElementById('customWelcome').value,
             bubbleColor: document.getElementById('customColor').value,
             bookingLink: document.getElementById('customBookingLink').value,
@@ -1285,11 +1308,44 @@
     document.getElementById('saveTimingBtn').addEventListener('click', async () => {
       const val = document.getElementById('leadTimingSelect').value;
       try {
-        await fetch('/api/chatbot/customization', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ leadCaptureTiming: parseInt(val) }) });
+        const freshToken = await window.Clerk.session.getToken();
+        await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
+          body: JSON.stringify({ leadCaptureTiming: parseInt(val) })
+        });
         const msg = document.getElementById('timingMsg');
         msg.textContent = '✅ Saved!'; msg.style.color = 'var(--success)'; msg.style.display = 'block';
         setTimeout(() => msg.style.display='none', 2000);
       } catch(e) {}
+    });
+
+    // --- AI BRAIN LOGIC ---
+    document.getElementById('saveBrainBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveBrainBtn');
+      btn.innerHTML = '<span class="loading-spinner"></span> Updating...';
+      try {
+        const freshToken = await window.Clerk.session.getToken();
+
+        await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
+          body: JSON.stringify({
+            systemPrompt: document.getElementById('systemPromptInput').value
+          })
+        });
+
+        const msg = document.getElementById('brainMsg');
+        msg.textContent = '✅ AI Brain Updated!';
+        msg.style.color = 'var(--success)';
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display='none', 3000);
+      } catch (err) {
+        console.error("Failed to save AI Brain:", err);
+      } finally {
+        btn.innerHTML = '<i data-lucide="save"></i> Update AI Brain';
+        if (window.lucide) window.lucide.createIcons();
+      }
     });
 
     // --- INSTALL CODES ---
@@ -1695,6 +1751,7 @@
       // Appearance
       if (data.customization) {
         document.getElementById('customBotName').value = data.customization.botName || 'AI Assistant';
+        document.getElementById('systemPromptInput').value = data.customization.systemPrompt || '';
         document.getElementById('customWelcome').value = data.customization.welcomeMessage || "Hi! How can I help you?";
         document.getElementById('customColor').value = data.customization.bubbleColor || '#6366f1';
         document.getElementById('customBookingLink').value = data.customization.bookingLink || '';

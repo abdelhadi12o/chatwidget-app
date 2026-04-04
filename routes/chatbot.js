@@ -175,29 +175,31 @@ router.post('/chat', async (req, res) => {
       context += '\n\nFAQs:\n' + chatbot.faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
     }
 
-    const systemPrompt = `You are the official customer support assistant for this website. You are here to help the customer, NOT the other way around.
+    // --- AI BRAIN INTEGRATION ---
+    // 1. Grab their custom system prompt (AI Brain) or use safe default
+    const aiBrain = chatbot.customization?.systemPrompt || "You are a helpful and polite AI assistant. Answer questions clearly.";
 
-CRITICAL RULES YOU MUST FOLLOW:
-1. THE INITIAL GREETING: Your very first message must ALWAYS be a proactive offer to help the customer.
-2. STRICT LANGUAGE MATCHING: Instantly adapt to the user's language.
-3. YOUR ROLE (CRITICAL): You are the store's employee. Never act like a confused visitor.
-4. CONCISENESS: Keep your answers brief, friendly, and highly relevant.
-5. UNKNOWN ANSWERS: If a customer asks something not in the provided website data, politely apologize. Do not invent facts.
-6. PRODUCT LINKS: If the provided knowledge context explicitly contains a website link for a product, share it. DO NOT use brackets if you don't have a real link.
+    // 2. Build the master system message combining AI Brain + Knowledge Base
+    const systemMessage = {
+      role: "system",
+      content: `${aiBrain}
 
-Here is the knowledge you have about the website:
+STRICT RULES:
+- Base your answers ONLY on the provided Company Knowledge Base.
+- If the answer is not in the knowledge base, politely say you don't know and offer to collect their contact info.
+
+COMPANY KNOWLEDGE BASE:
 ${context.substring(0, 8000)}
 
 ADDITIONAL BUSINESS RULES & CUSTOM KNOWLEDGE (PRIORITIZE THIS INFORMATION):
 ${chatbot.customKnowledge ? chatbot.customKnowledge : 'No additional rules provided.'}
 
 BOOKING/ACTION LINK:
-${chatbot.customization.bookingLink ? `If the user wants to book an appointment, ALWAYS give them this exact link: ${chatbot.customization.bookingLink}` : ''}
-`;
+${chatbot.customization.bookingLink ? `If the user wants to book an appointment, ALWAYS give them this exact link: ${chatbot.customization.bookingLink}` : ''}`
+    };
 
-    const messages = [
-      { role: 'system', content: systemPrompt }
-    ];
+    // 3. Build final messages array with system message first
+    const messages = [systemMessage];
 
     if (Array.isArray(history) && history.length > 0) {
       messages.push(...history);
@@ -444,12 +446,17 @@ router.delete('/faqs/:index', requireAuth, async (req, res) => {
   }
 });
 
-// Update customization
-router.patch('/customization', requireAuth, async (req, res) => {
+// Update customization (specific bot by ID)
+router.patch('/customization/:id', requireAuth, async (req, res) => {
   try {
-    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink } = req.body;
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
-    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+    const botIdToUpdate = req.params.id;
+    const userId = req.auth.userId; // CLERK: from middleware
+
+    // Find EXACTLY that bot belonging to this user
+    const chatbot = await Chatbot.findOne({ _id: botIdToUpdate, userId });
+    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt } = req.body;
     if (botName) chatbot.customization.botName = botName;
     if (bubbleColor) chatbot.customization.bubbleColor = bubbleColor;
     if (welcomeMessage) chatbot.customization.welcomeMessage = welcomeMessage;
@@ -458,6 +465,8 @@ router.patch('/customization', requireAuth, async (req, res) => {
     if (quickReplies) chatbot.customization.quickReplies = quickReplies;
     if (botLogo !== undefined) chatbot.customization.botLogo = botLogo;
     if (bookingLink !== undefined) chatbot.customization.bookingLink = bookingLink;
+    if (systemPrompt !== undefined) chatbot.customization.systemPrompt = systemPrompt;
+
     await chatbot.save();
     res.json({ message: 'Customization updated', customization: chatbot.customization });
   } catch (error) {
