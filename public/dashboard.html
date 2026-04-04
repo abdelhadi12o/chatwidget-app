@@ -9,6 +9,7 @@
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600&display=swap" rel="stylesheet">
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     (async function() {
       try {
@@ -159,8 +160,16 @@
       transform: translateX(0); /* Slides in */
     }
 
+    .overview-charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
     /* ===== MOBILE QUERIES ===== */
     @media (max-width: 768px) {
+        .overview-charts-grid { grid-template-columns: 1fr; }
       .dashboard-layout { flex-direction: column; }
       .mobile-header { display: flex; }
       /* Fix 1: Set left to 0 and push it off screen with transform */
@@ -306,6 +315,24 @@
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; color: var(--text-muted); font-size: 12px; font-weight: 600;"><i data-lucide="zap" style="color: var(--success);"></i> SYSTEM STATUS</div>
             <div id="bigSystemStatus" style="font-size: 36px; font-weight: 700; color: var(--success); font-family: 'Clash Display', sans-serif;">Active</div>
           </div>
+        </div>
+
+        <!-- New Chart Grid -->
+        <div class="overview-charts-grid">
+
+          <div class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title"><i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Activity</h3>
+            <div style="position: relative; height: 300px; width: 100%;">
+              <canvas id="activityChart"></canvas>
+            </div>
+          </div>
+
+          <div class="dark-panel" style="margin-bottom: 0; display: flex; flex-direction: column;">
+            <h3 class="dark-panel-title"><i data-lucide="message-circle" style="color: var(--primary);"></i> Recent Questions</h3>
+            <div id="recentQuestionsList" style="flex: 1; overflow-y: auto; max-height: 300px; display: flex; flex-direction: column; gap: 12px; padding-right: 8px;">
+              </div>
+          </div>
+
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
@@ -1425,6 +1452,91 @@
       }
     }
 
+    // --- DASHBOARD CHARTS & LISTS ---
+    let dashboardChartInstance = null;
+
+    function renderOverviewData(chartDataArray, recentMessagesArray) {
+        // 1. Render the 7-Day Line Chart
+        const ctx = document.getElementById('activityChart');
+        if (!ctx) return;
+
+        // Destroy old chart if switching bots
+        if (dashboardChartInstance) {
+            dashboardChartInstance.destroy();
+        }
+
+        // Get the last 7 days for the labels
+        const labels = [...Array(7)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return d.toLocaleDateString('en-US', { weekday: 'short' });
+        });
+
+        dashboardChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Messages',
+                    data: chartDataArray,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#111827',
+                    pointBorderColor: '#6366f1',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#94a3b8',
+                        borderColor: '#334155',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#1e293b', drawBorder: false },
+                        ticks: { color: '#94a3b8', stepSize: 10 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+
+        // 2. Render the Recent Questions List
+        const listContainer = document.getElementById('recentQuestionsList');
+        if (!listContainer) return;
+
+        if (!recentMessagesArray || recentMessagesArray.length === 0) {
+            listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 13px;">No messages yet.</div>`;
+            return;
+        }
+
+        listContainer.innerHTML = recentMessagesArray.map(msg => `
+            <div style="background: var(--bg-sidebar); border: 1px solid var(--border-light); border-radius: 8px; padding: 12px;">
+                <div style="color: white; font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.4;">"${msg.text}"</div>
+                <div style="color: var(--text-muted); font-size: 11px;">${msg.time}</div>
+            </div>
+        `).join('');
+    }
+
     // Populate remaining dashboard sections (appearance, knowledge, etc.)
     function populateDashboardData(data) {
       // Knowledge chunks count
@@ -1485,6 +1597,13 @@
       // Account form
       document.getElementById('accountName').value = user.name || '';
       document.getElementById('accountEmail').value = user.email || '';
+
+      // Render chart and recent questions with real data (or zeros if empty)
+      const chartData = data.activityChart || [0, 0, 0, 0, 0, 0, 0];
+      const recentMessages = data.recentMessages || [];
+      if (typeof renderOverviewData === 'function') {
+        renderOverviewData(chartData, recentMessages);
+      }
     }
 
     // --- BUTTON CLICKS ---

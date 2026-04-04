@@ -22,6 +22,19 @@ const generateWidgetId = () => {
   return 'widget_' + Math.random().toString(36).substr(2, 16) + Date.now().toString(36);
 };
 
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} mins ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Create chatbot
 router.post('/create', requireAuth, async (req, res) => {
   try {
@@ -263,6 +276,38 @@ router.get('/:id', requireAuth, async (req, res) => {
     });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
+    // Build activityChart: last 7 days of message counts
+    const conversations = chatbot.conversations || [];
+    const last7Days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    }).sort((a, b) => a - b); // Ensure ascending
+
+    const dayCounts = new Array(7).fill(0);
+    conversations.forEach(conv => {
+      const convTime = new Date(conv.timestamp).getTime();
+      for (let i = 0; i < 7; i++) {
+        const dayStart = last7Days[i];
+        const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+        if (convTime >= dayStart && convTime < dayEnd) {
+          dayCounts[i]++;
+          break;
+        }
+      }
+    });
+
+    // Build recentMessages: last 20 user messages
+    const recentMessages = conversations
+      .filter(conv => conv.user && conv.user.trim().length > 0)
+      .slice(-20)
+      .map(conv => ({
+        text: conv.user,
+        time: getTimeAgo(new Date(conv.timestamp))
+      }))
+      .reverse();
+
     res.json({
       widgetId: chatbot.widgetId,
       websiteUrl: chatbot.websiteUrl,
@@ -276,7 +321,9 @@ router.get('/:id', requireAuth, async (req, res) => {
       trainedFiles: chatbot.trainedFiles || [],
       apiKey: chatbot.apiKey || '',
       webhookUrl: chatbot.webhookUrl || '',
-      chunkCount: Array.isArray(chatbot.scrapedContent) ? chatbot.scrapedContent.length : 0
+      chunkCount: Array.isArray(chatbot.scrapedContent) ? chatbot.scrapedContent.length : 0,
+      activityChart: dayCounts,
+      recentMessages: recentMessages
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
