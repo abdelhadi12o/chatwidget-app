@@ -160,16 +160,30 @@
       transform: translateX(0); /* Slides in */
     }
 
+    /* Dashboard Charts Grid */
     .overview-charts-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 24px;
         margin-bottom: 24px;
+        width: 100%;
+    }
+
+    /* CRITICAL FIX: Stops Chart.js from stretching off the mobile screen */
+    .overview-charts-grid > div {
+        min-width: 0;
+    }
+
+    .chart-container-wrapper {
+        position: relative;
+        height: 300px;
+        width: 100%;
     }
 
     /* ===== MOBILE QUERIES ===== */
     @media (max-width: 768px) {
         .overview-charts-grid { grid-template-columns: 1fr; }
+        .chart-container-wrapper { height: 220px; }
       .dashboard-layout { flex-direction: column; }
       .mobile-header { display: flex; }
       /* Fix 1: Set left to 0 and push it off screen with transform */
@@ -322,7 +336,7 @@
 
           <div class="dark-panel" style="margin-bottom: 0;">
             <h3 class="dark-panel-title"><i data-lucide="trending-up" style="color: var(--primary);"></i> 7-Day Activity</h3>
-            <div style="position: relative; height: 300px; width: 100%;">
+            <div class="chart-container-wrapper">
               <canvas id="activityChart"></canvas>
             </div>
           </div>
@@ -1443,6 +1457,10 @@
 
         // Populate the rest of the dashboard
         populateDashboardData(botData);
+
+        // Fetch the leads for this specific bot
+        loadLeads();
+
       } catch (error) {
         console.error("Failed to load bot data:", error);
         const websiteDisplay = document.getElementById('configWebsite');
@@ -1558,10 +1576,6 @@
       }
       const chunksDisplay = document.getElementById('configChunks');
       if (chunksDisplay) chunksDisplay.textContent = chunks;
-
-      // Leads count
-      const leadsDisplay = document.getElementById('metric-leads');
-      if (leadsDisplay) leadsDisplay.textContent = '0';
 
       // Appearance
       if (data.customization) {
