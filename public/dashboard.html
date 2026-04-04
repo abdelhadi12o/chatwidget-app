@@ -1103,7 +1103,7 @@
       const tbody = document.getElementById('knowledgeListBody');
       tbody.innerHTML = '';
       let hasData = false;
-      
+
       if (files && files.length) {
         hasData = true;
         files.forEach((f, i) => tbody.innerHTML += `<tr><td>${f.fileName}</td><td><span class="badge-pdf">PDF</span></td><td style="color:var(--success);">✓ Trained</td><td style="text-align:right;"><button onclick="deleteKnowledge('file', ${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`);
@@ -1116,36 +1116,71 @@
       if (window.lucide) window.lucide.createIcons();
     }
 
+    // UPGRADED: Delete Knowledge
     window.deleteKnowledge = async function(type, index) {
       if (!confirm('Delete this knowledge source?')) return;
       try {
-        const res = await fetch(`/api/chatbot/knowledge/${type}/${index}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+        const freshToken = await window.Clerk.session.getToken(); // FIX: Grab fresh token
+        const res = await fetch(`/api/chatbot/knowledge/${type}/${index}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${freshToken}` }
+        });
         if (res.ok) {
           const data = await res.json();
           chatbotData.customKnowledge = data.customKnowledge;
           chatbotData.trainedFiles = data.trainedFiles;
           renderKnowledgeList(data.customKnowledge, data.trainedFiles);
+          showToast('Knowledge deleted successfully', 'success');
+        } else {
+            throw new Error('Failed to delete');
         }
-      } catch (e) {}
+      } catch (e) {
+          showToast('Error deleting knowledge', 'danger');
+      }
     }
 
+    // UPGRADED: Train on Text Button
     document.getElementById('addTextBtn').addEventListener('click', async () => {
       const text = document.getElementById('newKnowledgeText').value.trim();
-      if (!text) return;
+      if (!text) return showToast('Please enter some text first!', 'warning');
+
       const btn = document.getElementById('addTextBtn');
-      btn.innerHTML = '<span class="loading-spinner"></span>';
-      
+      const originalText = '<i data-lucide="plus"></i> Train on Text';
+
+      btn.innerHTML = '<span class="loading-spinner"></span> Training...';
+      btn.disabled = true;
+
       const newKnowledge = chatbotData.customKnowledge ? chatbotData.customKnowledge + '\n\n' + text : text;
+
       try {
-        const res = await fetch('/api/chatbot/knowledge', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ customKnowledge: newKnowledge }) });
-        if (res.ok) {
-          chatbotData.customKnowledge = newKnowledge;
-          renderKnowledgeList(newKnowledge, chatbotData.trainedFiles);
-          document.getElementById('newKnowledgeText').value = '';
-        }
-      } catch (e) {} finally {
-        btn.innerHTML = '<i data-lucide="plus"></i> Train on Text';
-        lucide.createIcons();
+        const freshToken = await window.Clerk.session.getToken(); // FIX: Grab fresh token
+        const res = await fetch('/api/chatbot/knowledge', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
+            body: JSON.stringify({ customKnowledge: newKnowledge, botId: currentActiveBotId })
+        });
+
+        if (!res.ok) throw new Error('Failed to save knowledge');
+
+        chatbotData.customKnowledge = newKnowledge;
+        renderKnowledgeList(newKnowledge, chatbotData.trainedFiles);
+        document.getElementById('newKnowledgeText').value = '';
+
+        // Success Animation & Toast
+        btn.style.background = 'var(--success)';
+        btn.innerHTML = '<i data-lucide="check-circle"></i> Trained!';
+        showToast('Text knowledge added successfully.', 'success');
+
+      } catch (e) {
+          console.error(e);
+          showToast('Failed to save knowledge. Try again.', 'danger');
+      } finally {
+        setTimeout(() => {
+            btn.style.background = '';
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (window.lucide) window.lucide.createIcons();
+        }, 2000);
       }
     });
 
@@ -1153,27 +1188,58 @@
       if(e.target.files[0]) document.getElementById('pdfFileName').textContent = e.target.files[0].name;
     });
 
+    // UPGRADED: Upload PDF Button
     document.getElementById('uploadPdfBtn').addEventListener('click', async () => {
       const fileInput = document.getElementById('pdfFileInput');
-      if (!fileInput.files[0]) return;
+      if (!fileInput.files[0]) return showToast('Please select a PDF file first', 'warning');
+
       const btn = document.getElementById('uploadPdfBtn');
-      btn.innerHTML = '<span class="loading-spinner"></span>';
-      
+      const originalText = '<i data-lucide="upload"></i> Upload File';
+
+      btn.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+      btn.disabled = true;
+
       const fd = new FormData();
       fd.append('file', fileInput.files[0]);
-      
+      fd.append('botId', currentActiveBotId); // Pass botId just in case
+
       try {
-        const res = await fetch('/api/chatbot/upload-pdf', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
-        if (res.ok) {
-          if (!chatbotData.trainedFiles) chatbotData.trainedFiles = [];
-          chatbotData.trainedFiles.push({ fileName: fileInput.files[0].name });
-          renderKnowledgeList(chatbotData.customKnowledge, chatbotData.trainedFiles);
-          fileInput.value = '';
-          document.getElementById('pdfFileName').textContent = 'Click to upload PDF';
-        }
-      } catch (e) {} finally {
-        btn.innerHTML = '<i data-lucide="upload"></i> Upload File';
-        lucide.createIcons();
+        const freshToken = await window.Clerk.session.getToken(); // FIX: Grab fresh token
+        const res = await fetch('/api/chatbot/upload-pdf', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${freshToken}` },
+            body: fd
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to upload PDF');
+
+        if (!chatbotData.trainedFiles) chatbotData.trainedFiles = [];
+        chatbotData.trainedFiles.push({ fileName: fileInput.files[0].name });
+        renderKnowledgeList(chatbotData.customKnowledge, chatbotData.trainedFiles);
+
+        fileInput.value = '';
+        document.getElementById('pdfFileName').textContent = 'Click to upload PDF';
+
+        // Success Animation & Toast
+        btn.style.background = 'rgba(16, 185, 129, 0.1)';
+        btn.style.color = 'var(--success)';
+        btn.style.borderColor = 'var(--success)';
+        btn.innerHTML = '<i data-lucide="check-circle"></i> Uploaded!';
+        showToast('PDF Document trained successfully.', 'success');
+
+      } catch (e) {
+          console.error(e);
+          showToast(e.message, 'danger');
+      } finally {
+        setTimeout(() => {
+            btn.style.background = 'var(--bg-sidebar)';
+            btn.style.color = 'white';
+            btn.style.borderColor = 'var(--border-light)';
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (window.lucide) window.lucide.createIcons();
+        }, 2000);
       }
     });
 
