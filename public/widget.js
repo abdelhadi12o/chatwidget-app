@@ -188,7 +188,7 @@ class AIWidget {
         content: msg.content
       }));
 
-      const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/chat`, {
+      const response = await fetch(`https://ultramora.com/api/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ class AIWidget {
     }
 
     try {
-      await fetch('https://chatwidget-app-production.up.railway.app/api/chatbot/lead', {
+      await fetch('https://ultramora.com/api/chatbot/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -321,7 +321,7 @@ async function initWidget() {
 
   // 1. Fetch settings BEFORE building the widget to prevent color flashing
   try {
-    const response = await fetch(`https://chatwidget-app-production.up.railway.app/api/chatbot/settings/${widgetId}`);
+    const response = await fetch(`https://ultramora.com/api/chatbot/settings/${widgetId}`);
     if (response.ok) {
       settings = await response.json();
     }

@@ -1102,8 +1102,6 @@
       sessionHistory.push({ role: 'user', content: msg });
       chat.scrollTop = chat.scrollHeight;
 
-      console.log("Sending chat request with widgetId:", widgetId); // <--- ADD THIS LOG
-
       try {
         const res = await fetch('/api/chatbot/chat', {
             method: 'POST',
@@ -1113,19 +1111,19 @@
 
         const data = await res.json();
 
-        // Properly catch the 400 error and STOP execution
+        // Failsafe: Catch backend blocks (like inactive bots) cleanly
         if (!res.ok) {
-            console.error("Backend Error Details:", data);
             chat.innerHTML += `<div style="align-self: flex-start; background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">Error: ${data.error || 'Server failed to respond'}</div>`;
             chat.scrollTop = chat.scrollHeight;
-            return; // <--- This prevents the 'undefined' bubble from drawing
+            return;
         }
 
+        // Success: Print the AI's response
         chat.innerHTML += `<div style="align-self: flex-start; background: white; border: 1px solid var(--border); color: var(--bg-sidebar); padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">${data.answer}</div>`;
         sessionHistory.push({ role: 'assistant', content: data.answer });
         chat.scrollTop = chat.scrollHeight;
       } catch (e) {
-          console.error("Network Error:", e);
+          // Failsafe: Catch network/internet crashes
           chat.innerHTML += `<div style="align-self: flex-start; background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">Network Error: Could not reach the AI.</div>`;
       }
     });
