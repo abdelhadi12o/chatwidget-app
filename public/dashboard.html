@@ -1320,14 +1320,19 @@
       } catch(e) {}
     });
 
-    // --- AI BRAIN LOGIC ---
+    // --- UPGRADED AI BRAIN LOGIC ---
     document.getElementById('saveBrainBtn').addEventListener('click', async () => {
       const btn = document.getElementById('saveBrainBtn');
+      const originalText = '<i data-lucide="save"></i> Update AI Brain';
+
+      // 1. Loading State
       btn.innerHTML = '<span class="loading-spinner"></span> Updating...';
+      btn.disabled = true;
+
       try {
         const freshToken = await window.Clerk.session.getToken();
 
-        await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
+        const res = await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
           body: JSON.stringify({
@@ -1335,15 +1340,29 @@
           })
         });
 
-        const msg = document.getElementById('brainMsg');
-        msg.textContent = '✅ AI Brain Updated!';
-        msg.style.color = 'var(--success)';
-        msg.style.display = 'block';
-        setTimeout(() => msg.style.display='none', 3000);
+        if (!res.ok) throw new Error("Failed to save");
+
+        // 2. The "Cool" Success State! (Turns Green with a Checkmark)
+        btn.style.background = 'var(--success)';
+        btn.innerHTML = '<i data-lucide="check-circle"></i> Brain Upgraded!';
+        if (window.lucide) window.lucide.createIcons();
+
+        // 3. Fire the custom Toast notification
+        showToast('AI instructions synced successfully.', 'success');
+
+        // 4. Reset the button back to normal after 2.5 seconds
+        setTimeout(() => {
+            btn.style.background = ''; // Removes the inline green style
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (window.lucide) window.lucide.createIcons();
+        }, 2500);
+
       } catch (err) {
         console.error("Failed to save AI Brain:", err);
-      } finally {
-        btn.innerHTML = '<i data-lucide="save"></i> Update AI Brain';
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        showToast('Error saving AI Brain. Please try again.', 'warning');
         if (window.lucide) window.lucide.createIcons();
       }
     });
