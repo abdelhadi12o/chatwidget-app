@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - ChatWidget</title>
+  <title>Dashboard - Ultramora</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600&display=swap" rel="stylesheet">
@@ -91,6 +91,75 @@
     .toggle-switch.active .toggle-thumb { transform: translateX(22px); }
 
 
+    /* ===== RESPONSIVE VIEW CLASSES ===== */
+    .main-content-area {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        gap: 15px;
+    }
+
+    .bot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .creation-form-card {
+        max-width: 500px;
+        margin: 40px auto;
+        background: #1f2937;
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid #374151;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-text {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 8px 0;
+    }
+
+    /* Custom Toast Notification */
+    .custom-toast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-light);
+      border-left: 4px solid #f59e0b; /* Nice warning orange/yellow */
+      color: white;
+      padding: 16px 20px;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      transform: translateX(150%); /* Starts off-screen */
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .custom-toast.show {
+      transform: translateX(0); /* Slides in */
+    }
+
+    /* ===== MOBILE QUERIES ===== */
     @media (max-width: 768px) {
       .dashboard-layout { flex-direction: column; }
       .mobile-header { display: flex; }
@@ -102,6 +171,21 @@
       .mobile-only-btn { display: block !important; }
       .main-content { padding: 20px; }
       .metrics-grid { grid-template-columns: 1fr !important; }
+      .main-content-area { padding: 10px; }
+    }
+
+    @media (max-width: 600px) {
+      .list-header {
+          flex-direction: column;
+          align-items: flex-start;
+      }
+      .list-header button {
+          width: 100%;
+      }
+      .creation-form-card {
+          margin: 20px auto;
+          padding: 20px;
+      }
     }
   </style>
 </head>
@@ -111,18 +195,23 @@
     
     <div id="mobileHeader" class="mobile-header">
       <div style="font-family: 'Clash Display', sans-serif; font-weight: 700; font-size: 20px; color: white; display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="bot" style="color: var(--primary);"></i> ChatWidget
+        <i data-lucide="bot" style="color: var(--primary);"></i>⚡ Ultramora
       </div>
       <button id="hamburgerBtn" style="background: none; border: none; color: white; cursor: pointer;"><i data-lucide="menu"></i></button>
     </div>
 
     <aside class="sidebar" id="dashboardSidebar" style="display: none;">
       <div class="sidebar-logo">
-        <i data-lucide="bot" style="color: var(--primary);"></i> ChatWidget
+        <i data-lucide="bot" style="color: var(--primary);"></i>⚡ Ultramora
         <button id="closeSidebarBtn" style="margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; display: none;" class="mobile-only-btn"><i data-lucide="x"></i></button>
       </div>
       
       <div style="padding: 10px 0; display: flex; flex-direction: column; gap: 4px; flex: 1;">
+
+        <a id="btnBackToBots" class="nav-item" style="color: #a5b4fc; border-bottom: 1px solid var(--border); margin-bottom: 8px; border-radius: 0; padding-bottom: 16px;">
+            <i data-lucide="arrow-left"></i> Back to My Bots
+        </a>
+
         <a class="nav-item active" onclick="switchTab('tab-overview', this)"><i data-lucide="bar-chart-2"></i> Overview</a>
         <a class="nav-item" onclick="switchTab('tab-appearance', this)"><i data-lucide="palette"></i> Appearance</a>
         <a class="nav-item" onclick="switchTab('tab-knowledge', this)"><i data-lucide="database"></i> Knowledge Base</a>
@@ -141,32 +230,60 @@
     </aside>
 
     <main class="main-content" id="mainContent">
-      
-      <div id="createSection" class="hidden" style="height: 100%; min-height: 80vh; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
-        <div class="dark-panel" style="max-width: 480px; width: 100%; text-align: center; padding: 40px 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
-          <div style="width: 64px; height: 64px; background: rgba(99, 102, 241, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; border: 1px solid rgba(99, 102, 241, 0.2);">
-            <i data-lucide="bot" style="width: 32px; height: 32px; color: var(--primary);"></i>
-          </div>
-          <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin-bottom: 12px;">Create Your Chatbot</h2>
-          <p style="color: var(--text-muted); font-size: 15px; margin-bottom: 32px;">Enter your website URL. We will scrape the content and train your AI instantly.</p>
-          
-          <form id="createForm" style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="text-align: left;">
-              <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Website URL</label>
-              <input type="url" id="websiteUrl" class="dark-input" placeholder="https://yourwebsite.com" required>
-            </div>
-            <button type="submit" id="createBtn" class="btn-primary" style="margin-top: 8px;">
-              <i data-lucide="rocket"></i> Train AI Agent
-            </button>
-            <div id="createError" style="color: var(--danger); font-size: 13px; margin-top: 8px; display: none;"></div>
-          </form>
-        </div>
-      </div>
+      <div class="main-content-area">
 
-      <div id="tab-overview" class="hidden">
+        <div id="botListView" style="display: none;">
+          <div class="list-header">
+            <div>
+              <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin: 0;">My Chatbots</h2>
+              <p style="color: var(--text-muted); font-size: 14px; margin-top: 5px;">Select a chatbot to manage its settings.</p>
+            </div>
+            <button id="btnShowCreateForm" class="btn-primary">
+              <i data-lucide="plus"></i> Create New Chatbot
+            </button>
+          </div>
+          <div id="botGrid" class="bot-grid"></div>
+          <div id="noBotsMessage" class="hidden" style="text-align: center; margin-top: 80px;">
+            <p style="color: var(--text-muted); font-size: 16px;">You don't have any chatbots yet.</p>
+          </div>
+        </div>
+
+        <div id="botCreationView" style="display: none;">
+          <div class="creation-form-card">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <div style="width: 64px; height: 64px; background: rgba(99, 102, 241, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                <i data-lucide="bot" style="width: 32px; height: 32px; color: var(--primary);"></i>
+              </div>
+              <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin: 10px 0;">Create Your Chatbot</h2>
+              <p style="color: var(--text-muted); font-size: 14px;">Enter your website URL. We will scrape the content and train your AI instantly.</p>
+            </div>
+
+            <form id="createForm" style="display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Bot Name</label>
+                <input type="text" id="newBotName" class="dark-input" placeholder="My AI Assistant">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Website URL</label>
+                <input type="url" id="websiteUrl" class="dark-input" placeholder="https://yourwebsite.com" required>
+              </div>
+              <button type="submit" id="createBtn" class="btn-primary" style="margin-top: 8px;">
+                <i data-lucide="rocket"></i> Train AI Agent
+              </button>
+              <div id="createError" style="color: var(--danger); font-size: 13px; display: none;"></div>
+            </form>
+
+            <div style="text-align: center; margin-top: 15px;">
+              <button id="btnCancelCreate" class="btn-text" style="display: none;">← Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="activeBotSettingsView" style="display: none;">
+        <div id="tab-overview" class="hidden">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
           <div>
-            <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin-bottom: 4px;">Dashboard Overview</h2>
+            <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin-bottom: 4px;">Ultramora Dashboard</h2>
             <p style="color: var(--text-muted); font-size: 14px;">Monitor your AI assistant's performance.</p>
           </div>
           <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-panel); padding: 8px 16px; border-radius: 50px; border: 1px solid var(--border);">
@@ -527,6 +644,8 @@
           </div>
         </div>
       </div>
+    </div><!-- end activeBotSettingsView -->
+      </div><!-- end main-content-area -->
 
     </main>
   </div>
@@ -604,11 +723,11 @@
         } else {
           if (!token) { window.location.href = '/'; return; }
         }
-      } catch(e) { 
+      } catch(e) {
         console.error('Clerk load failed:', e);
         if (!token) { window.location.href = '/'; return; }
       }
-      loadChatbot();
+      initializeDashboard();
     });
     
     let widgetId = '';
@@ -644,37 +763,27 @@
       document.getElementById('dashboardSidebar').classList.remove('mobile-open');
     });
 
-    // --- MAIN LOAD FUNCTION ---
+    // --- LOAD ACTIVE BOT DATA (called from view) ---
     async function loadChatbot() {
       try {
+        // Switch to settings view and show sidebar
+        showView(viewSettings);
+        document.getElementById('dashboardSidebar').style.display = 'flex';
+
         const response = await fetch('/api/chatbot/my-bot', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 1. IF NO CHATBOT (404)
+        // 1. IF NO CHATBOT (404) -> go back to list
         if (response.status === 404) {
-          // Force hide all dashboard tabs
-          document.querySelectorAll('div[id^="tab-"]').forEach(tab => tab.classList.add('hidden'));
-
-          // Show the Create screen
-          const createSec = document.getElementById('createSection');
-          if (createSec) {
-            createSec.classList.remove('hidden');
-            createSec.style.display = 'flex';
-          }
-          return; // STOP RUNNING CODE HERE
+          initializeDashboard(); // Reset to list/create depending on bots
+          return;
         }
-
-        // 2. IF CHATBOT EXISTS (200) -> TURN ON THE SIDEBAR
-        document.getElementById('dashboardSidebar').style.display = 'flex';
-
 
         chatbotData = await response.json();
         widgetId = chatbotData.widgetId;
 
-        document.getElementById('createSection').classList.add('hidden');
-
-        // Restore tab
+        // Restore tab (overview by default)
         const savedTab = localStorage.getItem('activeTab') || 'tab-overview';
         switchTab(savedTab, null);
 
@@ -751,33 +860,6 @@
         console.error('Failed to load dashboard:', err);
       }
     }
-
-    // --- CREATE CHATBOT LOGIC ---
-    document.getElementById('createForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('createBtn');
-      const errDiv = document.getElementById('createError');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="loading-spinner"></span> Creating...';
-      errDiv.style.display = 'none';
-
-      try {
-        const res = await fetch('/api/chatbot/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ websiteUrl: document.getElementById('websiteUrl').value })
-        });
-        if (!res.ok) throw new Error((await res.json()).error || 'Failed to create');
-        localStorage.setItem('activeTab', 'tab-overview');
-        window.location.reload();
-      } catch(err) {
-        errDiv.textContent = err.message;
-        errDiv.style.display = 'block';
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="rocket"></i> Train AI Agent';
-        lucide.createIcons();
-      }
-    });
 
     // --- UI HELPERS ---
     function setupStatusToggle(isActive) {
@@ -1077,8 +1159,11 @@
       btn.innerHTML = '<span class="loading-spinner"></span> Syncing...';
       try {
         await fetch('/api/chatbot/retrain', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
-        alert('✅ AI Synced with your website!');
-      } catch(e) {} finally { btn.innerHTML = '<i data-lucide="refresh-cw"></i> Sync Latest Data'; lucide.createIcons(); }
+        showToast('AI Synced with your website!', 'success');
+      } catch(e) {} finally {
+        btn.innerHTML = '<i data-lucide="refresh-cw"></i> Sync Latest Data';
+        lucide.createIcons();
+      }
     });
 
     document.getElementById('deleteBtn').addEventListener('click', () => document.getElementById('deleteBotModal').style.display = 'flex');
@@ -1166,7 +1251,304 @@
       }, 500);
     });
 
-    // Boot
-  </script>
+    // ========== MULTI-VIEW DASHBOARD LOGIC ==========
+    const viewList = document.getElementById('botListView');
+    const viewCreate = document.getElementById('botCreationView');
+    const viewSettings = document.getElementById('activeBotSettingsView');
+    const btnCancel = document.getElementById('btnCancelCreate');
+    const botGrid = document.getElementById('botGrid');
+
+    // Helper to hide everything and show one view
+    function showView(viewToShow) {
+      viewList.style.display = 'none';
+      viewCreate.style.display = 'none';
+      viewSettings.style.display = 'none';
+      viewToShow.style.display = 'block';
+    }
+
+    let currentActiveBotId = null; // Remembers which bot we are editing
+
+    // Upgraded Smart Toast Notification
+    function showToast(message, type = 'warning') {
+      const existingToast = document.getElementById('ultramora-toast');
+      if (existingToast) existingToast.remove();
+
+      const toast = document.createElement('div');
+      toast.id = 'ultramora-toast';
+      toast.className = 'custom-toast';
+
+      // Default to Warning (Orange)
+      let iconName = 'alert-circle';
+      let iconColor = '#f59e0b';
+
+      // Change to Success (Green) if requested
+      if (type === 'success') {
+          iconName = 'check-circle';
+          iconColor = '#10b981';
+          toast.style.borderLeftColor = iconColor; // Change the side border to green
+      }
+
+      toast.innerHTML = `
+        <i data-lucide="${iconName}" style="color: ${iconColor}; width: 20px;"></i>
+        <span>${message}</span>
+      `;
+
+      document.body.appendChild(toast);
+      if (window.lucide) window.lucide.createIcons();
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // 1. RUN THIS WHEN THE USER LOGS IN
+    async function initializeDashboard() {
+        try {
+            const token = await window.Clerk.session.getToken();
+
+            const response = await fetch('/api/chatbot/list', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const bots = await response.json();
+
+            const viewListEl = document.getElementById('botListView');
+            const viewCreateEl = document.getElementById('botCreationView');
+            const sidebarEl = document.getElementById('dashboardSidebar');
+
+            if (bots.length === 0) {
+                // First time user (0 Bots) -> Hide Sidebar, Show Creation Form
+                sidebarEl.style.display = 'none';
+                showView(viewCreateEl);
+                document.getElementById('btnCancelCreate').style.display = 'none';
+            } else {
+                // Returning user (1+ Bots) -> Show Sidebar, Show Bot Grid
+                sidebarEl.style.display = 'flex';
+                renderBotGrid(bots);
+                showView(viewListEl);
+                document.getElementById('btnCancelCreate').style.display = 'inline-block';
+            }
+        } catch (error) {
+            console.error("Failed to load dashboard:", error);
+        }
+    }
+
+    // 2. DRAW THE BOT CARDS
+    function renderBotGrid(bots) {
+      botGrid.innerHTML = '';
+      bots.forEach(bot => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: #1f2937; padding: 20px; border-radius: 8px; cursor: pointer; border: 1px solid #374151;';
+        card.innerHTML = `
+            <h3 style="margin: 0 0 10px 0;">${bot.name}</h3>
+            <span style="color: #9ca3af; font-size: 12px;">Click to manage</span>
+        `;
+        // Click a bot to open its dashboard
+        card.onclick = () => {
+          currentActiveBotId = bot._id;
+
+          // Show the settings view
+          showView(viewSettings);
+
+          // Fetch and populate this specific bot's data
+          loadActiveBotData(bot._id);
+        };
+        botGrid.appendChild(card);
+      });
+    }
+
+    // Fetch and display data for the clicked bot
+    async function loadActiveBotData(botId) {
+      try {
+        // Fetch the specific bot from backend
+        const response = await fetch(`/api/chatbot/${botId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const botData = await response.json();
+
+        // Update website display
+        const websiteDisplay = document.getElementById('configWebsite');
+        if (websiteDisplay) websiteDisplay.textContent = botData.websiteUrl || 'No URL Provided';
+
+        // Update deployment date
+        const dateDisplay = document.getElementById('configDate');
+        if (dateDisplay) {
+          dateDisplay.textContent = new Date(botData.createdAt).toLocaleDateString();
+        }
+
+        // Update conversation count
+        const convDisplay = document.getElementById('metric-conversations');
+        if (convDisplay) convDisplay.textContent = botData.conversationCount || 0;
+
+        // Update status toggle
+        setupStatusToggle(botData.isActive);
+
+        // Store widgetId and load remaining dashboard data
+        widgetId = botData.widgetId;
+        chatbotData = botData;
+
+        // Show sidebar with tabs
+        document.getElementById('dashboardSidebar').style.display = 'flex';
+
+        // Restore active tab
+        const savedTab = localStorage.getItem('activeTab') || 'tab-overview';
+        switchTab(savedTab, null);
+
+        // Populate the rest of the dashboard
+        populateDashboardData(botData);
+      } catch (error) {
+        console.error("Failed to load bot data:", error);
+        const websiteDisplay = document.getElementById('configWebsite');
+        if (websiteDisplay) websiteDisplay.textContent = 'Error loading';
+        const dateDisplay = document.getElementById('configDate');
+        if (dateDisplay) dateDisplay.textContent = 'Error loading';
+      }
+    }
+
+    // Populate remaining dashboard sections (appearance, knowledge, etc.)
+    function populateDashboardData(data) {
+      // Knowledge chunks count
+      let chunks = 0;
+      if (data.chunkCount) {
+        chunks = data.chunkCount;
+      } else if (data.scrapedContent) {
+        if (data.scrapedContent.totalChunks) {
+          chunks = data.scrapedContent.totalChunks;
+        } else if (Array.isArray(data.scrapedContent)) {
+          chunks = data.scrapedContent.length;
+        } else if (typeof data.scrapedContent === 'string') {
+          chunks = data.scrapedContent.split('\n').filter(line => line.trim().length > 20).length;
+          if (chunks === 0) chunks = 1;
+        }
+      }
+      if (data.customKnowledge && typeof data.customKnowledge === 'string') {
+        chunks += data.customKnowledge.split('\n\n').filter(Boolean).length;
+      }
+      const chunksDisplay = document.getElementById('configChunks');
+      if (chunksDisplay) chunksDisplay.textContent = chunks;
+
+      // Leads count
+      const leadsDisplay = document.getElementById('metric-leads');
+      if (leadsDisplay) leadsDisplay.textContent = '0';
+
+      // Appearance
+      if (data.customization) {
+        document.getElementById('customBotName').value = data.customization.botName || 'AI Assistant';
+        document.getElementById('customWelcome').value = data.customization.welcomeMessage || "Hi! How can I help you?";
+        document.getElementById('customColor').value = data.customization.bubbleColor || '#6366f1';
+        document.getElementById('customBookingLink').value = data.customization.bookingLink || '';
+        document.getElementById('leadTimingSelect').value = data.customization.leadCaptureTiming ?? 3;
+
+        const qrs = data.customization.quickReplies || [];
+        document.getElementById('qr1').value = qrs[0] || '';
+        document.getElementById('qr2').value = qrs[1] || '';
+        document.getElementById('qr3').value = qrs[2] || '';
+
+        if (data.customization.botLogo) {
+          document.getElementById('logoPreview').src = data.customization.botLogo;
+          document.getElementById('logoPreview').style.display = 'block';
+          document.getElementById('botLogoBase64').value = data.customization.botLogo;
+          document.getElementById('lp-avatar-fallback').style.display = 'none';
+        }
+      }
+      updateLivePreview();
+
+      // Integrations API Key
+      document.getElementById('integrationsApiKey').value = data.apiKey || 'cw_sk_' + data.widgetId;
+
+      // Install codes
+      updateInstallCodes(data.widgetId);
+
+      // Knowledge list
+      renderKnowledgeList(data.customKnowledge || '', data.trainedFiles || []);
+
+      // Account form
+      document.getElementById('accountName').value = user.name || '';
+      document.getElementById('accountEmail').value = user.email || '';
+    }
+
+    // --- BUTTON CLICKS ---
+
+    // "+ Create New Chatbot" button clicked
+    document.getElementById('btnShowCreateForm').addEventListener('click', () => {
+      showView(viewCreate);
+      document.getElementById('newBotName').value = ''; // Clear old input
+    });
+
+    // "Cancel" button clicked
+    btnCancel.addEventListener('click', () => {
+      showView(viewList);
+    });
+
+    // "Back to My Bots" - will be safely attached in DOMContentLoaded below
+
+    // Form submission (create new bot)
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('createBtn');
+      const errorDiv = document.getElementById('createError');
+      errorDiv.style.display = 'none';
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Training...';
+      try {
+        const botName = document.getElementById('newBotName').value || 'My AI Assistant';
+        const websiteUrl = document.getElementById('websiteUrl').value;
+        const response = await fetch('/api/chatbot/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ botName, websiteUrl })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to create chatbot');
+        // Success — go back to bot list
+        initializeDashboard();
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        errorDiv.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="rocket"></i> Train AI Agent';
+        if (window.lucide) window.lucide.createIcons();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // NOTE: We do NOT call initializeDashboard() here anymore.
+        // The Clerk script at the top of the file already calls it at the perfect time!
+
+        // 1. Safely attach the Back Button
+        const btnBack = document.getElementById('btnBackToBots');
+        if (btnBack) {
+            btnBack.addEventListener('click', () => {
+                currentActiveBotId = null; // Forget the bot
+                document.getElementById('activeBotSettingsView').style.display = 'none';
+                document.getElementById('botListView').style.display = 'block';
+            });
+        }
+
+        // 2. Safely attach the Sidebar Bouncer
+        const sidebarTabs = document.querySelectorAll('.sidebar li, .sidebar .nav-item');
+        sidebarTabs.forEach(tab => {
+            tab.addEventListener('click', (event) => {
+                if (tab.innerText.includes('Account')) return; // Always allow My Account
+
+                if (!currentActiveBotId) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    showToast("Please select a chatbot from your list first!");
+
+                    // Force the bot list to show
+                    document.getElementById('botListView').style.display = 'block';
+                    document.getElementById('activeBotSettingsView').style.display = 'none';
+                    document.getElementById('botCreationView').style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Chatbot = require('../models/Chatbot');
 const Lead = require('../models/Lead');
+const User = require('../models/User');
 const { scrapeWebsite } = require('../scraper/scrape');
 const requireAuth = require('../middleware/auth'); // CLERK: Updated import
 const Groq = require('groq-sdk');
@@ -46,7 +47,8 @@ router.post('/create', requireAuth, async (req, res) => {
       userId: req.auth.userId, // CLERK: Updated
       websiteUrl,
       scrapedContent: scrapeResult,
-      widgetId: generateWidgetId()
+      widgetId: generateWidgetId(),
+      name: req.body.botName || 'My Chatbot'
     });
     await chatbot.save();
 
@@ -224,6 +226,45 @@ router.patch('/update-status', requireAuth, async (req, res) => {
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// NEW: LIST ALL BOTS
+router.get('/list', requireAuth, async (req, res) => {
+  try {
+    const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt');  // CLERK: use userId from req.auth
+    res.status(200).json(bots);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch bots' });
+  }
+});
+
+// NEW: GET SINGLE BOT BY ID
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const chatbot = await Chatbot.findOne({
+      _id: req.params.id,
+      userId: req.auth.userId
+    });
+    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+
+    res.json({
+      widgetId: chatbot.widgetId,
+      websiteUrl: chatbot.websiteUrl,
+      isActive: chatbot.isActive,
+      conversationCount: chatbot.conversationCount,
+      createdAt: chatbot.createdAt,
+      faqs: chatbot.faqs || [],
+      customization: chatbot.customization,
+      scrapedContent: chatbot.scrapedContent,
+      customKnowledge: chatbot.customKnowledge || '',
+      trainedFiles: chatbot.trainedFiles || [],
+      apiKey: chatbot.apiKey || '',
+      webhookUrl: chatbot.webhookUrl || '',
+      chunkCount: Array.isArray(chatbot.scrapedContent) ? chatbot.scrapedContent.length : 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
