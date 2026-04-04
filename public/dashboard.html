@@ -1262,10 +1262,23 @@
     document.getElementById('cancelDeleteBtn').addEventListener('click', () => document.getElementById('deleteBotModal').style.display = 'none');
     document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
       try {
-        await fetch('/api/chatbot/delete', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+        const btn = document.getElementById('confirmDeleteBtn');
+        btn.textContent = "Deleting...";
+
+        const freshToken = await window.Clerk.session.getToken();
+
+        // Include the exact bot ID in the URL!
+        await fetch(`/api/chatbot/delete/${currentActiveBotId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${freshToken}` }
+        });
+
+        document.getElementById('deleteBotModal').style.display = 'none';
         localStorage.removeItem('activeTab');
         window.location.reload();
-      } catch(e) {}
+      } catch(e) {
+          console.error("Delete failed:", e);
+      }
     });
 
     // Strategy
@@ -1514,10 +1527,18 @@
     // Fetch and display data for the clicked bot
     async function loadActiveBotData(botId) {
       try {
-        // Fetch the specific bot from backend
+        // 1. ALWAYS grab a fresh token right before making a secure request
+        const freshToken = await window.Clerk.session.getToken();
+
+        // 2. Fetch the specific bot from backend
         const response = await fetch(`/api/chatbot/${botId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${freshToken}` }
         });
+
+        // 3. Catch the 401 error BEFORE it tries to parse JSON and crashes
+        if (!response.ok) {
+            throw new Error(`Server blocked request: ${response.status} ${response.statusText}`);
+        }
 
         const botData = await response.json();
 

@@ -42,8 +42,7 @@ router.post('/create', requireAuth, async (req, res) => {
     if (!websiteUrl) return res.status(400).json({ error: 'Website URL is required' });
 
     // CLERK: Updated to req.auth.userId
-    const existingBot = await Chatbot.findOne({ userId: req.auth.userId });
-    if (existingBot) return res.status(400).json({ error: 'You already have a chatbot' });
+    // (One bot per user limit removed — users can now create multiple chatbots)
 
     let scrapeResult;
     try {
@@ -232,15 +231,26 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
   }
 });
 
-// Delete chatbot
-router.delete('/delete', requireAuth, async (req, res) => {
+// Delete chatbot (specific by ID)
+router.delete('/delete/:id', requireAuth, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
-    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
-    await Chatbot.findByIdAndDelete(chatbot._id);
-    res.json({ message: 'Chatbot deleted successfully' });
+    const botIdToDelete = req.params.id;
+    const userId = req.auth.userId; // CLERK: from middleware
+
+    // Find EXACTLY that bot, belonging to EXACTLY that user, and delete it
+    const deletedBot = await Chatbot.findOneAndDelete({
+      _id: botIdToDelete,
+      userId: userId
+    });
+
+    if (!deletedBot) {
+      return res.status(404).json({ error: "Bot not found or already deleted." });
+    }
+
+    res.json({ success: true, message: "Bot deleted successfully." });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Delete error:", error);
+    res.status(500).json({ error: "Failed to delete bot." });
   }
 });
 
