@@ -775,6 +775,10 @@
             email: window.Clerk.user.primaryEmailAddress?.emailAddress
           }));
           user = JSON.parse(localStorage.getItem('user') || '{}');
+
+          // Populate account inputs immediately on login
+          if (document.getElementById('accountName')) document.getElementById('accountName').value = user.name || '';
+          if (document.getElementById('accountEmail')) document.getElementById('accountEmail').value = user.email || '';
         } else {
           if (!token) { window.location.href = '/'; return; }
         }
@@ -792,6 +796,11 @@
 
     // --- TAB SWITCHING LOGIC ---
     function switchTab(tabId, element) {
+      // NEW: Ensure the main settings view is visible and the grid is hidden
+      document.getElementById('botListView').style.display = 'none';
+      document.getElementById('botCreationView').style.display = 'none';
+      document.getElementById('activeBotSettingsView').style.display = 'block';
+
       document.querySelectorAll('div[id^="tab-"]').forEach(tab => tab.classList.add('hidden'));
       document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
 
