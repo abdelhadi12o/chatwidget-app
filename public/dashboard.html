@@ -1095,20 +1095,39 @@
       const input = document.getElementById('testInput');
       const msg = input.value.trim();
       if (!msg) return;
-      
+
       const chat = document.getElementById('testMessages');
       chat.innerHTML += `<div style="align-self: flex-end; background: var(--primary); color: white; padding: 10px 16px; border-radius: 16px 4px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">${msg}</div>`;
       input.value = '';
       sessionHistory.push({ role: 'user', content: msg });
       chat.scrollTop = chat.scrollHeight;
 
+      console.log("Sending chat request with widgetId:", widgetId); // <--- ADD THIS LOG
+
       try {
-        const res = await fetch('/api/chatbot/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ widgetId, message: msg, history: sessionHistory.slice(-6) }) });
+        const res = await fetch('/api/chatbot/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ widgetId, message: msg, history: sessionHistory.slice(-6) })
+        });
+
         const data = await res.json();
+
+        // Properly catch the 400 error and STOP execution
+        if (!res.ok) {
+            console.error("Backend Error Details:", data);
+            chat.innerHTML += `<div style="align-self: flex-start; background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">Error: ${data.error || 'Server failed to respond'}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+            return; // <--- This prevents the 'undefined' bubble from drawing
+        }
+
         chat.innerHTML += `<div style="align-self: flex-start; background: white; border: 1px solid var(--border); color: var(--bg-sidebar); padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">${data.answer}</div>`;
         sessionHistory.push({ role: 'assistant', content: data.answer });
         chat.scrollTop = chat.scrollHeight;
-      } catch (e) {}
+      } catch (e) {
+          console.error("Network Error:", e);
+          chat.innerHTML += `<div style="align-self: flex-start; background: #fee2e2; border: 1px solid #ef4444; color: #991b1b; padding: 10px 16px; border-radius: 4px 16px 16px 16px; font-size: 14px; max-width: 85%; margin-bottom: 12px;">Network Error: Could not reach the AI.</div>`;
+      }
     });
     document.getElementById('testInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('sendTestBtn').click(); });
 
