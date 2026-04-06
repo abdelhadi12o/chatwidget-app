@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./database');
 const Chatbot = require('./models/Chatbot');
+const path = require('path');
 
 const app = express();
 
@@ -82,6 +83,7 @@ connectDB().then(() => {
 // Routes
 app.use('/api/auth', strictCors, require('./routes/auth'));
 app.use('/api/chatbot', require('./routes/chatbot')); // CORS handled per-route inside router
+app.use('/api/admin', require('./routes/admin'));
 
 // Config route - returns Clerk and app URLs to frontend
 app.get('/api/config', (req, res) => {
@@ -95,6 +97,11 @@ app.get('/api/config', (req, res) => {
 
 // Serve static files
 app.use(express.static('public'));
+
+// Serve admin.html at /admin route
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
 
 // Landing page
 app.get('/', (req, res) => {

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <script>
+    // Load Clerk dynamically using the working pattern from dashboard.html
+    async function loadClerk() {
+      try {
+        // 1. Fetch config from backend
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+
+        // 2. Dynamically load Clerk JS from CDN (exact pattern that works)
+        const clerkJs = document.createElement('script');
+        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+        clerkJs.crossOrigin = 'anonymous';
+        clerkJs.async = true;
+        document.head.appendChild(clerkJs);
+
+        await new Promise((resolve) => clerkJs.addEventListener('load', resolve));
+
+        // 3. Initialize Clerk (wait for window.Clerk to be available)
+        if (!window.Clerk) {
+          throw new Error('Clerk library not loaded');
+        }
+
+        // Clerk auto-initializes from the data attribute, but we can also explicitly load
+        await window.Clerk.load({
+          publishableKey: config.clerkPublishableKey,
+          signInUrl: config.clerkSignInUrl,
+          signUpUrl: config.clerkSignUpUrl,
+        });
+
+        // 4. Ensure user is signed in before showing admin UI
+        if (!window.Clerk.user) {
+          window.location.href = config.clerkSignInUrl || '/sign-in';
+          return;
+        }
+
+        console.log('✅ Clerk loaded, user:', window.Clerk.user.emailAddresses[0]?.emailAddress);
+
+        // 5. Now load dashboard
+        loadDashboardData();
+      } catch (e) {
+        console.error('Failed to load Clerk:', e);
+        showToast('Authentication failed - please sign in', true);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadClerk);
+  </script>
+  <style>
+    /* Dark theme styling */
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #1e1e2e;
+      color: #d6d6e6;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .metric-card {
+      background: #2d2d3b;
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .metric-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #888;
+    }
+    .metric-card .value {
+      font-size: 28px;
+      font-weight: 600;
+      color: #f0f0ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+      background: #2d2d3b;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    thead {
+      background: #252532;
+    }
+    th {
+      padding: 16px;
+      text-align: left;
+      color: #a6e3a1;
+      font-weight: 500;
+      font-size: 15px;
+    }
+    tbody tr {
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    tbody tr:hover {
+      opacity: 1;
+    }
+    td {
+      padding: 16px;
+      border-bottom: 1px solid #3a3a47;
+    }
+    .actions-button {
+      background: none;
+      border: none;
+      color: #a6e3a1;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .actions-button:hover {
+      background-color: rgba(166, 227, 161, 0.15);
+    }
+    .status-active {
+      color: #60a5fa;
+    }
+    .status-inactive {
+      color: #f87171;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin: 10px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.show {
+      display: flex;
+    }
+    .modal-content {
+      background: #2d2d3b;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #a6e3a1;
+      font-size: 24px;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .modal-close:hover {
+      background-color: rgba(166, 227, 161, 0.15);
+    }
+    .modal-header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #3a3a47;
+      padding-bottom: 15px;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #f0f0ff;
+    }
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .modal-field label {
+      font-size: 13px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .modal-field .value {
+      font-size: 16px;
+      color: #f0f0ff;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Clerk Authentication Button -->
+    <div id="clerk"></div>
+
+    <!-- Metric Cards -->
+    <div class="metric-grid">
+      <div class="metric-card">
+        <h3>Total Users</h3>
+        <div class="value" id="metric-users">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Total Chatbots</h3>
+        <div class="value" id="metric-bots">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Total Conversations</h3>
+        <div class="value" id="metric-convo">0</div>
+      </div>
+      <div class="metric-card">
+        <h3>Total Leads</h3>
+        <div class="value" id="metric-leads">0</div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Plan</th>
+          <th>Chatbot</th>
+          <th>Conversations</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="data-table-body">
+        <!-- Rows will be inserted here -->
+      </tbody>
+    </table>
+
+    <!-- Toast Notification Area -->
+    <div id="toast-container"></div>
+  </div>
+
+    <!-- User Details Modal -->
+    <div id="user-modal" class="modal">
+      <div class="modal-content">
+        <button class="modal-close" id="modal-close">&times;</button>
+        <div class="modal-header">
+          <h2 id="modal-user-name">User Details</h2>
+        </div>
+        <div class="modal-body">
+          <div class="modal-field">
+            <label>Email</label>
+            <div class="value" id="modal-user-email"></div>
+          </div>
+          <div class="modal-field">
+            <label>Plan</label>
+            <div class="value" id="modal-user-plan"></div>
+          </div>
+          <div class="modal-field">
+            <label>Joined Date</label>
+            <div class="value" id="modal-user-joined"></div>
+          </div>
+          <div class="modal-field">
+            <label>Last Active</label>
+            <div class="value" id="modal-user-lastactive"></div>
+          </div>
+          <div class="modal-field">
+            <label>Location</label>
+            <div class="value" id="modal-user-location"></div>
+          </div>
+          <div class="modal-field">
+            <label>Bot Names</label>
+            <div class="value" id="modal-user-bots"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <script>
+    // Toast notification function
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toast.style.backgroundColor = isError ? '#f87171' : '#333';
+      document.getElementById('toast-container').appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }, 100);
+    }
+
+    // Helper: get fresh Clerk session token
+    async function getAuthHeaders() {
+      const token = await window.Clerk.session?.getToken();
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+    }
+
+    // Fetch and populate dashboard data
+    async function loadDashboardData() {
+      try {
+        const headers = await getAuthHeaders();
+        const response = await fetch('/api/admin/dashboard', { headers });
+        if (!response.ok) throw new Error(`Failed to fetch admin data (${response.status})`);
+
+        const data = await response.json();
+
+        // Update metrics
+        document.getElementById('metric-users').textContent = data.totalUsers;
+        document.getElementById('metric-bots').textContent = data.totalBots;
+        document.getElementById('metric-convo').textContent = data.totalConversations;
+        document.getElementById('metric-leads').textContent = data.totalLeads;
+
+        // Populate table
+        const tbody = document.getElementById('data-table-body');
+        tbody.innerHTML = '';
+
+        data.users.forEach(user => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.name}</td>
+            <td>${user.email}</td>
+            <td>${user.plan}</td>
+            <td>${user.hasBot ? 'Yes' : 'No'}</td>
+            <td>${user.conversationCount}</td>
+            <td>
+              <button class="actions-button view-btn" data-user='${JSON.stringify(user).replace(/'/g, "&#39;")}'>View</button>
+              <button class="actions-button" data-user-id="${user.clerkUserId}" data-action="upgrade">→ Pro</button>
+              <button class="actions-button" data-user-id="${user.clerkUserId}" data-action="delete">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Action button listeners
+        document.querySelectorAll('.actions-button').forEach(button => {
+          button.addEventListener('click', async (e) => {
+            const userId = e.target.dataset.userId;
+            const action = e.target.dataset.action;
+
+            try {
+              const headers = await getAuthHeaders();
+              if (action === 'upgrade') {
+                const res = await fetch(`/api/admin/upgrade/${userId}`, {
+                  method: 'PATCH',
+                  headers
+                });
+                if (!res.ok) throw new Error(`Upgrade failed (${res.status})`);
+                showToast('User upgraded to Pro plan successfully');
+                loadDashboardData();
+              } else if (action === 'delete') {
+                if (!confirm('Are you sure you want to delete this user and all their bots?')) return;
+                const res = await fetch(`/api/admin/user/${userId}`, {
+                  method: 'DELETE',
+                  headers
+                });
+                if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+                showToast('User deleted successfully');
+                loadDashboardData();
+              }
+            } catch (error) {
+              showToast(error.message, true);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        showToast('Failed to load dashboard data', true);
+      }
+    }
+
+    // Modal functionality
+    const modal = document.getElementById('user-modal');
+    const modalClose = document.getElementById('modal-close');
+
+    // Handle View button clicks
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('view-btn')) {
+        try {
+          const userData = JSON.parse(e.target.dataset.user);
+          // Populate modal fields
+          document.getElementById('modal-user-name').textContent = userData.name || 'Unknown';
+          document.getElementById('modal-user-email').textContent = userData.email || 'No email';
+          document.getElementById('modal-user-plan').textContent = userData.plan || 'free';
+          document.getElementById('modal-user-joined').textContent = userData.joinedAt || 'Unknown';
+          document.getElementById('modal-user-lastactive').textContent = userData.lastActive || 'Never';
+          document.getElementById('modal-user-location').textContent = userData.location || 'Unknown (Requires IP API)';
+          document.getElementById('modal-user-bots').textContent = userData.botNames || 'No bots';
+          // Show modal
+          modal.classList.add('show');
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          showToast('Failed to load user details', true);
+        }
+      }
+    });
+
+    // Close modal on X click
+    if (modalClose) {
+      modalClose.addEventListener('click', () => {
+        modal.classList.remove('show');
+      });
+    }
+
+    // Close modal on outside click
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('show');
+      }
+    });
+
+  </script>
+</body>
+</html>
