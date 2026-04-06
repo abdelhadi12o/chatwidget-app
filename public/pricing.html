@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing | Ultramora - Turn Any Website Into an AI Sales Agent</title>
+    <meta name="description" content="Choose the perfect plan for your business. Start automating your customer support and lead generation with Ultramora AI agents.">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#080d14',
+                        surface: '#0f1823',
+                        primary: '#06b6d4',
+                        accent: '#3b82f6',
+                        text: '#f8fafc',
+                        muted: '#94a3b8',
+                        border: '#1e293b',
+                        success: '#10b981',
+                    },
+                    fontFamily: {
+                        clash: ['Clash Display', 'sans-serif'],
+                        satoshi: ['Satoshi', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #080d14;
+            color: #f8fafc;
+            font-family: 'Satoshi', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .font-clash {
+            font-family: 'Clash Display', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #1e293b;
+        }
+        
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #06b6d4, #3b82f6);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary/30 selection:text-text">
+
+    <!-- REQUIRED CONFIG SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (window.location.protocol.startsWith('http')) {
+                    const response = await fetch('/api/config');
+                    if(response.ok) {
+                        const config = await response.json();
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        
+                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
+                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
+                        });
+                        
+                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
+                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
+                        });
+
+                        const clerkJs = document.createElement('script');
+                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+                        clerkJs.crossOrigin = 'anonymous';
+                        document.head.appendChild(clerkJs);
+                        
+                        clerkJs.addEventListener('load', async () => {
+                            await window.Clerk.load();
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('Clerk configuration could not be loaded.');
+            }
+        });
+    </script>
+
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div id="announcement-bar" class="bg-surface border-b border-border py-2 pr-10 pl-4 sm:px-8 z-50 relative flex items-center justify-center transition-all duration-300">
+        <p class="text-xs sm:text-sm text-text font-medium flex items-center justify-center gap-1.5 leading-snug">
+            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> 
+            <span class="text-center">7-day free trial — No credit card required <span class="hidden sm:inline">&middot; Start automating today</span></span>
+        </p>
+        <button onclick="document.getElementById('announcement-bar').remove()" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors" aria-label="Dismiss announcement">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+
+    <!-- 2. HEADER -->
+    <header class="sticky top-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 group">
+                <svg class="w-6 h-6 text-primary group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+            </a>
+            
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
+                <a href="/#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
+                <a href="/pricing.html" class="text-text hover:text-primary transition-colors text-sm font-medium">Pricing</a>
+                <a href="/#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
+            </nav>
+            
+            <div class="flex items-center gap-4">
+                <a href="#" data-clerk-signin class="hidden md:block text-sm font-medium text-text hover:text-primary transition-colors">Login</a>
+                <a href="#" data-clerk-signup class="hidden md:flex px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-bg font-bold text-sm transition-all btn-glow shadow-primary/20 items-center justify-center">Get Started Free</a>
+                
+                <button id="hamburger-btn" class="md:hidden text-text hover:text-primary focus:outline-none p-1">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Backdrop -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 bg-bg/90 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+    
+    <!-- Mobile Menu Sidebar -->
+    <div id="mobile-menu" class="fixed inset-y-0 right-0 z-[60] w-72 sm:w-80 bg-surface/95 backdrop-blur-xl border-l border-border/50 transform translate-x-full transition-transform duration-300 md:hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-border/50">
+            <a href="/" class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-xl tracking-wide">Ultramora</span>
+            </a>
+            <button id="close-menu" class="text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex flex-col px-4 py-6 overflow-y-auto flex-grow">
+            <h4 class="text-xs font-semibold text-muted uppercase tracking-wider mb-3 px-2">Menu</h4>
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium">
+                <a href="/#features" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Features</a>
+                <a href="/#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">How It Works</a>
+                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-primary bg-primary/10 rounded-xl transition-all">Pricing</a>
+                <a href="/#faq" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">FAQ</a>
+            </nav>
+            <hr class="border-border/50 my-6">
+            <h4 class="text-xs font-semibold text-muted uppercase tracking-wider mb-3 px-2">Account</h4>
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium mb-6">
+                <a href="#" data-clerk-signin class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Login</a>
+                <a href="/dashboard.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Dashboard</a>
+            </nav>
+            <a href="#" data-clerk-signup class="mobile-link mt-auto w-full px-6 py-4 text-center rounded-xl bg-primary text-[#041d24] font-bold text-lg btn-glow">Get Started Free</a>
+        </div>
+    </div>
+
+    <main class="py-16 md:py-24 px-6 relative">
+        <!-- Ambient Glows -->
+        <div class="absolute top-0 left-0 w-full h-[600px] overflow-hidden -z-10 pointer-events-none">
+            <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto">
+            <!-- Hero Text -->
+            <div class="text-center mb-16 reveal">
+                <h1 class="font-clash text-5xl md:text-7xl font-semibold mb-6 tracking-tight">
+                    Simple, <span class="text-gradient">Transparent Pricing</span>
+                </h1>
+                <p class="text-muted text-xl max-w-2xl mx-auto leading-relaxed">
+                    Choose the perfect plan for your business needs. Upgrade or downgrade anytime.
+                </p>
+            </div>
+            
+            <!-- Pricing Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-24">
+                
+                <!-- Starter Plan -->
+                <div class="glass-card rounded-3xl p-8 lg:p-10 border border-border hover:border-primary/40 shadow-[0_0_20px_rgba(6,182,212,0.05)] reveal relative flex flex-col h-full hover:-translate-y-2 transition-all duration-300">
+                    <h3 class="font-clash text-2xl font-medium text-text mb-2 tracking-wide">STARTER PLAN</h3>
+                    <p class="text-muted mb-6 text-sm h-14">For small single-store owners just starting out.</p>
+                    <div class="font-clash text-5xl font-bold text-text mb-8">$29<span class="text-xl text-muted font-normal">/month</span></div>
+                    
+                    <ul class="space-y-4 mb-10 flex-grow">
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>1 AI Chatbot</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>1,000 AI Messages / month</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Basic Knowledge Base</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Lead Capture CRM</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Manual CSV Lead Export</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Basic Customization</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
+                        Subscribe Now &rarr;
+                    </a>
+                    <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="relative rounded-3xl bg-gradient-to-br from-primary to-accent p-[1.5px] shadow-[0_0_40px_rgba(6,182,212,0.25)] lg:-translate-y-6 hover:-translate-y-8 transition-transform duration-300 reveal flex flex-col h-full z-10">
+                    <div class="absolute top-0 right-8 transform -translate-y-1/2 bg-gradient-to-r from-primary to-accent text-bg text-xs font-bold uppercase tracking-wider py-1 px-4 rounded-full z-30 shadow-lg shadow-primary/20">
+                        Most Popular
+                    </div>
+                    <div class="bg-[#0b121c] rounded-[22px] p-8 lg:p-10 h-full flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-48 h-48 bg-primary/20 rounded-full blur-[60px] -z-10 pointer-events-none"></div>
+                        
+                        <h3 class="font-clash text-2xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2 tracking-wide">PRO PLAN</h3>
+                        <p class="text-muted mb-6 text-sm h-14">Established businesses, clinics, and serious e-commerce brands.</p>
+                        <div class="font-clash text-5xl font-bold text-text mb-8">$79<span class="text-xl text-muted font-normal">/month</span></div>
+                        
+                        <ul class="space-y-4 mb-10 flex-grow">
+                            <li class="flex items-start gap-3 text-text font-medium">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Up to 3 AI Chatbots</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text font-medium">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>5,000 AI Messages / month</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Advanced Knowledge Base <span class="text-xs text-muted block">(PDF Uploads up to 5MB)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>The AI Brain <span class="text-xs text-muted block">(Master System Prompt)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Automations <span class="text-xs text-muted block">(Webhooks & Zapier)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Priority Routing</span>
+                            </li>
+                        </ul>
+                        
+                        <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-bg font-bold btn-glow transition-all mb-3 mt-auto">
+                            Subscribe Now &rarr;
+                        </a>
+                        <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
+                    </div>
+                </div>
+
+                <!-- Agency Plan -->
+                <div class="glass-card rounded-3xl p-8 lg:p-10 border border-border hover:border-primary/40 shadow-[0_0_20px_rgba(6,182,212,0.05)] reveal relative flex flex-col h-full hover:-translate-y-2 transition-all duration-300">
+                    <h3 class="font-clash text-2xl font-medium text-text mb-2 tracking-wide">AGENCY PLAN</h3>
+                    <p class="text-muted mb-6 text-sm h-14">Marketing agencies building bots for clients, or massive enterprises.</p>
+                    <div class="font-clash text-5xl font-bold text-text mb-8">$199<span class="text-xl text-muted font-normal">/month</span></div>
+                    
+                    <ul class="space-y-4 mb-10 flex-grow">
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Up to 10 AI Chatbots</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>20,000 AI Messages / month</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Unlimited Knowledge Base</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Developer Access <span class="text-xs text-muted block">(Internal API Keys)</span></span>
+                        </li>
+                        <li class="flex items-start gap-3 text-text">
+                            <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>White-Glove Support</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
+                        Get Started &rarr;
+                    </a>
+                    <p class="text-center text-xs text-muted">High-volume custom solutions available</p>
+                </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl font-semibold">Pricing FAQ</h2>
+                </div>
+                <div class="space-y-4 reveal">
+                    <div class="glass-card rounded-2xl faq-item">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg">Can I change my plan later?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer">
+                            Absolutely. You can upgrade or downgrade your plan at any time from your dashboard. Changes take effect immediately.
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-2xl faq-item">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg">What happens if I exceed my message limit?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer">
+                            We'll notify you when you reach 80% and 100% of your limit. You can upgrade to a higher tier or wait until your limit resets next month.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border pt-16 pb-8 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div>
+                    <a href="/" class="flex items-center gap-2 mb-4">
+                        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+                    </a>
+                    <p class="text-muted text-sm leading-relaxed pr-4">Turn websites into intelligent AI sales agents.</p>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
+                        <li><a href="/#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
+                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="/#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Account</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
+                        <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
+                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Legal</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-border/50 pt-8 text-center text-sm text-muted">
+                <p>All rights reserved. Copyright &copy; 2026 Ultramora</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(button) {
+            const answer = button.nextElementSibling;
+            const icon = button.querySelector('svg');
+            answer.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const backdrop = document.getElementById('mobile-menu-backdrop');
+
+        function toggleMenu() {
+            mobileMenu.classList.toggle('translate-x-full');
+            document.body.classList.toggle('overflow-hidden');
+            if (backdrop.classList.contains('hidden')) {
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            } else {
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        hamburgerBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+        backdrop.addEventListener('click', toggleMenu);
+
+        function reveal() {
+            document.querySelectorAll(".reveal").forEach(el => {
+                if (el.getBoundingClientRect().top < window.innerHeight - 100) el.classList.add("active");
+            });
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+    </script>
+</body>
+</html>

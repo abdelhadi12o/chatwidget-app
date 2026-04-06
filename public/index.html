@@ -1,2204 +1,1009 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Turn Any Website Into a Smart AI Chatbot - Ultramora</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600&display=swap" rel="stylesheet">
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --primary: #6366f1;
-      --secondary: #f59e0b;
-      --dark: #0f172a;
-      --light: #f8fafc;
-      --gray: #64748b;
-      --white: #ffffff;
-    }
-
-    html {
-      scroll-behavior: smooth;
-      overflow-x: hidden;
-    }
-
-    body {
-      font-family: 'Satoshi', sans-serif;
-      color: var(--dark);
-      overflow-x: hidden;
-    }
-
-    /* Utility */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 14px 28px;
-      font-family: 'Satoshi', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: 50px;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      border: 2px solid transparent;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-    }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--dark);
-      border: 2px solid var(--dark);
-    }
-
-    .btn-outline:hover {
-      background: var(--dark);
-      color: white;
-    }
-
-    .btn-pill {
-      padding: 10px 24px;
-      border-radius: 50px;
-    }
-
-    /* Animations */
-    .fade-up {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .fade-up.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* Announcement Bar */
-    .announcement {
-      background: var(--primary);
-      color: white;
-      padding: 10px 24px;
-      text-align: center;
-      font-size: 14px;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .announcement .close-btn {
-      position: absolute;
-      right: 16px;
-      background: none;
-      border: none;
-      color: white;
-      font-size: 20px;
-      cursor: pointer;
-      opacity: 0.8;
-      transition: opacity 0.2s;
-    }
-
-    .announcement .close-btn:hover {
-      opacity: 1;
-    }
-
-    /* Header */
-    header {
-      background: var(--white);
-      position: sticky;
-      top: 0;
-      z-index: 999;
-      transition: box-shadow 0.3s ease;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    header.shadow {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0;
-    }
-
-    .logo {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--dark);
-      letter-spacing: -0.02em;
-    }
-
-    nav {
-      display: flex;
-      gap: 32px;
-      align-items: center;
-    }
-
-    nav a {
-      color: var(--gray);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    nav a:hover {
-      color: var(--primary);
-    }
-
-    .mobile-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: var(--dark);
-    }
-
-    /* Hero Section */
-    .hero {
-      background: var(--light);
-      padding: 80px 0 120px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 55% 45%;
-      gap: 60px;
-      align-items: center;
-    }
-
-    .hero-badge {
-      display: inline-block;
-      background: var(--primary);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 50px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 24px;
-    }
-
-    .hero h1 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(40px, 5vw, 72px);
-      font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      margin-bottom: 24px;
-    }
-
-    .hero p {
-      font-size: 17px;
-      color: var(--gray);
-      margin-bottom: 32px;
-      line-height: 1.7;
-    }
-
-    .languages-strip {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 32px;
-      font-size: 13px;
-      color: var(--gray);
-    }
-
-    .languages-strip span {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    /* URL Input Bar */
-    .url-input-bar {
-      background: white;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 6px;
-      display: flex;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s ease;
-      max-width: 520px;
-    }
-
-    .url-input-bar:focus-within {
-      border-color: var(--primary);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.2);
-    }
-
-    .url-input-bar input {
-      flex: 1;
-      border: none;
-      padding: 12px 16px;
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      border-radius: 8px;
-    }
-
-    .url-input-bar input::placeholder {
-      color: #94a3b8;
-    }
-
-    .url-input-bar button {
-      padding: 12px 24px;
-      background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      transition: transform 0.2s;
-      font-family: inherit;
-    }
-
-    .url-input-bar button:hover {
-      transform: scale(1.02);
-    }
-
-    .trust-text {
-      margin-top: 16px;
-      font-size: 13px;
-      color: var(--gray);
-    }
-
-    .trust-text span {
-      margin-right: 16px;
-    }
-
-    /* Browser Mockup */
-    .browser-mockup {
-      background: var(--dark);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.5);
-    }
-
-    .browser-header {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .browser-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-
-    .browser-dot:nth-child(1) { background: #ff5f56; }
-    .browser-dot:nth-child(2) { background: #ffbd2e; }
-    .browser-dot:nth-child(3) { background: #27c93f; }
-
-    .browser-content {
-      background: var(--light);
-      border-radius: 8px;
-      padding: 24px;
-      min-height: 280px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .fake-content {
-      flex: 1;
-    }
-
-    .fake-content .line {
-      height: 12px;
-      background: #e2e8f0;
-      margin-bottom: 12px;
-      border-radius: 4px;
-    }
-
-    .fake-content .line.short { width: 60%; }
-    .fake-content .line.medium { width: 80%; }
-    .fake-content .line.long { width: 100%; }
-
-    .floating-widget {
-      position: absolute;
-      bottom: -20px;
-      right: -30px;
-      width: 280px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-      animation: pulse-bubble 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-bubble {
-      0%, 100% { transform: scale(1); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2); }
-      50% { transform: scale(1.02); box-shadow: 0 24px 48px rgba(99, 102, 241, 0.3); }
-    }
-
-    .widget-title {
-      background: var(--primary);
-      color: white;
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .widget-dot {
-      width: 8px;
-      height: 8px;
-      background: #10b981;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 6px;
-    }
-
-    .widget-body {
-      padding: 12px;
-      background: #f9fafb;
-      height: 140px;
-      overflow-y: auto;
-      font-size: 12px;
-    }
-
-    .widget-msg {
-      margin-bottom: 8px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      max-width: 90%;
-    }
-
-    .widget-msg.user {
-      background: var(--primary);
-      color: white;
-      margin-left: auto;
-      border-radius: 8px 4px 8px 8px;
-    }
-
-    .widget-msg.bot {
-      background: white;
-      color: var(--dark);
-      border: 1px solid #e2e8f0;
-      border-radius: 4px 8px 8px 8px;
-    }
-
-    .widget-input {
-      padding: 10px;
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      gap: 6px;
-    }
-
-    .widget-input input {
-      flex: 1;
-      padding: 8px 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 16px;
-      font-size: 11px;
-    }
-
-    .widget-input button {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: none;
-      background: var(--primary);
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .powered-badge {
-      position: absolute;
-      top: -12px;
-      right: 20px;
-      background: var(--secondary);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    /* ROI Stats */
-    .stats-bar {
-      background: var(--dark);
-      padding: 80px 0;
-      color: white;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-      text-align: center;
-    }
-
-    .stat-number {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(48px, 6vw, 80px);
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-    }
-
-    .stat-label {
-      font-size: 16px;
-      color: #94a3b8;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      font-weight: 500;
-    }
-
-    /* How It Works */
-    .how-it-works {
-      background: var(--white);
-      padding: 120px 0;
-    }
-
-    .section-header {
-      text-align: center;
-      margin-bottom: 60px;
-    }
-
-    .section-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
-    }
-
-    .section-header p {
-      font-size: 17px;
-      color: var(--gray);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .steps-container {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px;
-      position: relative;
-    }
-
-    .steps-container::before {
-      content: '';
-      position: absolute;
-      top: 60px;
-      left: 20%;
-      right: 20%;
-      height: 4px;
-      background: repeating-linear-gradient(to right, #e2e8f0 0, #e2e8f0 12px, transparent 12px, transparent 24px);
-    }
-
-    .step-card {
-      background: var(--light);
-      border: 2px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 32px;
-      text-align: center;
-      transition: all 0.3s ease;
-      position: relative;
-      z-index: 1;
-    }
-
-    .step-card:hover {
-      transform: translateY(-8px);
-      border-color: var(--primary);
-      box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
-    }
-
-    .step-number {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 24px;
-      background: var(--primary);
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Clash Display', sans-serif;
-      font-size: 32px;
-      font-weight: 700;
-    }
-
-    .step-icon {
-      font-size: 40px;
-      margin-bottom: 16px;
-      display: block;
-    }
-
-    .step-card h3 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .step-card p {
-      font-size: 14px;
-      color: var(--gray);
-      line-height: 1.7;
-    }
-
-    /* Comparison */
-    .comparison {
-      background: var(--light);
-      padding: 120px 0;
-    }
-
-    .comparison-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 60px;
-      letter-spacing: -0.02em;
-    }
-
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 40px;
-      max-width: 900px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    .comparison-card {
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .comparison-card.bad {
-      border: 2px solid #fecaca;
-      background: linear-gradient(to bottom right, #fff, #fef2f2);
-    }
-
-    .comparison-card.good {
-      border: 2px solid var(--primary);
-      background: linear-gradient(to bottom right, #fff, #f5f7ff);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
-    }
-
-    .comparison-card h3 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 24px;
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .bad .vs-badge {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: var(--primary);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-family: 'Clash Display', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-      z-index: 10;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    }
-
-    .comparison-list {
-      list-style: none;
-    }
-
-    .comparison-list li {
-      padding: 12px 0;
-      font-size: 15px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .comparison-list li:last-child {
-      border-bottom: none;
-    }
-
-    .bad .comparison-list li::before {
-      content: '❌';
-      flex-shrink: 0;
-    }
-
-    .good .comparison-list li::before {
-      content: '✅';
-      flex-shrink: 0;
-    }
-
-    /* Features */
-    .features {
-      background: var(--dark);
-      color: white;
-      padding: 120px 0;
-    }
-
-    .features .section-header h2 {
-      color: white;
-    }
-
-    .features .section-header p {
-      color: #94a3b8;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    .feature-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 32px;
-      transition: all 0.3s ease;
-    }
-
-    .feature-card:hover {
-      border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.1);
-      transform: translateY(-4px);
-    }
-
-    .feature-icon {
-      font-size: 36px;
-      margin-bottom: 20px;
-      display: block;
-    }
-
-    .feature-card h3 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .feature-card p {
-      font-size: 14px;
-      color: #94a3b8;
-      line-height: 1.7;
-    }
-
-    /* Languages Strip */
-    .languages-section {
-      background: var(--white);
-      padding: 60px 0;
-      overflow: hidden;
-    }
-
-    .languages-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .languages-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(24px, 3vw, 36px);
-      margin-bottom: 8px;
-    }
-
-    .languages-header p {
-      font-size: 15px;
-      color: var(--gray);
-    }
-
-    .marquee-container {
-      overflow: hidden;
-      position: relative;
-    }
-
-    .marquee-container::before,
-    .marquee-container::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 60px;
-      z-index: 2;
-    }
-
-    .marquee-container::before {
-      left: 0;
-      background: linear-gradient(to right, var(--white), transparent);
-    }
-
-    .marquee-container::after {
-      right: 0;
-      background: linear-gradient(to left, var(--white), transparent);
-    }
-
-    .marquee {
-      display: flex;
-      gap: 16px;
-      animation: scroll 30s linear infinite;
-    }
-
-    @keyframes scroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-
-    .language-pill {
-      background: var(--light);
-      border: 2px solid #e2e8f0;
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-size: 15px;
-      font-weight: 500;
-      white-space: nowrap;
-      transition: all 0.3s ease;
-      cursor: default;
-    }
-
-    .language-pill:hover {
-      border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.05);
-    }
-
-    /* Testimonials */
-    .testimonials {
-      background: var(--dark);
-      color: white;
-      padding: 120px 0;
-    }
-
-    .testimonials .section-header h2 {
-      color: white;
-    }
-
-    .carousel-container {
-      max-width: 800px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    .testimonial-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 40px;
-    }
-
-    .testimonial-card.active {
-      display: block;
-      animation: fadeIn 0.5s ease;
-    }
-
-    .testimonial-card {
-      display: none;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .stars {
-      color: var(--secondary);
-      font-size: 20px;
-      margin-bottom: 16px;
-    }
-
-    .quote {
-      font-size: 17px;
-      line-height: 1.7;
-      margin-bottom: 24px;
-      font-style: italic;
-    }
-
-    .author {
-      font-weight: 600;
-      font-size: 14px;
-      color: #94a3b8;
-    }
-
-    .carousel-dots {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 32px;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .dot.active {
-      background: var(--primary);
-      width: 30px;
-      border-radius: 5px;
-    }
-
-    /* Pricing */
-    .pricing {
-      background: var(--white);
-      padding: 120px 0;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 32px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .pricing-card {
-      background: var(--light);
-      border: 2px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 40px;
-      text-align: center;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .pricing-card.featured {
-      border-color: var(--primary);
-      box-shadow: 0 12px 32px rgba(99, 102, 241, 0.2);
-      transform: scale(1.02);
-    }
-
-    .coming-soon-badge {
-      position: absolute;
-      top: -12px;
-      right: 20px;
-      background: var(--secondary);
-      color: var(--dark);
-      padding: 4px 16px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .pricing-card h3 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-
-    .price {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 56px;
-      font-weight: 700;
-      color: var(--dark);
-      margin: 16px 0;
-    }
-
-    .price span {
-      font-size: 16px;
-      color: var(--gray);
-      font-weight: 400;
-    }
-
-    .pricing-features {
-      list-style: none;
-      text-align: left;
-      margin: 32px 0;
-      padding: 0;
-    }
-
-    .pricing-features li {
-      padding: 12px 0;
-      color: var(--gray);
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-
-    .pricing-features li:last-child {
-      border-bottom: none;
-    }
-
-    .pricing-features li::before {
-      content: '✓';
-      color: var(--primary);
-      font-weight: 700;
-      width: 20px;
-      flex-shrink: 0;
-    }
-
-    /* FAQ */
-    .faq {
-      background: var(--light);
-      padding: 120px 0;
-    }
-
-    .faq-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-
-    .faq-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .faq-list {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .faq-item {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
-    .faq-question {
-      padding: 20px 24px;
-      font-family: 'Clash Display', sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background 0.2s;
-    }
-
-    .faq-question:hover {
-      background: var(--light);
-    }
-
-    .faq-question::after {
-      content: '+';
-      font-size: 24px;
-      color: var(--primary);
-      font-weight: 600;
-    }
-
-    .faq-item.active .faq-question::after {
-      content: '−';
-    }
-
-    .faq-answer {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      background: var(--light);
-    }
-
-    .faq-item.active .faq-answer {
-      max-height: 300px;
-    }
-
-    .faq-answer p {
-      padding: 0 24px 20px;
-      font-size: 14px;
-      color: var(--gray);
-      line-height: 1.7;
-    }
-
-    /* CTA Section */
-    .cta-section {
-      background: linear-gradient(135deg, var(--primary) 0%, #818cf8 100%);
-      padding: 120px 0;
-      color: white;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-section::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 100%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-      animation: rotate 20s linear infinite;
-    }
-
-      @keyframes rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-
-    .cta-header {
-      text-align: center;
-      margin-bottom: 48px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cta-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-
-    .cta-header p {
-      font-size: 17px;
-      opacity: 0.9;
-    }
-
-    .cta-input-bar {
-      max-width: 600px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .cta-input-bar .url-input-bar {
-      background: white;
-    }
-
-    /* Footer */
-    footer {
-      background: var(--dark);
-      color: white;
-      padding: 80px 0 40px;
-    }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 40px;
-      margin-bottom: 60px;
-    }
-
-    .footer-brand h3 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-
-    .footer-brand p {
-      font-size: 14px;
-      color: #94a3b8;
-      line-height: 1.7;
-    }
-
-    .footer-col h4 {
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 20px;
-      color: #94a3b8;
-    }
-
-    .footer-col ul {
-      list-style: none;
-    }
-
-    .footer-col ul li {
-      margin-bottom: 12px;
-    }
-
-    .footer-col ul li a {
-      color: #cbd5e1;
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.2s;
-    }
-
-    .footer-col ul li a:hover {
-      color: white;
-    }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255,255,255,0.1);
-      padding-top: 30px;
-      text-align: center;
-      font-size: 14px;
-      color: #64748b;
-    }
-
-    .footer-bottom strong {
-      color: var(--primary);
-    }
-
-    /* Sticky CTA */
-    .sticky-cta {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255,255,255,0.1);
-      padding: 16px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 998;
-      transform: translateY(100%);
-      transition: transform 0.4s ease;
-    }
-
-    .sticky-cta.visible {
-      transform: translateY(0);
-    }
-
-    .sticky-cta .text {
-      color: white;
-      font-weight: 600;
-      font-size: 15px;
-    }
-
-    .sticky-cta .close-btn {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 0 8px;
-    }
-
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .hero-grid {
-        grid-template-columns: 1fr;
-        gap: 60px;
-      }
-
-      .hero-buttons {
-        justify-content: center;
-      }
-
-      .hero-visual {
-        max-width: 500px;
-        margin: 0 auto;
-      }
-
-      .floating-widget {
-        right: -10px;
-        bottom: -10px;
-      }
-
-      .steps-container {
-        grid-template-columns: 1fr;
-        gap: 30px;
-      }
-
-      .steps-container::before {
-        display: none;
-      }
-
-      .comparison-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .bad .vs-badge {
-        position: relative;
-        top: auto;
-        left: auto;
-        transform: none;
-        margin: 20px auto;
-        display: block;
-        width: fit-content;
-      }
-
-      .features-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .pricing-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .pricing-card.featured {
-        transform: scale(1);
-      }
-
-      .footer-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 768px) {
-      nav {
-        display: none;
-      }
-
-      .mobile-menu-btn {
-        display: block;
-      }
-
-      .languages-strip {
-        justify-content: center;
-      }
-
-      .trust-text {
-        text-align: center;
-      }
-
-      .url-input-bar {
-        flex-direction: column;
-      }
-
-      .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
-
-      .sticky-cta {
-        flex-direction: column;
-        gap: 12px;
-        text-align: center;
-        padding: 12px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .hero {
-        padding-top: 60px;
-        padding-bottom: 80px;
-      }
-
-      .hero h1 {
-        font-size: 32px;
-      }
-
-      .features-grid,
-      .pricing-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .stat-number {
-        font-size: 48px;
-      }
-    }
-
-    /* Confetti/Blob decorations */
-    .blob {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.15;
-      z-index: 0;
-    }
-
-    .blob-1 {
-      top: -100px;
-      left: -100px;
-      width: 300px;
-      height: 300px;
-      background: var(--primary);
-    }
-
-    .blob-2 {
-      bottom: -100px;
-      right: -100px;
-      width: 250px;
-      height: 250px;
-      background: var(--secondary);
-    }
-
-    /* Demo Section */
-    .demo-section {
-      background: var(--light);
-      padding: 120px 0;
-    }
-
-    .demo-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-
-    .demo-header h2 {
-      font-family: 'Clash Display', sans-serif;
-      font-size: clamp(32px, 4vw, 48px);
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .demo-header p {
-      font-size: 17px;
-      color: var(--gray);
-    }
-
-    .demo-container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .demo-suggestions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
-    }
-
-    .suggestion-chip {
-      background: white;
-      border: 2px solid var(--primary);
-      color: var(--primary);
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: 'Satoshi', sans-serif;
-    }
-
-    .suggestion-chip:hover {
-      background: var(--primary);
-      color: white;
-    }
-
-    .demo-chat-widget {
-      background: var(--dark);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    }
-
-    .demo-chat-header {
-      background: #1e293b;
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      font-size: 14px;
-      color: white;
-    }
-
-    .demo-status-dot {
-      width: 10px;
-      height: 10px;
-      background: #10b981;
-      border-radius: 50%;
-      display: inline-block;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .demo-chat-messages {
-      height: 400px;
-      overflow-y: auto;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: var(--light);
-    }
-
-    .demo-message {
-      max-width: 85%;
-      padding: 12px 16px;
-      font-size: 14px;
-      line-height: 1.6;
-      border-radius: 16px;
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .demo-message.user {
-      align-self: flex-end;
-      background: var(--primary);
-      color: white;
-      border-radius: 16px 6px 16px 16px;
-    }
-
-    .demo-message.bot {
-      align-self: flex-start;
-      background: white;
-      color: var(--dark);
-      border: 1px solid #e2e8f0;
-      border-radius: 6px 16px 16px 16px;
-    }
-
-    .demo-chat-input-area {
-      display: flex;
-      padding: 16px;
-      gap: 12px;
-      background: white;
-      border-top: 1px solid #e2e8f0;
-    }
-
-    .demo-chat-input-area input {
-      flex: 1;
-      padding: 12px 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 24px;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .demo-chat-input-area input:focus {
-      border-color: var(--primary);
-    }
-
-    .demo-chat-input-area button {
-      padding: 12px 24px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 24px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: 'Satoshi', sans-serif;
-      transition: background 0.2s;
-    }
-
-    .demo-chat-input-area button:hover {
-      background: #5558e6;
-    }
-
-    .demo-typing {
-      display: flex;
-      gap: 4px;
-      padding: 12px 16px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px 16px 16px 16px;
-      align-self: flex-start;
-      max-width: 60px;
-    }
-
-    .demo-typing span {
-      width: 8px;
-      height: 8px;
-      background: #94a3b8;
-      border-radius: 50%;
-      animation: typing 1.4s infinite ease-in-out;
-    }
-
-    .demo-typing span:nth-child(1) { animation-delay: 0s; }
-    .demo-typing span:nth-child(2) { animation-delay: 0.2s; }
-    .demo-typing span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-4px); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultramora | Turn Any Website Into an AI Sales Agent</title>
+    <meta name="description" content="Ultramora trains an AI agent on your website content in 3 minutes. It answers customer questions, captures leads, and books appointments — 24/7, in any language.">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#080d14',
+                        surface: '#0f1823',
+                        primary: '#06b6d4',
+                        accent: '#3b82f6',
+                        text: '#f8fafc',
+                        muted: '#94a3b8',
+                        border: '#1e293b',
+                        success: '#10b981',
+                    },
+                    fontFamily: {
+                        clash: ['Clash Display', 'sans-serif'],
+                        satoshi: ['Satoshi', 'sans-serif'],
+                    },
+                    animation: {
+                        'marquee': 'marquee 30s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-50%)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Styles & Utilities */
+        body {
+            background-color: #080d14;
+            color: #f8fafc;
+            font-family: 'Satoshi', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .font-clash {
+            font-family: 'Clash Display', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #1e293b;
+        }
+        
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #06b6d4, #3b82f6);
+        }
+
+        /* Scroll Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hide scrollbar for clean marquee */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
 </head>
-<body>
-<script>
-(async function() {
-  try {
-    const res = await fetch('/api/config');
-    const config = await res.json();
-    window.__config = config;
-    const signIn = config.clerkSignInUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
-    const signUp = config.clerkSignUpUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
-    document.querySelectorAll('[data-clerk-signin]').forEach(el => {
-      if (el.tagName === 'A') el.href = signIn;
-      else el.onclick = () => window.location.href = signIn;
-    });
-    document.querySelectorAll('[data-clerk-signup]').forEach(el => {
-      if (el.tagName === 'A') el.href = signUp;
-      else el.onclick = () => window.location.href = signUp;
-    });
-  } catch(e) { console.error('Config load failed:', e); }
-})();
-</script>
-  <!-- Announcement Bar -->
-  <div class="announcement" id="announcement">
-    🎉 Free plan available — No credit card required
-    <button class="close-btn" id="closeAnnouncement">×</button>
-  </div>
+<body class="antialiased selection:bg-primary/30 selection:text-text">
 
-  <!-- Header -->
-  <header id="header">
-    <div class="container">
-      <div class="header-content">
-        <div class="logo">💬 ChatWidget</div>
-        <nav>
-          <a href="#features">Features</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#languages">Languages</a>
-          <a data-clerk-signin>Login</a>
-          <a data-clerk-signup class="btn btn-primary btn-pill">Get Started Free</a>
-        </nav>
-        <button class="mobile-menu-btn" aria-label="Toggle menu">☰</button>
-      </div>
-    </div>
-  </header>
+    <!-- REQUIRED CONFIG SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (window.location.protocol.startsWith('http')) {
+                    const response = await fetch('/api/config');
+                    if(response.ok) {
+                        const config = await response.json();
+                        
+                        // 1. Tell Clerk to send them directly to the dashboard after logging in!
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        
+                        // Attach sign-in URLs
+                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
+                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
+                        });
+                        
+                        // Attach sign-up URLs
+                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
+                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
+                        });
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero-grid">
-        <div class="hero-content fade-up">
-          <span class="hero-badge">🚀 AI-Powered • Setup in 3 minutes</span>
-          <h1>
-            Turn Any Website Into a<br>
-            <span class="gradient-text">Smart AI Chatbot</span><br>
-            In Minutes
-          </h1>
-          <p>
-            Paste your URL. We train the AI on your content. Your customers get instant answers 24/7.
-            Zero coding required.
-          </p>
-          <div class="languages-strip">
-            <span>🇲🇦 Arabic</span>
-            <span>🇫🇷 French</span>
-            <span>🇬🇧 English</span>
-            <span>🇪🇸 Spanish</span>
-            <span>🇩🇪 German</span>
-          </div>
-          <div class="url-input-bar">
-            <input type="text" placeholder="Enter your website URL... e.g. mystore.com">
-            <button data-clerk-signup>Build My Chatbot →</button>
-          </div>
-          <div class="trust-text">
-            <span>✓ Free forever</span>
-            <span>✓ No credit card</span>
-            <span>✓ 5 min setup</span>
-          </div>
-        </div>
-        <div class="hero-visual fade-up">
-          <div class="browser-mockup">
-            <div class="browser-header">
-              <div class="browser-dot"></div>
-              <div class="browser-dot"></div>
-              <div class="browser-dot"></div>
-            </div>
-            <div class="browser-content">
-              <div class="fake-content">
-                <div class="line long"></div>
-                <div class="line medium"></div>
-                <div class="line long"></div>
-                <div class="line medium"></div>
-                <div class="line short"></div>
-              </div>
-              <div class="floating-widget">
-                <div class="widget-title">
-                  <span><span class="widget-dot"></span>AI Assistant</span>
-                  <span>💬</span>
-                </div>
-                <div class="widget-body">
-                  <div class="widget-msg bot">
-                    Hi! How can I help you today?
-                  </div>
-                  <div class="widget-msg user">
-                    Do you offer free shipping?
-                  </div>
-                  <div class="widget-msg bot">
-                    Yes! Free shipping on orders over 200 MAD 🎉
-                  </div>
-                </div>
-                <div class="widget-input">
-                  <input type="text" placeholder="Type a message...">
-                  <button>→</button>
-                </div>
-              </div>
-            </div>
-            <div class="powered-badge">⚡ Powered by AI</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+                        // 2. Load Clerk to process tokens
+                        const clerkJs = document.createElement('script');
+                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+                        clerkJs.crossOrigin = 'anonymous';
+                        document.head.appendChild(clerkJs);
+                        
+                        clerkJs.addEventListener('load', async () => {
+                            await window.Clerk.load();
+                            // Removed automatic redirection to allow users to stay on the landing page
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('Clerk configuration could not be loaded.');
+            }
+        });
+    </script>
 
-  <!-- ROI Stats -->
-  <section class="stats-bar">
-    <div class="container">
-      <div class="stats-grid">
-        <div class="stat-item fade-up">
-          <div class="stat-number">3 min</div>
-          <div class="stat-label">Setup time</div>
-        </div>
-        <div class="stat-item fade-up">
-          <div class="stat-number">24/7</div>
-          <div class="stat-label">Always online</div>
-        </div>
-        <div class="stat-item fade-up">
-          <div class="stat-number">0 code</div>
-          <div class="stat-label">No developer needed</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works -->
-  <section class="how-it-works" id="how-it-works">
-    <div class="container">
-      <div class="section-header fade-up">
-        <h2>GET STARTED IN 3 SIMPLE STEPS</h2>
-        <p>From URL to fully functional AI assistant.</p>
-      </div>
-      <div class="steps-container">
-        <div class="step-card fade-up">
-          <div class="step-number">1</div>
-          <span class="step-icon">🌐</span>
-          <h3>Paste Your URL</h3>
-          <p>Enter your website address. We automatically scrape your content, products and services.</p>
-        </div>
-        <div class="step-card fade-up">
-          <div class="step-number">2</div>
-          <span class="step-icon">🤖</span>
-          <h3>AI Trains Instantly</h3>
-          <p>Our AI reads your entire website and becomes an expert on your business in seconds.</p>
-        </div>
-        <div class="step-card fade-up">
-          <div class="step-number">3</div>
-          <span class="step-icon">⚡</span>
-          <h3>Copy & Embed</h3>
-          <p>One line of code. Paste it on your site. Your AI chatbot goes live immediately.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Comparison -->
-  <section class="comparison">
-    <div class="container">
-      <div class="comparison-header fade-up">
-        <h2>See The Difference</h2>
-      </div>
-      <div class="comparison-grid">
-        <div class="comparison-card bad fade-up">
-          <h3>❌ Without ChatWidget</h3>
-          <ul class="comparison-list">
-            <li>Customers wait hours for replies</li>
-            <li>Miss sales while you sleep</li>
-            <li>Hire expensive support staff</li>
-            <li>Lose customers to competitors</li>
-            <li>Answer same questions repeatedly</li>
-          </ul>
-        </div>
-        <div class="comparison-card good fade-up">
-          <h3>✅ With ChatWidget</h3>
-          <ul class="comparison-list">
-            <li>Instant answers 24/7</li>
-            <li>Convert visitors while you sleep</li>
-            <li>Zero support staff needed</li>
-            <li>Customers stay and buy</li>
-            <li>AI handles all FAQs automatically</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="container">
-      <div class="section-header fade-up">
-        <h2>EVERYTHING YOU NEED</h2>
-        <p>Powerful features in a simple, elegant package.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card fade-up">
-          <span class="feature-icon">🌐</span>
-          <h3>Website Scraping</h3>
-          <p>Automatic content extraction from your entire site. No manual configuration needed.</p>
-        </div>
-        <div class="feature-card fade-up">
-          <span class="feature-icon">🌍</span>
-          <h3>Multilingual Support</h3>
-          <p>Answers in any language automatically. Serve global customers effortlessly.</p>
-        </div>
-        <div class="feature-card fade-up">
-          <span class="feature-icon">📱</span>
-          <h3>Works Anywhere</h3>
-          <p>Single script works on WordPress, Shopify, React, or any website platform.</p>
-        </div>
-        <div class="feature-card fade-up">
-          <span class="feature-icon">📊</span>
-          <h3>Dashboard Analytics</h3>
-          <p>Track conversations, popular questions, and customer satisfaction in real-time.</p>
-        </div>
-        <div class="feature-card fade-up">
-          <span class="feature-icon">📚</span>
-          <h3>Custom Knowledge</h3>
-          <p>Add your own FAQs, pricing, and details beyond what's on your website.</p>
-        </div>
-        <div class="feature-card fade-up">
-          <span class="feature-icon">🔒</span>
-          <h3>Secure & Private</h3>
-          <p>Your content stays secure. No data sharing. Enterprise-grade security built in.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Languages Strip -->
-  <section class="languages-section" id="languages">
-    <div class="container">
-      <div class="languages-header fade-up">
-        <h2>Your Customers Can Chat In Their Language</h2>
-        <p>Our AI automatically detects and responds in the customer's language</p>
-      </div>
-      <div class="marquee-container fade-up">
-        <div class="marquee">
-          <div class="language-pill">🇲🇦 Arabic</div>
-          <div class="language-pill">🇫🇷 French</div>
-          <div class="language-pill">🇬🇧 English</div>
-          <div class="language-pill">🇪🇸 Spanish</div>
-          <div class="language-pill">🇩🇪 German</div>
-          <div class="language-pill">🇮🇹 Italian</div>
-          <div class="language-pill">🇵🇹 Portuguese</div>
-          <div class="language-pill">🇳🇱 Dutch</div>
-          <div class="language-pill">🇯🇵 Japanese</div>
-          <div class="language-pill">🇨🇳 Chinese</div>
-          <!-- Duplicate for infinite scroll -->
-          <div class="language-pill">🇲🇦 Arabic</div>
-          <div class="language-pill">🇫🇷 French</div>
-          <div class="language-pill">🇬🇧 English</div>
-          <div class="language-pill">🇪🇸 Spanish</div>
-          <div class="language-pill">🇩🇪 German</div>
-          <div class="language-pill">🇮🇹 Italian</div>
-          <div class="language-pill">🇵🇹 Portuguese</div>
-          <div class="language-pill">🇳🇱 Dutch</div>
-          <div class="language-pill">🇯🇵 Japanese</div>
-          <div class="language-pill">🇨🇳 Chinese</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Testimonials -->
-  <section class="testimonials">
-    <div class="container">
-      <div class="section-header fade-up">
-        <h2>Businesses Love ChatWidget</h2>
-      </div>
-      <div class="carousel-container fade-up">
-        <div class="testimonial-card active" data-index="0">
-          <div class="stars">⭐⭐⭐⭐⭐</div>
-          <p class="quote">"Set up in 5 minutes and my customers get instant answers even at 3am. My sales went up 30%."</p>
-          <p class="author">— Karim B., KidsMaroc.com</p>
-        </div>
-        <div class="testimonial-card" data-index="1">
-          <div class="stars">⭐⭐⭐⭐⭐</div>
-          <p class="quote">"We stopped missing customer questions completely. The AI knows our menu and prices perfectly."</p>
-          <p class="author">— Sara M., Café Owner, Casablanca</p>
-        </div>
-        <div class="testimonial-card" data-index="2">
-          <div class="stars">⭐⭐⭐⭐⭐</div>
-          <p class="quote">"Our patients can now book appointments and get clinic info without calling. Game changer."</p>
-          <p class="author">— Dr. Youssef A., Dental Clinic, Rabat</p>
-        </div>
-        <div class="carousel-dots">
-          <span class="dot active" data-index="0"></span>
-          <span class="dot" data-index="1"></span>
-          <span class="dot" data-index="2"></span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pricing -->
-  <section class="pricing" id="pricing">
-    <div class="container">
-      <div class="section-header fade-up">
-        <h2>SIMPLE HONEST PRICING</h2>
-        <p>Start free. Upgrade when you need more.</p>
-      </div>
-      <div class="pricing-grid">
-        <div class="pricing-card featured fade-up">
-          <h3>FREE PLAN</h3>
-          <div class="price">$0<span>/month</span></div>
-          <ul class="pricing-features">
-            <li>1 chatbot</li>
-            <li>50 messages per month</li>
-            <li>Website scraping</li>
-            <li>Embed on any site</li>
-            <li>Basic dashboard</li>
-          </ul>
-          <a data-clerk-signup class="btn btn-primary">Get Started Free</a>
-        </div>
-        <div class="pricing-card fade-up">
-          <span class="coming-soon-badge">Coming Soon</span>
-          <h3>PRO PLAN</h3>
-          <div class="price">—</div>
-          <ul class="pricing-features">
-            <li>Unlimited messages</li>
-            <li>Multiple chatbots</li>
-            <li>Multi-page scraping</li>
-            <li>Custom branding</li>
-            <li>Priority support</li>
-          </ul>
-          <a href="#" class="btn btn-outline" style="opacity: 0.6; cursor: not-allowed;">Notify Me</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ -->
-  <section class="faq" id="faq">
-    <div class="container">
-      <div class="faq-header fade-up">
-        <h2>Frequently Asked Questions</h2>
-      </div>
-      <div class="faq-list">
-        <div class="faq-item fade-up">
-          <div class="faq-question">Do I need coding skills?</div>
-          <div class="faq-answer">
-            <p>No. Just paste your URL and copy one line of code to embed. That's it. No technical knowledge required.</p>
-          </div>
-        </div>
-        <div class="faq-item fade-up">
-          <div class="faq-question">How does the AI learn my website?</div>
-          <div class="faq-answer">
-            <p>We automatically scan your website pages and train the AI on your content, products and services. It becomes an expert on your business.</p>
-          </div>
-        </div>
-        <div class="faq-item fade-up">
-          <div class="faq-question">What languages does it support?</div>
-          <div class="faq-answer">
-            <p>The AI automatically detects the customer's language and responds accordingly. Supports Arabic, French, English, Spanish and more.</p>
-          </div>
-        </div>
-        <div class="faq-item fade-up">
-          <div class="faq-question">Can I add information manually?</div>
-          <div class="faq-answer">
-            <p>Yes. In your dashboard you can paste any extra info like pricing, FAQs or promotions that aren't on your website.</p>
-          </div>
-        </div>
-        <div class="faq-item fade-up">
-          <div class="faq-question">Is there a free plan?</div>
-          <div class="faq-answer">
-            <p>Yes. Free forever with 1 chatbot and 50 messages/month. No credit card required. No time limit.</p>
-          </div>
-        </div>
-        <div class="faq-item fade-up">
-          <div class="faq-question">What happens if I exceed the free limit?</div>
-          <div class="faq-answer">
-            <p>Your chatbot will pause until the next month or you can upgrade to Pro for unlimited access when it's available.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Final CTA -->
-  <section class="cta-section">
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="container">
-      <div class="cta-header fade-up">
-        <h2>Ready to Automate Your Customer Support?</h2>
-        <p>Join hundreds of businesses already using ChatWidget</p>
-      </div>
-      <div class="cta-input-bar fade-up">
-        <div class="url-input-bar">
-          <input type="text" placeholder="Enter your website URL...">
-          <button data-clerk-signup>Get Started Free →</button>
-        </div>
-        <p style="margin-top: 12px; font-size: 13px; text-align: center; opacity: 0.8;">
-          Free forever • No credit card • 5 min setup
+    <!-- 1. ANNOUNCEMENT BAR -->
+    <div id="announcement-bar" class="bg-surface border-b border-border py-2 pr-10 pl-4 sm:px-8 z-50 relative flex items-center justify-center transition-all duration-300">
+        <p class="text-xs sm:text-sm text-text font-medium flex items-center justify-center gap-1.5 leading-snug">
+            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> 
+            <span class="text-center">7-day free trial — No credit card required <span class="hidden sm:inline">&middot; Start automating today</span></span>
         </p>
-      </div>
+        <button onclick="document.getElementById('announcement-bar').remove()" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors" aria-label="Dismiss announcement">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
     </div>
-  </section>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <h3>💬 ChatWidget</h3>
-          <p>Turn websites into intelligent assistants. Automate customer support with AI in minutes.</p>
+    <!-- 2. HEADER -->
+    <header class="sticky top-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2 group">
+                <svg class="w-6 h-6 text-primary group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+            </a>
+            
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
+                <a href="#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
+                <a href="/pricing.html" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
+                <a href="#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
+            </nav>
+            
+            <div class="flex items-center gap-4">
+                <a href="#" data-clerk-signin class="hidden md:block text-sm font-medium text-text hover:text-primary transition-colors">Login</a>
+                <a href="#" data-clerk-signup class="hidden md:flex px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-bg font-bold text-sm transition-all btn-glow shadow-primary/20 items-center justify-center">Get Started Free</a>
+                
+                <!-- Hamburger Button -->
+                <button id="hamburger-btn" class="md:hidden text-text hover:text-primary focus:outline-none p-1">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
         </div>
-        <div class="footer-col">
-          <h4>Product</h4>
-          <ul>
-            <li><a href="#features">Features</a></li>
-            <li><a href="#how-it-works">How It Works</a></li>
-            <li><a href="#pricing">Pricing</a></li>
-            <li><a href="#demo">Demo</a></li>
-          </ul>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 bg-bg/90 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+    
+    <!-- Mobile Menu Sidebar -->
+    <div id="mobile-menu" class="fixed inset-y-0 right-0 z-[60] w-72 sm:w-80 bg-surface/95 backdrop-blur-xl border-l border-border/50 transform translate-x-full transition-transform duration-300 md:hidden flex flex-col shadow-2xl">
+        <!-- Sidebar Header -->
+        <div class="flex items-center justify-between p-6 border-b border-border/50">
+            <a href="#" class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-xl tracking-wide">Ultramora</span>
+            </a>
+            <button id="close-menu" class="text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
-        <div class="footer-col">
-          <h4>Account</h4>
-          <ul>
-            <li><a data-clerk-signup>Register</a></li>
-            <li><a data-clerk-signin>Login</a></li>
-            <li><a href="dashboard.html">Dashboard</a></li>
-          </ul>
+
+        <!-- Sidebar Navigation -->
+        <div class="flex flex-col px-4 py-6 overflow-y-auto flex-grow">
+            <h4 class="text-xs font-semibold text-muted uppercase tracking-wider mb-3 px-2">Menu</h4>
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium">
+                <a href="#features" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Features
+                </a>
+                <a href="#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    How It Works
+                </a>
+                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                    Pricing
+                </a>
+                <a href="#faq" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    FAQ
+                </a>
+            </nav>
+
+            <hr class="border-border/50 my-6">
+            
+            <h4 class="text-xs font-semibold text-muted uppercase tracking-wider mb-3 px-2">Account</h4>
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium mb-6">
+                <a href="#" data-clerk-signin class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    Login
+                </a>
+            </nav>
+            
+            <a href="#" data-clerk-signup class="mobile-link mt-auto w-full px-6 py-4 text-center rounded-xl bg-primary text-[#041d24] font-bold text-lg shadow-[0_0_20px_rgba(6,182,212,0.25)] transition-all btn-glow">
+                Get Started Free
+            </a>
         </div>
-        <div class="footer-col">
-          <h4>Info</h4>
-          <ul>
-            <li><a href="#faq">FAQ</a></li>
-            <li><a href="mailto:contact@chatwidget.com">Contact</a></li>
-            <li><a href="#">Privacy Policy</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        Built with <strong>❤️</strong> and <strong>Groq AI</strong> ⚡ • © 2024 ChatWidget
-      </div>
     </div>
-  </footer>
 
-  <!-- Sticky Bottom CTA -->
-  <div class="sticky-cta" id="stickyCta">
-    <span class="text">💬 Automate your customer support today</span>
-    <div style="display: flex; gap: 12px; align-items: center;">
-      <button class="close-btn" id="closeSticky">×</button>
-      <a data-clerk-signup class="btn btn-primary btn-pill">Get Started Free</a>
-    </div>
-  </div>
+    <main>
+        <!-- Background Ambient Glows -->
+        <div class="absolute top-0 left-0 w-full h-[800px] overflow-hidden -z-10 pointer-events-none">
+            <div class="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px]"></div>
+        </div>
 
-  <script>
-    // Announcement bar dismiss
-    const announcement = document.getElementById('announcement');
-    const closeAnnouncement = document.getElementById('closeAnnouncement');
-    if (localStorage.getItem('announcementDismissed')) {
-      announcement.style.display = 'none';
-    }
-    closeAnnouncement.addEventListener('click', () => {
-      announcement.style.display = 'none';
-      localStorage.setItem('announcementDismissed', 'true');
-    });
+        <!-- 3. HERO -->
+        <section class="pt-12 pb-12 md:pt-20 md:pb-16 px-6 relative">
+            <div class="max-w-4xl mx-auto text-center reveal">
+                
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-surface mb-8">
+                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
+                    <span class="text-sm font-medium text-primary tracking-wide uppercase">AI-Powered Customer Support</span>
+                </div>
+                
+                <h1 class="font-clash text-5xl md:text-7xl font-semibold leading-[1.1] mb-6">
+                    Your Website Deserves an <br class="hidden md:block"/>
+                    <span class="text-gradient">AI That Never Sleeps</span>
+                </h1>
+                
+                <p class="text-muted text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
+                    Ultramora trains an AI agent on your website content in 3 minutes. It answers customer questions, captures leads, and books appointments — 24/7, in any language.
+                </p>
+                
+                <div class="max-w-xl mx-auto mb-8 relative">
+                    <form onsubmit="event.preventDefault();" class="flex flex-col sm:flex-row gap-3 relative z-10">
+                        <div class="relative flex-grow">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                            </div>
+                            <input type="url" required placeholder="https://yourbusiness.com" class="w-full bg-surface border border-border rounded-xl pl-12 pr-4 py-4 text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                        </div>
+                        <a href="#" data-clerk-signup class="flex items-center justify-center sm:w-auto px-8 py-4 rounded-xl bg-primary hover:bg-cyan-400 text-[#041d24] font-bold whitespace-nowrap btn-glow transition-all">
+                            Build My AI Agent &rarr;
+                        </a>
+                    </form>
+                </div>
+                
+                <div class="flex flex-wrap justify-center items-center gap-4 md:gap-8 text-sm text-muted mb-10">
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 7-day free trial</span>
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> No credit card</span>
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Setup in 3 minutes</span>
+                </div>
+                
+                <div class="flex flex-wrap justify-center items-center gap-4 text-sm font-medium glass-card rounded-full px-6 py-3 w-fit mx-auto border-border/50">
+                    <span class="text-text flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg> 
+                        Speaks:
+                    </span>
+                    <span class="text-muted">Arabic</span>
+                    <span class="text-muted">French</span>
+                    <span class="text-muted">English</span>
+                    <span class="text-muted">Darija</span>
+                    <span class="text-muted">Spanish</span>
+                </div>
+            </div>
+        </section>
 
-    // Header shadow on scroll
-    const header = document.getElementById('header');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 50) {
-        header.classList.add('shadow');
-      } else {
-        header.classList.remove('shadow');
-      }
-    });
+        <!-- 4. STATS BAR -->
+        <section class="py-8 md:py-12 px-6">
+            <div class="max-w-5xl mx-auto glass-card rounded-2xl p-8 md:p-12 border-border/60 bg-surface/50 reveal">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-border">
+                    <div class="pt-4 md:pt-0">
+                        <div class="text-4xl md:text-5xl font-clash font-bold text-text mb-2">500+</div>
+                        <div class="text-muted text-sm uppercase tracking-wider font-medium">AI Agents Deployed</div>
+                    </div>
+                    <div class="pt-8 md:pt-0">
+                        <div class="text-4xl md:text-5xl font-clash font-bold text-text mb-2">24/7</div>
+                        <div class="text-muted text-sm uppercase tracking-wider font-medium">Always Online</div>
+                    </div>
+                    <div class="pt-8 md:pt-0">
+                        <div class="text-4xl md:text-5xl font-clash font-bold text-text mb-2">3 min</div>
+                        <div class="text-muted text-sm uppercase tracking-wider font-medium">Average Setup Time</div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    // Sticky CTA
-    const stickyCta = document.getElementById('stickyCta');
-    const closeSticky = document.getElementById('closeSticky');
-    if (!localStorage.getItem('stickyDismissed')) {
-      setTimeout(() => {
-        if (window.scrollY > 400) {
-          stickyCta.classList.add('visible');
+        <!-- 5. HOW IT WORKS -->
+        <section id="how-it-works" class="py-16 md:py-20 px-6 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-6">From URL to Live AI Agent in 3 Steps</h2>
+                    <p class="text-muted text-lg max-w-2xl mx-auto">No coding, no manual training. Just point, click, and go live.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    <!-- Connecting line (desktop) -->
+                    <div class="hidden md:block absolute top-1/2 left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-border to-transparent -translate-y-1/2 z-0"></div>
+                    
+                    <!-- Step 1 -->
+                    <div class="relative z-10 glass-card p-8 rounded-2xl hover:-translate-y-2 transition-transform duration-300 reveal text-center md:text-left">
+                        <div class="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-2xl mb-6 mx-auto md:mx-0 shadow-lg shadow-primary/10 font-bold">
+                            1
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3 flex items-center justify-center md:justify-start gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> 
+                            Paste Your URL
+                        </h3>
+                        <p class="text-muted leading-relaxed">
+                            We automatically scrape your entire website — pages, products, services, FAQs. No manual work needed.
+                        </p>
+                    </div>
+                    
+                    <!-- Step 2 -->
+                    <div class="relative z-10 glass-card p-8 rounded-2xl hover:-translate-y-2 transition-transform duration-300 reveal text-center md:text-left">
+                        <div class="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-2xl mb-6 mx-auto md:mx-0 shadow-lg shadow-primary/10 font-bold">
+                            2
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3 flex items-center justify-center md:justify-start gap-2">
+                            <svg class="w-5 h-5 text-text" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
+                            AI Trains Instantly
+                        </h3>
+                        <p class="text-muted leading-relaxed">
+                            Our AI reads your content and becomes an expert on your business in seconds. It learns your tone, products, and answers.
+                        </p>
+                    </div>
+                    
+                    <!-- Step 3 -->
+                    <div class="relative z-10 glass-card p-8 rounded-2xl hover:-translate-y-2 transition-transform duration-300 reveal text-center md:text-left">
+                        <div class="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-2xl mb-6 mx-auto md:mx-0 shadow-lg shadow-primary/10 font-bold">
+                            3
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3 flex items-center justify-center md:justify-start gap-2">
+                            <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> 
+                            Go Live Immediately
+                        </h3>
+                        <p class="text-muted leading-relaxed">
+                            Copy one line of code. Paste it on your site. Your AI agent starts answering customers instantly.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. COMPARISON -->
+        <section class="py-16 md:py-20 px-6 bg-surface/30 border-y border-border/50">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-6">Stop Losing Customers to Slow Responses</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+                    <!-- Without -->
+                    <div class="glass-card rounded-3xl p-8 lg:p-10 border-red-500/10 reveal">
+                        <h3 class="font-clash text-2xl font-semibold mb-8 text-muted flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </div>
+                            Without Ultramora
+                        </h3>
+                        <ul class="space-y-6">
+                            <li class="flex items-start gap-4 text-muted">
+                                <svg class="w-6 h-6 text-red-500/70 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <span class="text-lg">Customers wait hours for replies</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-muted">
+                                <svg class="w-6 h-6 text-red-500/70 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <span class="text-lg">Miss sales while you sleep</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-muted">
+                                <svg class="w-6 h-6 text-red-500/70 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <span class="text-lg">Pay expensive support staff</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-muted">
+                                <svg class="w-6 h-6 text-red-500/70 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <span class="text-lg">Lose leads who don't WhatsApp</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-muted">
+                                <svg class="w-6 h-6 text-red-500/70 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                <span class="text-lg">Answer the same questions daily</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- With -->
+                    <div class="glass-card rounded-3xl p-8 lg:p-10 border-primary/30 relative overflow-hidden reveal">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -z-10"></div>
+                        <h3 class="font-clash text-2xl font-semibold mb-8 text-text flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            With Ultramora
+                        </h3>
+                        <ul class="space-y-6">
+                            <li class="flex items-start gap-4 text-text">
+                                <svg class="w-6 h-6 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span class="text-lg">Instant answers 24/7</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-text">
+                                <svg class="w-6 h-6 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span class="text-lg">Capture leads automatically</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-text">
+                                <svg class="w-6 h-6 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span class="text-lg">Zero support staff needed</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-text">
+                                <svg class="w-6 h-6 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span class="text-lg">Every visitor becomes a potential client</span>
+                            </li>
+                            <li class="flex items-start gap-4 text-text">
+                                <svg class="w-6 h-6 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span class="text-lg">AI handles all FAQs automatically</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. FEATURES GRID -->
+        <section id="features" class="py-16 md:py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-6">Everything You Need to Automate Customer Support</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Feature 1 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Smart Website Scraping</h3>
+                        <p class="text-muted leading-relaxed">Automatically extracts your entire website content. Products, services, FAQs — the AI learns it all instantly.</p>
+                    </div>
+                    
+                    <!-- Feature 2 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Lead Capture Engine</h3>
+                        <p class="text-muted leading-relaxed">Collects visitor name, WhatsApp, and email after they engage. Every conversation becomes a potential client.</p>
+                    </div>
+                    
+                    <!-- Feature 3 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Multilingual AI</h3>
+                        <p class="text-muted leading-relaxed">Automatically detects and responds in Arabic, Darija, French, English, Spanish and more. No configuration needed.</p>
+                    </div>
+                    
+                    <!-- Feature 4 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Full White-Label</h3>
+                        <p class="text-muted leading-relaxed">Custom bot name, logo, colors, and welcome message. Looks 100% native to your brand.</p>
+                    </div>
+                    
+                    <!-- Feature 5 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Analytics Dashboard</h3>
+                        <p class="text-muted leading-relaxed">Track conversations, leads captured, and top questions. Know exactly how your AI is performing.</p>
+                    </div>
+                    
+                    <!-- Feature 6 -->
+                    <div class="glass-card p-8 rounded-2xl reveal hover:bg-surface/50 transition-colors">
+                        <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-xl font-semibold text-text mb-3">Webhook & Zapier</h3>
+                        <p class="text-muted leading-relaxed">Send lead data automatically to your CRM, Google Sheets, or any tool via webhooks and Zapier.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. LANGUAGES MARQUEE -->
+        <section class="py-12 border-y border-border/50 bg-surface/30 overflow-hidden flex relative">
+            <div class="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#080d14] to-transparent z-10 pointer-events-none"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#080d14] to-transparent z-10 pointer-events-none"></div>
+            
+            <div class="flex animate-marquee whitespace-nowrap">
+                <!-- Group 1 -->
+                <div class="flex items-center px-6">
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Arabic</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">French</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">English</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Darija</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Spanish</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">German</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Italian</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Portuguese</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Dutch</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Japanese</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                </div>
+                <!-- Duplicate Group for seamless scroll -->
+                <div class="flex items-center px-6">
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Arabic</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">French</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">English</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Darija</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Spanish</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">German</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Italian</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Portuguese</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Dutch</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                    <span class="text-2xl font-clash font-medium text-text opacity-70">Japanese</span>
+                    <span class="mx-10 text-primary opacity-30">&bull;</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. TESTIMONIALS -->
+        <section class="py-16 md:py-20 px-6 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-6">Trusted by Moroccan Businesses</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Testimonial 1 -->
+                    <div class="glass-card p-8 rounded-2xl reveal flex flex-col h-full">
+                        <div class="flex items-center gap-1 mb-6 text-primary">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                        </div>
+                        <p class="text-lg text-text/90 italic flex-grow mb-6">"Set up in 5 minutes and now my customers get instant answers even at 3am. My sales went up 40%."</p>
+                        <div class="flex items-center gap-3 mt-auto">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center font-bold text-bg">K</div>
+                            <div>
+                                <div class="font-medium text-text">Karim B.</div>
+                                <div class="text-sm text-muted">E-commerce Store</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 2 -->
+                    <div class="glass-card p-8 rounded-2xl reveal flex flex-col h-full">
+                        <div class="flex items-center gap-1 mb-6 text-primary">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                        </div>
+                        <p class="text-lg text-text/90 italic flex-grow mb-6">"The AI knows our entire menu and answers in Darija automatically. We stopped missing orders completely."</p>
+                        <div class="flex items-center gap-3 mt-auto">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center font-bold text-bg">S</div>
+                            <div>
+                                <div class="font-medium text-text">Sara M.</div>
+                                <div class="text-sm text-muted">Restaurant Owner, Casablanca</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Testimonial 3 -->
+                    <div class="glass-card p-8 rounded-2xl reveal flex flex-col h-full">
+                        <div class="flex items-center gap-1 mb-6 text-primary">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                        </div>
+                        <p class="text-lg text-text/90 italic flex-grow mb-6">"Our patients book appointments directly through the chatbot now. Game changer for our clinic."</p>
+                        <div class="flex items-center gap-3 mt-auto">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center font-bold text-bg">Y</div>
+                            <div>
+                                <div class="font-medium text-text">Dr. Youssef A.</div>
+                                <div class="text-sm text-muted">Dental Clinic, Rabat</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. PRICING -->
+        <section id="pricing" class="py-16 md:py-20 px-6 relative bg-surface/20">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-4">Simple, Transparent Pricing</h2>
+                    <p class="text-muted text-lg">Start free for 7 days. No credit card required.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                    
+                    <!-- Starter Plan -->
+                    <div class="glass-card rounded-3xl p-8 lg:p-10 border border-border hover:border-primary/40 shadow-[0_0_20px_rgba(6,182,212,0.05)] reveal relative flex flex-col h-full hover:-translate-y-2 transition-all duration-300">
+                        <h3 class="font-clash text-2xl font-medium text-text mb-2">STARTER PLAN</h3>
+                        <p class="text-muted mb-6 text-sm h-14">For small single-store owners just starting out.</p>
+                        <div class="font-clash text-5xl font-bold text-text mb-8">$29<span class="text-xl text-muted font-normal">/month</span></div>
+                        
+                        <ul class="space-y-4 mb-10 flex-grow">
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>1 AI Chatbot</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>1,000 AI Messages / month</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Basic Knowledge Base <span class="text-xs text-muted block">(Website URL scraping + Manual Text)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Lead Capture CRM <span class="text-xs text-muted block">(Name, WhatsApp, Email)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Manual CSV Lead Export</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Basic Customization</span>
+                            </li>
+                        </ul>
+                        
+                        <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
+                            Subscribe Now &rarr;
+                        </a>
+                        <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
+                    </div>
+
+                    <!-- Pro Plan -->
+                    <div class="relative rounded-3xl bg-gradient-to-br from-primary to-accent p-[1.5px] shadow-[0_0_40px_rgba(6,182,212,0.25)] lg:-translate-y-4 hover:-translate-y-6 transition-transform duration-300 reveal flex flex-col h-full z-10">
+                        
+                        <div class="absolute top-0 right-8 transform -translate-y-1/2 bg-gradient-to-r from-primary to-accent text-bg text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full z-30">
+                            Most Popular
+                        </div>
+
+                        <div class="bg-[#0b121c] rounded-[22px] p-8 lg:p-10 h-full flex flex-col relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-48 h-48 bg-primary/20 rounded-full blur-[60px] -z-10 pointer-events-none"></div>
+                            
+                            <h3 class="font-clash text-2xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2">PRO PLAN</h3>
+                            <p class="text-muted mb-6 text-sm h-14">Established businesses, clinics, and serious e-commerce brands.</p>
+                            <div class="font-clash text-5xl font-bold text-text mb-8">$79<span class="text-xl text-muted font-normal">/month</span></div>
+                            
+                            <ul class="space-y-4 mb-10 flex-grow">
+                                <li class="flex items-start gap-3 text-text font-medium">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Up to 3 AI Chatbots</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-text font-medium">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>5,000 AI Messages / month</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-text">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Advanced Knowledge Base <span class="text-xs text-muted block">(Unlocks PDF Uploads up to 5MB)</span></span>
+                                </li>
+                                <li class="flex items-start gap-3 text-text">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>The AI Brain <span class="text-xs text-muted block">(Master System Prompt to craft tone)</span></span>
+                                </li>
+                                <li class="flex items-start gap-3 text-text">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Automations <span class="text-xs text-muted block">(Webhooks for Zapier, Make, Slack)</span></span>
+                                </li>
+                                <li class="flex items-start gap-3 text-text">
+                                    <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Priority Routing</span>
+                                </li>
+                            </ul>
+                            
+                            <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-bg font-bold btn-glow transition-all mb-3 mt-auto">
+                                Subscribe Now &rarr;
+                            </a>
+                            <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
+                        </div>
+                    </div>
+
+                    <!-- Agency Plan -->
+                    <div class="glass-card rounded-3xl p-8 lg:p-10 border border-border hover:border-primary/40 shadow-[0_0_20px_rgba(6,182,212,0.05)] reveal relative flex flex-col h-full hover:-translate-y-2 transition-all duration-300">
+                        <h3 class="font-clash text-2xl font-medium text-text mb-2">AGENCY PLAN</h3>
+                        <p class="text-muted mb-6 text-sm h-14">Marketing agencies building bots for clients, or massive enterprises.</p>
+                        <div class="font-clash text-5xl font-bold text-text mb-8">$199<span class="text-xl text-muted font-normal">/month</span></div>
+                        
+                        <ul class="space-y-4 mb-10 flex-grow">
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Up to 10 AI Chatbots</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>20,000 AI Messages / month</span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Unlimited Knowledge Base <span class="text-xs text-muted block">(Unlimited PDFs and URLs)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Developer Access <span class="text-xs text-muted block">(Internal API Keys for CRM integration)</span></span>
+                            </li>
+                            <li class="flex items-start gap-3 text-text">
+                                <svg class="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>White-Glove Support <span class="text-xs text-muted block">(Direct WhatsApp/Email support)</span></span>
+                            </li>
+                        </ul>
+                        
+                        <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
+                            Get Started &rarr;
+                        </a>
+                        <p class="text-center text-xs text-muted">High-volume custom solutions available</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. FAQ -->
+        <section id="faq" class="py-16 md:py-20 px-6">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12 reveal">
+                    <h2 class="font-clash text-4xl md:text-5xl font-semibold mb-6">Frequently Asked Questions</h2>
+                </div>
+                
+                <div class="space-y-4 reveal">
+                    <!-- FAQ Item 1 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">Do I need coding skills?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            No. Just paste your website URL and copy one line of code to embed the widget. That's it.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 2 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">How does the AI learn my website?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            We automatically scan all your website pages and train the AI on your content, products and services. It becomes an expert on your business instantly.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 3 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">What languages does it support?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            The AI automatically detects the customer's language and responds in Arabic, Darija, French, English, Spanish and more.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 4 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">Can I customize the chatbot?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            Yes. You can change the bot's name, upload your logo, pick your brand colors, set a custom welcome message, and add quick reply buttons.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 5 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">What happens after the 7-day trial?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            You'll be prompted to choose a plan. If you don't upgrade, your agent pauses until you subscribe. No charges without your permission.
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 6 -->
+                    <div class="glass-card rounded-2xl overflow-hidden faq-item transition-all duration-300">
+                        <button class="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                            <span class="font-medium text-lg pr-4">Can I capture leads from the chatbot?</span>
+                            <svg class="w-5 h-5 text-primary shrink-0 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="px-6 pb-5 text-muted hidden faq-answer leading-relaxed">
+                            Yes. The AI automatically asks visitors for their name, WhatsApp number, and email after they engage. All leads appear in your dashboard and can be exported to CSV.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12. FINAL CTA -->
+        <section class="py-16 md:py-24 px-6 relative overflow-hidden border-t border-border/50">
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-primary/5 -z-10"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+            
+            <div class="max-w-4xl mx-auto text-center reveal">
+                <h2 class="font-clash text-5xl md:text-6xl font-semibold mb-6">Ready to Automate Your Customer Support?</h2>
+                <p class="text-xl text-muted mb-10 max-w-2xl mx-auto">Join hundreds of businesses already using Ultramora to convert visitors into clients 24/7</p>
+                <div class="flex flex-col items-center gap-4">
+                    <a href="#" data-clerk-signup class="px-10 py-5 rounded-xl bg-primary hover:bg-cyan-400 text-[#041d24] font-bold text-lg btn-glow transition-all">
+                        Start Your Free Trial &rarr;
+                    </a>
+                    <p class="text-sm text-muted font-medium">7 days free &bull; No credit card &bull; Cancel anytime</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 13. FOOTER -->
+    <footer class="bg-surface border-t border-border pt-16 pb-8 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <!-- Brand -->
+                <div class="col-span-1 md:col-span-1">
+                    <a href="#" class="flex items-center gap-2 mb-4">
+                        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+                    </a>
+                    <p class="text-muted text-sm leading-relaxed pr-4">
+                        Turn websites into intelligent AI sales agents.
+                    </p>
+                </div>
+                
+                <!-- Links -->
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
+                        <li><a href="#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
+                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Account -->
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Account</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
+                        <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
+                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal -->
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Legal</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="mailto:contact@ultramora.com" class="text-muted hover:text-primary transition-colors text-sm">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-border/50 pt-8 text-center text-sm text-muted flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="flex items-center gap-1.5 justify-center w-full">
+                    All rights reserved. Copyright &copy; 2026 Ultramora
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts for Interactivity -->
+    <script>
+        // FAQ Toggle Logic
+        function toggleFaq(button) {
+            const answer = button.nextElementSibling;
+            const icon = button.querySelector('svg');
+            
+            // Close other open FAQs
+            document.querySelectorAll('.faq-answer').forEach(el => {
+                if(el !== answer && !el.classList.contains('hidden')) {
+                    el.classList.add('hidden');
+                    el.previousElementSibling.querySelector('svg').classList.remove('rotate-180');
+                }
+            });
+
+            // Toggle current
+            answer.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
         }
-      }, 1000);
-    }
-    window.addEventListener('scroll', () => {
-      if (!localStorage.getItem('stickyDismissed')) {
-        if (window.scrollY > 400) {
-          stickyCta.classList.add('visible');
-        } else {
-          stickyCta.classList.remove('visible');
+
+        // Mobile Menu Logic
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        function toggleMobileMenu() {
+            if(mobileMenu) {
+                // Toggle sidebar translation
+                mobileMenu.classList.toggle('translate-x-full');
+                document.body.classList.toggle('overflow-hidden');
+                
+                // Toggle backdrop visibility & opacity for smooth fade
+                if(mobileMenuBackdrop) {
+                    if(mobileMenuBackdrop.classList.contains('hidden')) {
+                        mobileMenuBackdrop.classList.remove('hidden');
+                        setTimeout(() => mobileMenuBackdrop.classList.remove('opacity-0'), 10);
+                    } else {
+                        mobileMenuBackdrop.classList.add('opacity-0');
+                        setTimeout(() => mobileMenuBackdrop.classList.add('hidden'), 300);
+                    }
+                }
+            }
         }
-      }
-    });
-    closeSticky.addEventListener('click', () => {
-      stickyCta.classList.remove('visible');
-      localStorage.setItem('stickyDismissed', 'true');
-    });
 
-    // Fade up animations
-    const observerOptions = {
-      threshold: 0.15,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
+        if (hamburgerBtn && closeMenuBtn) {
+            hamburgerBtn.addEventListener('click', toggleMobileMenu);
+            closeMenuBtn.addEventListener('click', toggleMobileMenu);
         }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.fade-up').forEach(el => {
-      observer.observe(el);
-    });
-
-    // FAQ accordion
-    document.querySelectorAll('.faq-question').forEach(question => {
-      question.addEventListener('click', () => {
-        const item = question.parentElement;
-        const wasActive = item.classList.contains('active');
-        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
-        if (!wasActive) {
-          item.classList.add('active');
+        
+        if (mobileMenuBackdrop) {
+            mobileMenuBackdrop.addEventListener('click', toggleMobileMenu);
         }
-      });
-    });
 
-    // Testimonial carousel
-    let currentTestimonial = 0;
-    const testimonials = document.querySelectorAll('.testimonial-card');
-    const dots = document.querySelectorAll('.carousel-dots .dot');
-
-    function showTestimonial(index) {
-      testimonials.forEach(t => t.classList.remove('active'));
-      dots.forEach(d => d.classList.remove('active'));
-      testimonials[index].classList.add('active');
-      dots[index].classList.add('active');
-    }
-
-    function nextTestimonial() {
-      currentTestimonial = (currentTestimonial + 1) % testimonials.length;
-      showTestimonial(currentTestimonial);
-    }
-
-    // Auto-rotate every 4 seconds
-    setInterval(nextTestimonial, 4000);
-
-    dots.forEach((dot, index) => {
-      dot.addEventListener('click', () => {
-        currentTestimonial = index;
-        showTestimonial(currentTestimonial);
-      });
-    });
-
-    // Mobile menu toggle
-    const mobileBtn = document.querySelector('.mobile-menu-btn');
-    const nav = document.querySelector('nav');
-    if (mobileBtn) {
-      mobileBtn.addEventListener('click', () => {
-        if (nav.style.display === 'flex') {
-          nav.style.display = 'none';
-        } else {
-          nav.style.display = 'flex';
-          nav.style.position = 'absolute';
-          nav.style.top = '100%';
-          nav.style.left = '0';
-          nav.style.right = '0';
-          nav.style.background = 'white';
-          nav.style.flexDirection = 'column';
-          nav.style.padding = '20px';
-          nav.style.borderTop = '1px solid #e2e8f0';
+        if (mobileLinks) {
+            mobileLinks.forEach(link => link.addEventListener('click', toggleMobileMenu));
         }
-      });
-    }
 
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          const headerOffset = 80;
-          const elementPosition = target.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
+        // Scroll Reveal Animation Logic
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 100;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
+                }
+            }
         }
-      });
-    });
-
-    // Load demo widget on landing page
-    (function() {
-      const script = document.createElement('script');
-      script.src = '/widget.js';
-      script.setAttribute('data-widget-id', 'demo-widget');
-      document.body.appendChild(script);
-    })();
-  </script>
+        window.addEventListener("scroll", reveal);
+        // Trigger once on load
+        reveal();
+    </script>
+    <script src="/widget.js" data-widget-id="demo-widget"></script>
 </body>
 </html>
-<style>
-/* ===== MOBILE RESPONSIVE FIXES ===== */
-@media (max-width: 768px) {
-  .hero { padding: 48px 0 64px; text-align: center; }
-  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
-  .hero-visual { display: none; }
-  .hero p { font-size: 15px; }
-  .languages-strip { justify-content: center; }
-  .hero-buttons { flex-direction: column; align-items: center; gap: 12px; }
-  .hero-buttons .btn { width: 100%; text-align: center; }
-  .url-input-bar { flex-direction: column; }
-  .url-input-bar button { width: 100%; border-radius: 8px; }
-  .stats-grid { grid-template-columns: 1fr; gap: 24px; }
-  .features-grid { grid-template-columns: 1fr; }
-  .comparison-grid { grid-template-columns: 1fr; }
-  .bad .vs-badge { position: relative; top: auto; left: auto; transform: none; margin: 16px auto; display: block; width: fit-content; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .testimonials-carousel { padding: 0 16px; }
-  .footer-grid { grid-template-columns: 1fr; gap: 24px; }
-  .section-header h2 { font-size: 28px; }
-  .how-it-works, .comparison, .features, .demo-section { padding: 64px 0; }
-  .stats-bar { padding: 48px 0; }
-  .announcement { font-size: 12px; padding: 8px 40px 8px 16px; }
-  .cta-section { padding: 64px 0; }
-  .cta-header h2 { font-size: 28px; }
-}
-
-@media (max-width: 480px) {
-  .container { padding: 0 16px; }
-  .hero h1 { font-size: 30px; }
-  .stat-number { font-size: 40px; }
-  .feature-card, .step-card, .comparison-card { padding: 24px; }
-  .pricing-card { padding: 28px; }
-  .logo { font-size: 20px; }
-  .demo-suggestions { gap: 8px; }
-  .suggestion-chip { font-size: 12px; padding: 8px 14px; }
-}
-</style>
