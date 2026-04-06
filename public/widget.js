@@ -781,10 +781,15 @@ function addWidgetStyles() {
       border-radius: 20px !important;
       padding: 10px 16px !important;
       font-size: 14px !important;
+      color: #111827 !important;
       outline: none !important;
       margin: 0 !important;
       background: #f3f4f6 !important;
       box-shadow: none !important;
+    }
+
+    .ai-widget-input-field::placeholder {
+      color: #6b7280 !important;
     }
 
     .ai-widget-input-field:focus {

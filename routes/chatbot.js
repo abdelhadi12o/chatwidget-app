@@ -283,7 +283,11 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
       chatbot = {
         _id: 'demo',
         widgetId: 'demo-widget',
-        scrapedContent: [`ChatWidget is an AI chatbot builder for businesses. Paste your website URL and we train an AI on your content. Customers get instant answers 24/7. Free plan: 1 chatbot, 50 messages/month, no credit card. Setup takes 3 minutes. No coding required.`],
+        scrapedContent: [`IMPORTANT PRICING INFORMATION:
+Starter Plan - $29/month: 1 chatbot, 1,000 messages, basic knowledge base, lead capture.
+Pro Plan (Most Popular) - $79/month: Up to 3 chatbots, 5,000 messages, advanced knowledge base (PDFs up to 5MB), automations (Webhooks/Zapier), The AI Brain.
+Agency Plan - $199/month: Up to 10 chatbots, 20,000 messages, unlimited knowledge base, developer access, white-glove support.
+Free Trial: 7-day free trial with no credit card required. Direct users to /register.html to get started.`],
         isActive: true,
         conversationCount: 0,
         faqs: [],

@@ -59,7 +59,32 @@ const seedDemoChatbot = async () => {
         userId: 'demo',
         websiteUrl: 'chatwidget.com',
         scrapedContent: [
-          `ChatWidget is an AI chatbot builder for businesses. Paste your website URL and we train an AI on your content instantly. Customers get instant answers 24/7. Free plan: 1 chatbot, 50 messages/month, no credit card. Setup takes 3 minutes. No coding required. Works on any website with one line of code. Supports Arabic, French, English, Spanish, German. Go to /register.html to get started for free.`
+          `IMPORTANT PRICING INFORMATION:
+
+Starter Plan - $29/month:
+- 1 chatbot
+- 1,000 messages per month
+- Basic knowledge base
+- Email lead capture
+
+Pro Plan (Most Popular) - $79/month:
+- Up to 3 chatbots
+- 5,000 messages per month
+- Advanced knowledge base (PDFs up to 5MB)
+- Automations (Webhooks/Zapier)
+- The AI Brain (custom system prompt)
+
+Agency Plan - $199/month:
+- Up to 10 chatbots
+- 20,000 messages per month
+- Unlimited knowledge base
+- Developer access (API + documentation)
+- White-glove support (1-hour onboarding)
+
+Free Trial:
+- 7-day free trial with no credit card required
+
+When users ask about pricing, be helpful and concise. Provide the exact prices and features as listed above. Always mention that there's a 7-day free trial with no credit card required. Direct users to /register.html to get started.`
         ],
         widgetId: 'demo-widget',
         isActive: true,
