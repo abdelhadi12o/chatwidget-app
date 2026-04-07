@@ -22,14 +22,14 @@ class AIWidget {
     this.container.className = 'ai-widget-container';
     this.container.innerHTML = `
       <div class="ai-widget-bubble">
-        <span class="ai-widget-icon">💬</span>
+        <span class="ai-widget-icon"><svg width="24" height="24" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
         <span class="ai-widget-notification-dot"></span>
       </div>
       <div class="ai-widget-chat">
         <div class="ai-widget-header">
           <div class="ai-widget-header-left">
             <div class="ai-widget-avatar-wrapper">
-              <span class="ai-widget-header-avatar">🤖</span>
+              <span class="ai-widget-header-avatar"><svg width="24" height="24" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
             </div>
             <div class="ai-widget-status">
               <span class="ai-widget-status-dot"></span>
@@ -133,7 +133,7 @@ class AIWidget {
 
     const avatarContent = sender === 'user'
       ? '👤'
-      : (this.botLogo ? `<img src="${this.botLogo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '🤖');
+      : (this.botLogo ? `<img src="${this.botLogo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '<svg width="16" height="16" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>');
 
     let text = content.replace(/\n/g, '<br>');
 
