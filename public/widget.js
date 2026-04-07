@@ -138,11 +138,11 @@ class AIWidget {
     let text = content.replace(/\n/g, '<br>');
 
     // 1. Convert Markdown links [Text](URL) into clickable styled links
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600;">$1</a>');
+    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600;">$1</a>');
 
     // 2. Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
     // We use word-break to ensure long URLs don't break out of the chat bubble
-    text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
+    text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
 
     const purify = window.DOMPurify;
     messageDiv.innerHTML = purify
@@ -511,7 +511,7 @@ function addWidgetStyles() {
       bottom: 20px;
       right: 20px;
       z-index: 2147483647;
-      --theme-color: #6366f1;
+      --theme-color: #06b6d4;
     }
 
     /* Mobile container positioning - bottom sheet */
@@ -545,7 +545,7 @@ function addWidgetStyles() {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      background: var(--theme-color, #6366f1) !important;
+      background: var(--theme-color, #06b6d4) !important;
       color: white !important;
       padding: 18px !important;
       transition: all 0.3s ease !important;
@@ -554,7 +554,7 @@ function addWidgetStyles() {
 
     .ai-widget-bubble:hover {
       transform: scale(1.05);
-      box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+      box-shadow: 0 15px 35px rgba(6, 182, 212, 0.4);
     }
 
     .ai-widget-notification-dot {
@@ -589,8 +589,8 @@ function addWidgetStyles() {
       height: 540px !important;
       max-height: 80vh !important;
       border-radius: 16px !important;
-      background: white !important;
-      border: 1px solid #e5e7eb !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
       box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
       flex-direction: column !important;
       overflow: hidden !important;
@@ -615,7 +615,7 @@ function addWidgetStyles() {
       box-sizing: border-box !important;
       border-radius: 0 !important;
       border: none !important;
-      background: var(--theme-color, #6366f1) !important;
+      background: var(--theme-color, #06b6d4) !important;
     }
 
     .ai-widget-close {
@@ -693,9 +693,24 @@ function addWidgetStyles() {
       display: flex !important;
       flex-direction: column !important;
       padding: 16px !important;
-      background: #f9fafb !important;
+      background: #f8fafc !important;
       width: 100% !important;
       box-sizing: border-box !important;
+    }
+
+    /* Scrollbar styling for light theme */
+    .ai-widget-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .ai-widget-messages::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .ai-widget-messages::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .ai-widget-messages::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
     .ai-widget-message {
@@ -733,12 +748,12 @@ function addWidgetStyles() {
     }
 
     .user-message .ai-widget-avatar {
-      background: var(--theme-color, #6366f1);
+      background: var(--theme-color, #06b6d4);
       color: white;
     }
 
     .user-message .ai-widget-message-content {
-      background: var(--theme-color, #6366f1);
+      background: var(--theme-color, #06b6d4);
       color: white;
       border-radius: 16px 4px 16px 16px;
     }
@@ -751,26 +766,26 @@ function addWidgetStyles() {
     }
 
     .ai-message .ai-widget-avatar {
-      background: #6366f1;
+      background: var(--theme-color, #06b6d4);
       color: white;
     }
 
     .ai-message .ai-widget-message-content {
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 4px 16px 16px 16px;
-      color: #1f2937;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      background: #f1f5f9 !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 4px 16px 16px 16px !important;
+      color: #1f2937 !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
     }
 
-      .ai-widget-input {
+    .ai-widget-input {
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
       gap: 8px !important;
       padding: 12px 16px !important;
-      border-top: 1px solid #e5e7eb !important;
-      background: white !important;
+      border-top: 1px solid #e2e8f0 !important;
+      background: #ffffff !important;
       flex-wrap: nowrap !important; /* Prevents button from being pushed down */
     }
 
@@ -781,27 +796,27 @@ function addWidgetStyles() {
       border-radius: 20px !important;
       padding: 10px 16px !important;
       font-size: 14px !important;
-      color: #111827 !important;
+      color: #1f2937 !important;
       outline: none !important;
       margin: 0 !important;
-      background: #f3f4f6 !important;
+      background: #f8fafc !important;
       box-shadow: none !important;
     }
 
     .ai-widget-input-field::placeholder {
-      color: #6b7280 !important;
+      color: #94a3b8 !important;
     }
 
     .ai-widget-input-field:focus {
       outline: none !important;
-      border: 2px solid var(--theme-color, #6366f1) !important;
+      border: 2px solid var(--theme-color, #06b6d4) !important;
       box-shadow: none !important;
       background: #ffffff !important;
     }
 
     .ai-widget-send {
       flex-shrink: 0 !important; /* MAGIC BULLET: Refuses to be squished by the input */
-      background: var(--theme-color, #6366f1) !important;
+      background: var(--theme-color, #06b6d4) !important;
       color: white !important;
       border: none !important;
       width: 36px !important;
@@ -861,7 +876,7 @@ function addWidgetStyles() {
       /* Messages area must expand and scroll */
       .ai-widget-messages {
         padding: 16px !important;
-        background: #f9fafb !important;
+        background: #f8fafc !important;
       }
 
       /* Input area stays docked at bottom */
@@ -878,7 +893,7 @@ function addWidgetStyles() {
 
     .ai-widget-lead-form {
       background: #ffffff !important;
-      border: 1px solid #e5e7eb !important;
+      border: 1px solid #e2e8f0 !important;
       border-radius: 12px !important;
       padding: 16px !important;
       margin: 12px 0 !important;
@@ -906,20 +921,20 @@ function addWidgetStyles() {
       margin-bottom: 10px !important;
       outline: none !important;
       font-family: inherit !important;
-      background: #f9fafb !important;
+      background: #f8fafc !important;
       color: #1f2937 !important;
       box-sizing: border-box !important;
     }
 
     .ai-lead-input::placeholder {
-      color: #9ca3af !important;
+      color: #94a3b8 !important;
       opacity: 1 !important;
     }
 
     .ai-lead-input:focus {
-      border-color: #6366f1 !important;
+      border-color: var(--theme-color, #06b6d4) !important;
       background: #ffffff !important;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.1) !important;
     }
 
     .ai-lead-buttons {
@@ -931,7 +946,7 @@ function addWidgetStyles() {
     .ai-lead-submit {
       flex: 1 !important;
       padding: 10px !important;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+      background: linear-gradient(135deg, var(--theme-color, #06b6d4), #3b82f6) !important;
       color: #ffffff !important;
       border: none !important;
       border-radius: 8px !important;
@@ -973,10 +988,10 @@ function addWidgetStyles() {
       line-height: normal !important;
     }
 
-    /* 3. Remove orange/brand outline when typing - use our purple brand color */
+    /* 3. Remove orange/brand outline when typing - use our teal brand color */
     .ai-widget-input-field:focus {
       outline: none !important;
-      border: 2px solid #6366f1 !important;
+      border: 2px solid var(--theme-color, #06b6d4) !important;
       box-shadow: none !important;
     }
 
@@ -1007,17 +1022,17 @@ function addWidgetStyles() {
       overflow-x: auto !important;
       padding: 10px 16px !important;
       gap: 8px !important;
-      border-bottom: 1px solid #e5e7eb !important;
+      border-bottom: 1px solid #e2e8f0 !important;
       background: #f8fafc !important;
     }
 
     .ai-quick-reply-btn {
       flex-shrink: 0 !important;
       padding: 8px 12px !important;
-      border: 1px solid var(--theme-color, #6366f1) !important;
+      border: 1px solid var(--theme-color, #06b6d4) !important;
       border-radius: 20px !important;
       background: white !important;
-      color: var(--theme-color, #6366f1) !important;
+      color: var(--theme-color, #06b6d4) !important;
       font-size: 13px !important;
       font-weight: 500 !important;
       cursor: pointer !important;
@@ -1026,7 +1041,7 @@ function addWidgetStyles() {
     }
 
     .ai-quick-reply-btn:hover {
-      background: var(--theme-color, #6366f1) !important;
+      background: var(--theme-color, #06b6d4) !important;
       color: white !important;
     }
   `;

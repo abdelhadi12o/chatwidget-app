@@ -4,7 +4,7 @@ const Chatbot = require('../models/Chatbot');
 const Lead = require('../models/Lead');
 const User = require('../models/User');
 const { scrapeWebsite } = require('../scraper/scrape');
-const requireAuth = require('../middleware/auth'); // CLERK: Updated import
+const requireAuth = require('../middleware/auth');
 const Groq = require('groq-sdk');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -168,9 +168,6 @@ router.post('/create', strictCors, requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid website URL format' });
     }
 
-    // CLERK: Updated to req.auth.userId
-    // (One bot per user limit removed — users can now create multiple chatbots)
-
     let scrapeResult;
     try {
       scrapeResult = await scrapeWebsite(websiteUrl);
@@ -183,7 +180,7 @@ router.post('/create', strictCors, requireAuth, async (req, res) => {
     }
 
     const chatbot = new Chatbot({
-      userId: req.auth.userId, // CLERK: Updated
+      userId: req.auth.userId,
       websiteUrl,
       scrapedContent: scrapeResult,
       widgetId: generateWidgetId(),
@@ -202,10 +199,12 @@ router.post('/create', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Retrain chatbot
+// Retrain chatbot - requires widgetId to identify specific bot
 router.post('/retrain', strictCors, requireAuth, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const { widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     let scrapeResult;
@@ -229,10 +228,12 @@ router.post('/retrain', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Get user's chatbot
+// Get user's chatbot - for backward compatibility returns first bot.
+// For multi-bot, prefer using /list or /:id
 router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    // For backward compatibility: return first bot
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     res.json({
@@ -357,7 +358,7 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const response = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       messages: messages,
       temperature: 0.7,
       max_tokens: 1000
@@ -366,7 +367,7 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
     const answer = response.choices[0].message.content;
 
     let cleanedAnswer = answer.replace(/\[([^\]]+)\]\((?:URL|URL[^)]*|غير متوفر[^)]*)\)/ig, '$1');
-    cleanedAnswer = cleanedAnswer.replace(/\[([^\]]+)\]\(\)/g, '$1'); 
+    cleanedAnswer = cleanedAnswer.replace(/\[([^\]]+)\]\(\)/g, '$1');
 
     if (widgetId !== 'demo-widget') {
       await Chatbot.findByIdAndUpdate(chatbot._id, {
@@ -386,7 +387,7 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
 router.delete('/delete/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const botIdToDelete = req.params.id;
-    const userId = req.auth.userId; // CLERK: from middleware
+    const userId = req.auth.userId;
 
     // Validate ID is a non-empty string
     if (!botIdToDelete || typeof botIdToDelete !== 'string') {
@@ -410,12 +411,13 @@ router.delete('/delete/:id', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Update status
+// Update status - requires widgetId in body
 router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
   try {
-    const { isActive } = req.body;
+    const { isActive, widgetId } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
-    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId }, { isActive }, { new: true }); // CLERK: Updated
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId }, { isActive }, { new: true });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
@@ -424,23 +426,23 @@ router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// NEW: LIST ALL BOTS
+// LIST ALL BOTS
 router.get('/list', strictCors, requireAuth, async (req, res) => {
   try {
-    const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt');  // CLERK: use userId from req.auth
+    const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt widgetId');
     res.status(200).json(bots);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch bots' });
   }
 });
 
-// NEW: GET SINGLE BOT BY ID
+// GET SINGLE BOT BY ID
 router.get('/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
       userId: req.auth.userId
-    });
+    }).select('-conversations'); // Exclude large conversations array
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Build activityChart: last 7 days of message counts
@@ -450,7 +452,7 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
       d.setDate(d.getDate() - (6 - i));
       d.setHours(0, 0, 0, 0);
       return d.getTime();
-    }).sort((a, b) => a - b); // Ensure ascending
+    }).sort((a, b) => a - b);
 
     const dayCounts = new Array(7).fill(0);
     conversations.forEach(conv => {
@@ -497,15 +499,16 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Add knowledge (Text)
+// Add knowledge (Text) - requires widgetId in body
 router.post('/add-knowledge', strictCors, requireAuth, async (req, res) => {
   try {
-    const { knowledge } = req.body;
+    const { knowledge, widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
     if (!knowledge) return res.status(400).json({ error: 'Knowledge content is required' });
     if (knowledge.length > 50000) {
       return res.status(400).json({ error: 'Knowledge is too long. Keep it under 50,000 characters.' });
     }
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     const newChunks = knowledge.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     await Chatbot.findByIdAndUpdate(chatbot._id, { $push: { scrapedContent: { $each: newChunks } } });
@@ -516,7 +519,7 @@ router.post('/add-knowledge', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Upload PDF and extract text
+// Upload PDF and extract text - requires widgetId in body
 router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -531,6 +534,9 @@ router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req,
       return res.status(400).json({ error: 'File size exceeds 5MB limit' });
     }
 
+    const { widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+
     pdfExtract.extractBuffer(req.file.buffer, {}, async (err, data) => {
       if (err) {
         console.error('PDF extraction error:', err);
@@ -538,7 +544,7 @@ router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req,
       }
 
       try {
-        const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+        const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
         if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
         let extractedText = data.pages
@@ -549,7 +555,7 @@ router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req,
         if (!extractedText) return res.status(400).json({ error: 'No text extracted from PDF' });
 
         const newChunks = extractedText.split('\n\n').filter(chunk => chunk.trim() !== '');
-        
+
         if (chatbot.customKnowledge) {
           chatbot.customKnowledge += '\n\n' + newChunks.join('\n\n');
         } else {
@@ -586,13 +592,14 @@ router.get('/settings/:widgetId', publicCors, async (req, res) => {
   }
 });
 
-// Add FAQ
+// Add FAQ - requires widgetId in body
 router.post('/faqs', strictCors, requireAuth, async (req, res) => {
   try {
-    const { question, answer } = req.body;
+    const { question, answer, widgetId } = req.body;
     if (!question || !answer) return res.status(400).json({ error: 'Question and answer are required' });
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
     const chatbot = await Chatbot.findOneAndUpdate(
-      { userId: req.auth.userId }, // CLERK: Updated
+      { userId: req.auth.userId, widgetId },
       { $push: { faqs: { question, answer } } },
       { new: true }
     );
@@ -604,11 +611,19 @@ router.post('/faqs', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Delete FAQ
+// Delete FAQ - uses URL path, no widgetId needed as bot found by index after we get it
 router.delete('/faqs/:index', strictCors, requireAuth, async (req, res) => {
   try {
     const index = parseInt(req.params.index);
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    // Note: For multi-bot, we would need widgetId here too.
+    // However current implementation doesn't track which FAQ to delete from which bot in the URL,
+    // it assumes we've already identified the bot. This route is flawed for multi-bot.
+    // We'll need to update frontend to pass widgetId in body or change URL to include widgetId.
+    // For now, let's require widgetId in body.
+    const { widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     chatbot.faqs.splice(index, 1);
     await chatbot.save();
@@ -619,11 +634,11 @@ router.delete('/faqs/:index', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Update customization (specific bot by ID)
+// Update customization (specific bot by ID) - uses route param id (MongoDB _id)
 router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => {
   try {
     const botIdToUpdate = req.params.id;
-    const userId = req.auth.userId; // CLERK: from middleware
+    const userId = req.auth.userId;
 
     // Find EXACTLY that bot belonging to this user
     const chatbot = await Chatbot.findOne({ _id: botIdToUpdate, userId });
@@ -677,14 +692,15 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
   }
 });
 
-// Save custom knowledge
+// Save custom knowledge - requires widgetId in body
 router.patch('/knowledge', strictCors, requireAuth, async (req, res) => {
   try {
-    const { customKnowledge } = req.body;
+    const { customKnowledge, widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
     if (typeof customKnowledge !== 'string' || customKnowledge.length > 50000) {
       return res.status(400).json({ error: 'Custom knowledge must be a string under 50,000 characters.' });
     }
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
     chatbot.customKnowledge = customKnowledge;
     await chatbot.save();
@@ -695,11 +711,14 @@ router.patch('/knowledge', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Delete a specific knowledge source (Text or File)
+// Delete a specific knowledge source (Text or File) - requires widgetId to identify bot
 router.delete('/knowledge/:type/:index', strictCors, requireAuth, async (req, res) => {
   try {
     const { type, index } = req.params;
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const { widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
 
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
@@ -797,7 +816,7 @@ router.post('/lead', publicCors, async (req, res) => {
 // Get leads by widgetId
 router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.auth.userId }); // CLERK: Updated
+    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.auth.userId });
     if (!chatbot) return res.status(403).json({ error: 'Unauthorized' });
     const leads = await Lead.find({ widgetId: req.params.widgetId }).sort({ createdAt: -1 });
     res.json(leads);
@@ -806,11 +825,12 @@ router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Save API Key
+// Save API Key - requires widgetId in body
 router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
   try {
-    const { apiKey } = req.body;
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const { apiKey, widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     chatbot.apiKey = apiKey;
@@ -823,11 +843,12 @@ router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
   }
 });
 
-// Save Webhook URL
+// Save Webhook URL - requires widgetId in body
 router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
   try {
-    const { webhookUrl } = req.body;
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId }); // CLERK: Updated
+    const { webhookUrl, widgetId } = req.body;
+    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     if (webhookUrl) {
