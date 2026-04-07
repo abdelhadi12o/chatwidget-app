@@ -442,7 +442,7 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
       userId: req.auth.userId
-    }).select('-conversations'); // Exclude large conversations array
+    }).slice('conversations', -500); // Fetch last 500 messages only
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Build activityChart: last 7 days of message counts
