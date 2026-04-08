@@ -149,9 +149,10 @@
             </a>
             
             <nav class="hidden md:flex items-center gap-8">
+                <!-- Using /# to ensure it goes to the main page first -->
                 <a href="/#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
                 <a href="/#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
-                <a href="/pricing.html" class="text-text hover:text-primary transition-colors text-sm font-medium">Pricing</a>
+                <a href="/pricing.html" class="text-primary transition-colors text-sm font-medium">Pricing</a>
                 <a href="/#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
             </nav>
             
@@ -332,9 +333,9 @@
                         </li>
                     </ul>
                     
-                    <a href="#" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
-                        Get Started &rarr;
-                    </a>
+                    <button disabled class="w-full py-4 text-center rounded-xl bg-surface border border-border text-muted font-bold transition-all mb-3 mt-auto cursor-not-allowed">
+                        Coming Soon
+                    </button>
                     <p class="text-center text-xs text-muted">High-volume custom solutions available</p>
                 </div>
             </div>
@@ -397,10 +398,11 @@
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-clash font-semibold mb-4 text-text">Legal</h4>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Legal & Support</h4>
                     <ul class="space-y-3">
-                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
-                        <li><a href="#" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/privacy.html" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="/terms.html" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/contact.html" class="text-muted hover:text-primary transition-colors text-sm">Contact Us</a></li>
                     </ul>
                 </div>
             </div>
@@ -435,9 +437,9 @@
             }
         }
 
-        hamburgerBtn.addEventListener('click', toggleMenu);
-        closeMenuBtn.addEventListener('click', toggleMenu);
-        backdrop.addEventListener('click', toggleMenu);
+        if(hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMenu);
+        if(closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMenu);
+        if(backdrop) backdrop.addEventListener('click', toggleMenu);
 
         function reveal() {
             document.querySelectorAll(".reveal").forEach(el => {
@@ -447,6 +449,5 @@
         window.addEventListener("scroll", reveal);
         reveal();
     </script>
-    <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
 </body>
 </html>
