@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service | Ultramora - Turn Any Website Into an AI Sales Agent</title>
+    <meta name="description" content="Terms of Service for Ultramora. Read our terms and conditions for using our AI sales agent platform.">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Theme -->
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#080d14',
+                        surface: '#0f1823',
+                        primary: '#06b6d4',
+                        accent: '#3b82f6',
+                        text: '#f8fafc',
+                        muted: '#94a3b8',
+                        border: '#1e293b',
+                        success: '#10b981',
+                    },
+                    fontFamily: {
+                        clash: ['Clash Display', 'sans-serif'],
+                        satoshi: ['Satoshi', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #080d14;
+            color: #f8fafc;
+            font-family: 'Satoshi', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .font-clash {
+            font-family: 'Clash Display', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #1e293b;
+        }
+        
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #06b6d4, #3b82f6);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary/30 selection:text-text">
+
+    <!-- REQUIRED CONFIG SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (window.location.protocol.startsWith('http')) {
+                    const response = await fetch('/api/config');
+                    if(response.ok) {
+                        const config = await response.json();
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        
+                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
+                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
+                        });
+                        
+                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
+                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
+                        });
+
+                        const clerkJs = document.createElement('script');
+                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+                        clerkJs.crossOrigin = 'anonymous';
+                        document.head.appendChild(clerkJs);
+                        
+                        clerkJs.addEventListener('load', async () => {
+                            await window.Clerk.load();
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('Clerk configuration could not be loaded.');
+            }
+        });
+    </script>
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 group">
+                <svg class="w-6 h-6 text-primary group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+            </a>
+            
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
+                <a href="/#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
+                <a href="/pricing.html" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
+                <a href="/#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
+            </nav>
+            
+            <div class="flex items-center gap-4">
+                <a href="#" data-clerk-signin class="hidden md:block text-sm font-medium text-text hover:text-primary transition-colors">Login</a>
+                <a href="#" data-clerk-signup class="hidden md:flex px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-bg font-bold text-sm transition-all btn-glow shadow-primary/20 items-center justify-center">Get Started Free</a>
+                
+                <button id="hamburger-btn" class="md:hidden text-text hover:text-primary focus:outline-none p-1">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 bg-bg/90 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+    
+    <!-- Mobile Menu Sidebar -->
+    <div id="mobile-menu" class="fixed inset-y-0 right-0 z-[60] w-72 sm:w-80 bg-surface/95 backdrop-blur-xl border-l border-border/50 transform translate-x-full transition-transform duration-300 md:hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-border/50">
+            <a href="/" class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-xl tracking-wide">Ultramora</span>
+            </a>
+            <button id="close-menu" class="text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex flex-col px-4 py-6 overflow-y-auto flex-grow">
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium">
+                <a href="/#features" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Features</a>
+                <a href="/#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">How It Works</a>
+                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Pricing</a>
+                <a href="/#faq" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">FAQ</a>
+            </nav>
+            <hr class="border-border/50 my-6">
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium mb-6">
+                <a href="#" data-clerk-signin class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Login</a>
+                <a href="/dashboard.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Dashboard</a>
+            </nav>
+            <a href="#" data-clerk-signup class="mobile-link mt-auto w-full px-6 py-4 text-center rounded-xl bg-primary text-[#041d24] font-bold text-lg btn-glow">Get Started Free</a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="py-16 md:py-24 px-6 relative min-h-screen">
+        <!-- Ambient Glows -->
+        <div class="absolute top-0 left-0 w-full h-[600px] overflow-hidden -z-10 pointer-events-none">
+            <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Title -->
+            <div class="text-center mb-12">
+                <h1 class="font-clash text-4xl md:text-6xl font-semibold mb-4 tracking-tight">Terms of <span class="text-gradient">Service</span></h1>
+                <p class="text-muted text-lg">Last updated: April 2026</p>
+            </div>
+            
+            <!-- Document Body -->
+            <div class="glass-card rounded-3xl p-8 md:p-12 lg:p-16 text-muted leading-relaxed space-y-10 shadow-2xl">
+                
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">1. Acceptance of Terms</h2>
+                    <p>By using Ultramora ("Service"), you agree to these Terms of Service. If you do not agree, do not use the Service.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">2. Description of Service</h2>
+                    <p>Ultramora provides AI-powered chatbot agents trained on your website content. The Service includes website scraping, AI chat responses, lead capture, and a management dashboard.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">3. Account Registration</h2>
+                    <p>You must provide accurate information when creating an account. You are responsible for maintaining the security of your account credentials. You must notify us immediately of any unauthorized access.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">4. Acceptable Use</h2>
+                    <p class="mb-4">You agree NOT to:</p>
+                    <ul class="list-disc pl-6 space-y-3">
+                        <li><strong class="text-text">Use the Service for illegal purposes</strong></li>
+                        <li><strong class="text-text">Submit websites you do not own or have permission to use</strong></li>
+                        <li><strong class="text-text">Attempt to reverse engineer or copy the Service</strong></li>
+                        <li><strong class="text-text">Use the Service to send spam or misleading information</strong></li>
+                        <li><strong class="text-text">Overload or abuse the Service infrastructure</strong></li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">5. AI Accuracy Disclaimer</h2>
+                    <p>Our AI agents are trained on your website content and may occasionally provide inaccurate responses. You are responsible for reviewing your AI agent's responses and ensuring accuracy. Ultramora is not liable for any damages caused by AI responses.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">6. Subscription and Billing</h2>
+                    <ul class="list-disc pl-6 space-y-3">
+                        <li>Subscriptions are billed monthly</li>
+                        <li>A 7-day free trial is available for new accounts</li>
+                        <li>You can cancel your subscription at any time from your dashboard</li>
+                        <li>No refunds are provided for partial months</li>
+                        <li>Cancellation takes effect at the end of the current billing period</li>
+                        <li>We reserve the right to change pricing with 30 days notice</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">7. Cancellation Policy</h2>
+                    <p>You may cancel your subscription at any time. There are no cancellation fees. Upon cancellation your account will remain active until the end of the current billing period, after which it will be downgraded to the free tier or deactivated.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">8. No Refund Policy</h2>
+                    <p>All payments are final and non-refundable. We offer a 7-day free trial specifically so you can evaluate the Service before being charged. If you have billing issues please contact <a href="mailto:support@ultramora.com" class="text-primary hover:underline">support@ultramora.com</a>.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">9. Intellectual Property</h2>
+                    <ul class="list-disc pl-6 space-y-3">
+                        <li>You retain ownership of your website content and lead data</li>
+                        <li>Ultramora retains ownership of the platform, code, and technology</li>
+                        <li>You grant Ultramora a license to process your content to provide the Service</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">10. Data and Privacy</h2>
+                    <p>Your use of the Service is also governed by our Privacy Policy at <a href="/privacy.html" class="text-primary hover:underline">ultramora.com/privacy.html</a>.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">11. Service Availability</h2>
+                    <p>We strive for high availability but do not guarantee uninterrupted service. We are not liable for downtime or data loss caused by third-party infrastructure providers.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">12. Termination</h2>
+                    <p>We reserve the right to suspend or terminate accounts that violate these Terms. You may terminate your account at any time by contacting <a href="mailto:support@ultramora.com" class="text-primary hover:underline">support@ultramora.com</a>.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">13. Limitation of Liability</h2>
+                    <p>To the maximum extent permitted by law, Ultramora shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">14. Governing Law</h2>
+                    <p>These Terms are governed by the laws of Morocco. Any disputes shall be resolved in the courts of Agadir, Morocco.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">15. Changes to Terms</h2>
+                    <p>We may update these Terms occasionally. Continued use of the Service after changes constitutes acceptance of the new Terms.</p>
+                </section>
+
+                <section>
+                    <h2 class="font-clash text-2xl font-semibold text-text mb-4">16. Contact</h2>
+                    <p class="mb-2">For questions about these Terms:</p>
+                    <ul class="space-y-2">
+                        <li><strong class="text-text">Email:</strong> <a href="mailto:support@ultramora.com" class="text-primary hover:underline">support@ultramora.com</a></li>
+                        <li><strong class="text-text">Website:</strong> <a href="https://ultramora.com" class="text-primary hover:underline">ultramora.com</a></li>
+                    </ul>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-surface border-t border-border pt-16 pb-8 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div>
+                    <a href="/" class="flex items-center gap-2 mb-4">
+                        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+                    </a>
+                    <p class="text-muted text-sm leading-relaxed pr-4">Turn websites into intelligent AI sales agents.</p>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
+                        <li><a href="/#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
+                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="/#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Account</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
+                        <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
+                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Legal</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/privacy.html" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="/terms.html" class="text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/contact.html" class="text-muted hover:text-primary transition-colors text-sm">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-border/50 pt-8 text-center text-sm text-muted">
+                <p>All rights reserved. Copyright &copy; 2026 Ultramora</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactivity -->
+    <script>
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const backdrop = document.getElementById('mobile-menu-backdrop');
+
+        function toggleMenu() {
+            mobileMenu.classList.toggle('translate-x-full');
+            document.body.classList.toggle('overflow-hidden');
+            if (backdrop.classList.contains('hidden')) {
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            } else {
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        hamburgerBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+        backdrop.addEventListener('click', toggleMenu);
+    </script>
+    <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
+</body>
+</html>

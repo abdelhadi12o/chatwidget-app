@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | Ultramora - Turn Any Website Into an AI Sales Agent</title>
+    <meta name="description" content="Get in touch with the Ultramora team. We're here to help you automate your customer support.">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#080d14',
+                        surface: '#0f1823',
+                        primary: '#06b6d4',
+                        accent: '#3b82f6',
+                        text: '#f8fafc',
+                        muted: '#94a3b8',
+                        border: '#1e293b',
+                        success: '#10b981',
+                    },
+                    fontFamily: {
+                        clash: ['Clash Display', 'sans-serif'],
+                        satoshi: ['Satoshi', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #080d14;
+            color: #f8fafc;
+            font-family: 'Satoshi', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .font-clash {
+            font-family: 'Clash Display', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #1e293b;
+        }
+        
+        .btn-glow {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+        
+        .btn-glow:hover {
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #06b6d4, #3b82f6);
+        }
+        
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+        
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom Select Arrow */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary/30 selection:text-text">
+
+    <!-- REQUIRED CONFIG SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (window.location.protocol.startsWith('http')) {
+                    const response = await fetch('/api/config');
+                    if(response.ok) {
+                        const config = await response.json();
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        
+                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
+                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
+                        });
+                        
+                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
+                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
+                        });
+
+                        const clerkJs = document.createElement('script');
+                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+                        clerkJs.crossOrigin = 'anonymous';
+                        document.head.appendChild(clerkJs);
+                        
+                        clerkJs.addEventListener('load', async () => {
+                            await window.Clerk.load();
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn('Clerk configuration could not be loaded.');
+            }
+        });
+    </script>
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 group">
+                <svg class="w-6 h-6 text-primary group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+            </a>
+            
+            <nav class="hidden md:flex items-center gap-8">
+                <a href="/#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
+                <a href="/#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
+                <a href="/pricing.html" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
+                <a href="/#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
+            </nav>
+            
+            <div class="flex items-center gap-4">
+                <a href="#" data-clerk-signin class="hidden md:block text-sm font-medium text-text hover:text-primary transition-colors">Login</a>
+                <a href="#" data-clerk-signup class="hidden md:flex px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-bg font-bold text-sm transition-all btn-glow shadow-primary/20 items-center justify-center">Get Started Free</a>
+                
+                <button id="hamburger-btn" class="md:hidden text-text hover:text-primary focus:outline-none p-1">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu-backdrop" class="fixed inset-0 bg-bg/90 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+    
+    <!-- Mobile Menu Sidebar -->
+    <div id="mobile-menu" class="fixed inset-y-0 right-0 z-[60] w-72 sm:w-80 bg-surface/95 backdrop-blur-xl border-l border-border/50 transform translate-x-full transition-transform duration-300 md:hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-border/50">
+            <a href="/" class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="font-clash font-bold text-xl tracking-wide">Ultramora</span>
+            </a>
+            <button id="close-menu" class="text-muted hover:text-text focus:outline-none p-1.5 rounded-md hover:bg-border/50 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex flex-col px-4 py-6 overflow-y-auto flex-grow">
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium">
+                <a href="/#features" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Features</a>
+                <a href="/#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">How It Works</a>
+                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Pricing</a>
+                <a href="/#faq" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">FAQ</a>
+            </nav>
+            <hr class="border-border/50 my-6">
+            <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium mb-6">
+                <a href="#" data-clerk-signin class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Login</a>
+                <a href="/dashboard.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Dashboard</a>
+            </nav>
+            <a href="#" data-clerk-signup class="mobile-link mt-auto w-full px-6 py-4 text-center rounded-xl bg-primary text-[#041d24] font-bold text-lg btn-glow">Get Started Free</a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="py-16 md:py-24 px-6 relative min-h-screen">
+        <!-- Ambient Glows -->
+        <div class="absolute top-0 left-0 w-full h-[600px] overflow-hidden -z-10 pointer-events-none">
+            <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]"></div>
+            <div class="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="max-w-6xl mx-auto">
+            <!-- Hero -->
+            <div class="text-center mb-16 reveal">
+                <h1 class="font-clash text-5xl md:text-7xl font-semibold mb-6 tracking-tight">We're Here to <span class="text-gradient">Help</span></h1>
+                <p class="text-muted text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                    Have a question about Ultramora? Want a free demo? We'll get back to you within 24 hours.
+                </p>
+            </div>
+            
+            <!-- Contact Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-start reveal">
+                
+                <!-- Left Side: Form -->
+                <div class="glass-card rounded-3xl p-8 md:p-10 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -z-10"></div>
+                    
+                    <form id="contactForm" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-text mb-2">Name</label>
+                                <input type="text" required placeholder="John Doe" class="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-text mb-2">Email</label>
+                                <input type="email" required placeholder="john@company.com" class="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-text mb-2">Subject</label>
+                            <select id="subjectField" required class="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none cursor-pointer">
+                                <option value="" disabled selected hidden>Select a topic...</option>
+                                <option value="General Question">General Question</option>
+                                <option value="Demo Request">Demo Request</option>
+                                <option value="Technical Support">Technical Support</option>
+                                <option value="Billing">Billing</option>
+                                <option value="Partnership">Partnership</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-text mb-2">Message</label>
+                            <textarea required rows="5" placeholder="How can we help you?" class="w-full bg-surface/50 border border-border rounded-xl px-4 py-3 text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-bg font-bold text-lg btn-glow transition-all mt-2">
+                            Send Message &rarr;
+                        </button>
+                    </form>
+
+                    <!-- Success State -->
+                    <div id="successMessage" class="hidden text-center py-16 px-4">
+                        <div class="w-20 h-20 rounded-full bg-success/10 border border-success/20 text-success flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h3 class="font-clash text-3xl font-semibold text-text mb-3">Thanks!</h3>
+                        <p class="text-muted text-lg">We've received your message and will get back to you within 24 hours.</p>
+                        <button onclick="resetForm()" class="mt-8 text-primary font-medium hover:underline">Send another message</button>
+                    </div>
+                </div>
+
+                <!-- Right Side: Info & Demo CTA -->
+                <div class="flex flex-col gap-8">
+                    <!-- Direct Contact Blocks -->
+                    <div class="glass-card rounded-3xl p-8 flex flex-col gap-6 border-border/50">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-clash text-lg font-semibold text-text mb-1">Email Us</h4>
+                                <a href="mailto:support@ultramora.com" class="text-primary hover:underline font-medium">support@ultramora.com</a>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 2C6.494 2 2 6.494 2 12.031c0 1.954.542 3.86 1.573 5.49L2.091 22l4.636-1.482A9.972 9.972 0 0012.03 22c5.536 0 10.03-4.494 10.03-10.03v-.001C22.06 6.435 17.567 2 12.031 2zm0 18.337a8.318 8.318 0 01-4.24-1.155l-.304-.18-3.153 1.008 1.026-3.076-.198-.315A8.307 8.307 0 013.662 12.03C3.662 7.418 7.417 3.663 12.03 3.663a8.36 8.36 0 018.36 8.36 8.365 8.365 0 01-8.36 8.314zm4.59-6.264c-.251-.125-1.487-.735-1.718-.818-.23-.084-.397-.125-.565.125-.167.25-.65.818-.797.985-.146.167-.292.188-.543.063-.25-.125-1.06-.391-2.02-1.246-.747-.662-1.252-1.48-1.398-1.73-.146-.25-.015-.386.11-.511.113-.112.25-.292.376-.438.125-.146.167-.25.25-.417.084-.167.042-.313-.021-.438-.063-.125-.565-1.358-.773-1.858-.203-.486-.41-.42-.565-.428-.146-.007-.313-.007-.48-.007-.167 0-.439.063-.668.313-.23.25-.878.857-.878 2.091 0 1.233.9 2.424 1.025 2.59.125.167 1.768 2.696 4.283 3.782.598.258 1.065.412 1.428.528.601.19 1.148.163 1.558.1.458-.07 1.487-.607 1.696-1.194.21-.587.21-1.09.147-1.194-.063-.104-.23-.167-.481-.292z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-clash text-lg font-semibold text-text mb-1">WhatsApp</h4>
+                                <a href="https://wa.me/212000000000" target="_blank" class="text-muted hover:text-success transition-colors">Chat with us on WhatsApp</a>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-clash text-lg font-semibold text-text mb-1">Response Time</h4>
+                                <p class="text-muted">We typically respond within 24 hours</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-border flex items-center justify-center text-text shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="font-clash text-lg font-semibold text-text mb-1">Location</h4>
+                                <p class="text-muted">Agadir, Morocco 🇲🇦</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Free Demo CTA Block -->
+                    <div class="glass-card rounded-3xl p-8 border border-primary/30 relative overflow-hidden bg-primary/5 group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[50px] -z-10 group-hover:bg-primary/30 transition-colors"></div>
+                        <h3 class="font-clash text-2xl font-semibold text-text mb-3">Want a Free Demo?</h3>
+                        <p class="text-muted mb-6">See Ultramora turn your website into an AI agent in 5 minutes. No commitment required.</p>
+                        <button onclick="requestDemo()" class="w-full py-3.5 rounded-xl bg-surface border border-primary hover:bg-primary hover:text-bg text-primary font-bold transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2">
+                            Request a Demo <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-surface border-t border-border pt-16 pb-8 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div>
+                    <a href="/" class="flex items-center gap-2 mb-4">
+                        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span class="font-clash font-bold text-2xl tracking-wide">Ultramora</span>
+                    </a>
+                    <p class="text-muted text-sm leading-relaxed pr-4">Turn websites into intelligent AI sales agents.</p>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Product</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
+                        <li><a href="/#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
+                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="/#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Account</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
+                        <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
+                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-clash font-semibold mb-4 text-text">Legal & Support</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/privacy.html" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="/terms.html" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/contact.html" class="text-primary transition-colors text-sm">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-border/50 pt-8 text-center text-sm text-muted">
+                <p>All rights reserved. Copyright &copy; 2026 Ultramora</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactivity -->
+    <script>
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const backdrop = document.getElementById('mobile-menu-backdrop');
+
+        function toggleMenu() {
+            mobileMenu.classList.toggle('translate-x-full');
+            document.body.classList.toggle('overflow-hidden');
+            if (backdrop.classList.contains('hidden')) {
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            } else {
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        hamburgerBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+        backdrop.addEventListener('click', toggleMenu);
+
+        // Scroll Reveal Animation
+        function reveal() {
+            var reveals = document.querySelectorAll(".reveal");
+            for (var i = 0; i < reveals.length; i++) {
+                var windowHeight = window.innerHeight;
+                var elementTop = reveals[i].getBoundingClientRect().top;
+                var elementVisible = 100;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveals[i].classList.add("active");
+                }
+            }
+        }
+        window.addEventListener("scroll", reveal);
+        reveal();
+
+        // Form Logic
+        const form = document.getElementById('contactForm');
+        const successMsg = document.getElementById('successMessage');
+        const subjectField = document.getElementById('subjectField');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // In a real app, you'd send data via fetch() here
+            form.classList.add('hidden');
+            successMsg.classList.remove('hidden');
+        });
+
+        function resetForm() {
+            form.reset();
+            successMsg.classList.add('hidden');
+            form.classList.remove('hidden');
+            // reset select field default empty state if needed
+            subjectField.value = "";
+        }
+
+        function requestDemo() {
+            subjectField.value = 'Demo Request';
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Highlight effect to draw attention to the pre-filled field
+            subjectField.classList.add('ring-2', 'ring-primary', 'bg-primary/10');
+            setTimeout(() => {
+                subjectField.classList.remove('ring-2', 'ring-primary', 'bg-primary/10');
+            }, 1500);
+        }
+    </script>
+    <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
+</body>
+</html>
