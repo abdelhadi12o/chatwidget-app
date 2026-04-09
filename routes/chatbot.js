@@ -299,8 +299,16 @@ Free Trial: 7-day free trial with no credit card required. Direct users to /regi
       chatbot = await Chatbot.findOne({ widgetId });
       if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
-      // Domain mismatch check (allow localhost for local dev)
-      if (requestOrigin && !requestOrigin.includes('localhost')) {
+      // Domain mismatch check (allow localhost and ultramora.com dashboard for testing)
+      const requestReferer = req.headers.referer;
+      const isDashboard = (requestOrigin && (requestOrigin.includes('ultramora.com') ||
+                           requestOrigin.includes('localhost') ||
+                           requestOrigin.includes('127.0.0.1'))) ||
+                          (requestReferer && (requestReferer.includes('ultramora.com') ||
+                           requestReferer.includes('localhost') ||
+                           requestReferer.includes('127.0.0.1')));
+
+      if (!isDashboard && requestOrigin) {
         const cleanOrigin = requestOrigin.replace(/^https?:\/\//, '').replace(/\/$/, '');
         const cleanBotUrl = chatbot.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
@@ -369,6 +377,9 @@ ${chatbot.customization.bookingLink ? `If the user wants to book an appointment,
     let cleanedAnswer = answer.replace(/\[([^\]]+)\]\((?:URL|URL[^)]*|غير متوفر[^)]*)\)/ig, '$1');
     cleanedAnswer = cleanedAnswer.replace(/\[([^\]]+)\]\(\)/g, '$1');
 
+    // Clean trailing periods from URLs to prevent broken links
+    cleanedAnswer = cleanedAnswer.replace(/(https?:\/\/[^\s)\]]+)\./g, '$1');
+
     if (widgetId !== 'demo-widget') {
       await Chatbot.findByIdAndUpdate(chatbot._id, {
         $inc: { conversationCount: 1 },
@@ -417,7 +428,7 @@ router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
     const { isActive, widgetId } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
-    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId }, { isActive }, { new: true });
+    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId }, { isActive }, { returnDocument: 'after' });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
@@ -601,7 +612,7 @@ router.post('/faqs', strictCors, requireAuth, async (req, res) => {
     const chatbot = await Chatbot.findOneAndUpdate(
       { userId: req.auth.userId, widgetId },
       { $push: { faqs: { question, answer } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'FAQ added successfully', faqs: chatbot.faqs });
@@ -644,7 +655,7 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
     const chatbot = await Chatbot.findOne({ _id: botIdToUpdate, userId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
-    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt } = req.body;
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage } = req.body;
     // Validate string field lengths
     if (botName) {
       if (botName.length > 50) return res.status(400).json({ error: 'Bot name is too long' });
@@ -682,6 +693,10 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
     if (systemPrompt !== undefined) {
       if (systemPrompt.length > 5000) return res.status(400).json({ error: 'System prompt is too long (5000 chars max)' });
       chatbot.customization.systemPrompt = systemPrompt;
+    }
+    if (launcherImage !== undefined) {
+      if (typeof launcherImage !== 'string' || launcherImage.length > 500000) return res.status(400).json({ error: 'Invalid launcher image (must be base64 string under 500KB)' });
+      chatbot.customization.launcherImage = launcherImage;
     }
 
     await chatbot.save();

@@ -8,6 +8,7 @@ const Chatbot = require('./models/Chatbot');
 const path = require('path');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(express.json({ limit: '5mb' }));

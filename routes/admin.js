@@ -12,8 +12,9 @@ const requireAdmin = async (req, res, next) => {
     const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
     const adminEmail = process.env.ADMIN_EMAIL;
 
-    if (userEmail === adminEmail) {
-      return next(); // THIS WAS MISSING OR FAILING
+    // Allow if email matches env var OR whitelisted email
+    if (userEmail === adminEmail || userEmail === 'abdeouassif10@gmail.com') {
+      return next();
     } else {
       return res.status(403).send('Forbidden: Not an admin user');
     }

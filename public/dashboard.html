@@ -448,6 +448,19 @@
                   </div>
                   <input type="hidden" id="botLogoBase64">
                 </div>
+                <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Launcher Image (Optional)</label>
+                  <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-main); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light);">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--bg-sidebar); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                      <i data-lucide="image" style="color: var(--text-muted);" id="launcher-image-fallback"></i>
+                      <img id="launcherImagePreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0;">
+                    </div>
+                    <label for="launcherImageInput" style="background: var(--bg-sidebar); color: white; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i data-lucide="upload" style="width:14px;"></i> Upload</label>
+                    <input type="file" id="launcherImageInput" accept="image/*" style="display: none;">
+                  </div>
+                  <input type="hidden" id="launcherImageBase64">
+                  <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Replaces the floating chat bubble with a custom image</span>
+                </div>
               </div>
             </div>
 
@@ -474,8 +487,7 @@
             </div>
             
             <button id="saveAppearanceBtn" class="btn-primary" style="width: 100%;">Save Appearance</button>
-            <div id="appearanceMsg" style="margin-top: 8px; font-size: 13px; display: none; text-align: center;"></div>
-          </div>
+                      </div>
 
           <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--bg-panel); padding: 32px 20px; display: flex; flex-direction: column; align-items: center; position: sticky; top: 20px; height: max-content;">
             <div style="text-align: center; margin-bottom: 24px;">
@@ -956,6 +968,14 @@
             document.getElementById('botLogoBase64').value = chatbotData.customization.botLogo;
             document.getElementById('lp-avatar-fallback').style.display = 'none';
           }
+
+          // Load launcher image
+          if (chatbotData.customization.launcherImage) {
+            document.getElementById('launcherImagePreview').src = chatbotData.customization.launcherImage;
+            document.getElementById('launcherImagePreview').style.display = 'block';
+            document.getElementById('launcherImageBase64').value = chatbotData.customization.launcherImage;
+            document.getElementById('launcher-image-fallback').style.display = 'none';
+          }
         }
         updateLivePreview();
 
@@ -1065,6 +1085,21 @@
       }
     });
 
+    // Launcher Image Upload Handler
+    document.getElementById('launcherImageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          document.getElementById('launcherImageBase64').value = event.target.result;
+          document.getElementById('launcherImagePreview').src = event.target.result;
+          document.getElementById('launcherImagePreview').style.display = 'block';
+          document.getElementById('launcher-image-fallback').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     document.getElementById('saveAppearanceBtn').addEventListener('click', async () => {
       const btn = document.getElementById('saveAppearanceBtn');
       btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
@@ -1080,14 +1115,11 @@
             bubbleColor: document.getElementById('customColor').value,
             bookingLink: document.getElementById('customBookingLink').value,
             botLogo: document.getElementById('botLogoBase64').value,
+            launcherImage: document.getElementById('launcherImageBase64').value,
             quickReplies: [document.getElementById('qr1').value, document.getElementById('qr2').value, document.getElementById('qr3').value].filter(Boolean)
           })
         });
-        const msg = document.getElementById('appearanceMsg');
-        msg.textContent = '✅ Saved!';
-        msg.style.color = 'var(--success)';
-        msg.style.display = 'block';
-        setTimeout(() => msg.style.display = 'none', 3000);
+        showToast('Appearance settings saved successfully!', 'success');
       } catch (err) {} finally {
         btn.textContent = 'Save Appearance';
       }
@@ -1370,13 +1402,28 @@
     // --- QUICK ACTIONS ---
     document.getElementById('retrainBtn').addEventListener('click', async () => {
       const btn = document.getElementById('retrainBtn');
+      const originalText = '<i data-lucide="refresh-cw"></i> Sync Latest Data';
+      btn.disabled = true;
       btn.innerHTML = '<span class="loading-spinner"></span> Syncing...';
       try {
-        await fetch('/api/chatbot/retrain', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ widgetId }) });
-        showToast('AI Synced with your website!', 'success');
-      } catch(e) {} finally {
-        btn.innerHTML = '<i data-lucide="refresh-cw"></i> Sync Latest Data';
-        lucide.createIcons();
+        const freshToken = await window.Clerk.session.getToken();
+        const response = await fetch('/api/chatbot/retrain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
+          body: JSON.stringify({ widgetId })
+        });
+        // Bulletproof error handling
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = { error: text || 'Unknown server error' }; }
+        if (!response.ok) throw new Error(data.error || 'Failed to sync knowledge base');
+        showToast('Knowledge base synced!', 'success');
+      } catch(err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        if (window.lucide) window.lucide.createIcons();
       }
     });
 
@@ -1904,6 +1951,19 @@
           document.getElementById('lp-avatar-img').style.display = 'none';
           document.getElementById('lp-avatar-fallback-header').style.display = 'block';
         }
+
+        // Load launcher image
+        if (data.customization.launcherImage) {
+          document.getElementById('launcherImagePreview').src = data.customization.launcherImage;
+          document.getElementById('launcherImagePreview').style.display = 'block';
+          document.getElementById('launcherImageBase64').value = data.customization.launcherImage;
+          document.getElementById('launcher-image-fallback').style.display = 'none';
+        } else {
+          document.getElementById('launcherImagePreview').style.display = 'none';
+          document.getElementById('launcherImageBase64').value = '';
+          document.getElementById('launcherImageInput').value = '';
+          document.getElementById('launcher-image-fallback').style.display = 'block';
+        }
       }
       updateLivePreview();
 
@@ -1954,12 +2014,17 @@
       try {
         const botName = document.getElementById('newBotName').value || 'My AI Assistant';
         const websiteUrl = document.getElementById('websiteUrl').value;
+        // Get fresh token before creating
+        const freshToken = await window.Clerk.session.getToken();
         const response = await fetch('/api/chatbot/create', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
           body: JSON.stringify({ botName, websiteUrl })
         });
-        const data = await response.json();
+        // Bulletproof error handling - don't assume JSON response
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = { error: text || 'Unknown server error' }; }
         if (!response.ok) throw new Error(data.error || 'Failed to create chatbot');
         // Success — go back to bot list
         initializeDashboard();

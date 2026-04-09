@@ -22,7 +22,8 @@ const ChatbotSchema = new mongoose.Schema({
     quickReplies: { type: [String], default: [] },
     botLogo: { type: String, default: '' },
     bookingLink: { type: String, default: '' },
-    systemPrompt: { type: String, default: '' }
+    systemPrompt: { type: String, default: '' },
+    launcherImage: { type: String, default: '' }
   },
   offlineMessages: { type: Array, default: [] },
   createdAt: { type: Date, default: Date.now }
