@@ -75,11 +75,18 @@ class AIWidget {
       }
     });
 
-    // Close chat when clicking outside
+    // Close chat when clicking outside (strict target check)
     document.addEventListener('click', (e) => {
       if (this.isOpen && !this.container.contains(e.target)) {
+        // Only close if the click was actually on the document body/background
+        // not on any interactive element inside the widget
         this.closeChat();
       }
+    });
+
+    // Prevent clicks inside the chat from closing it
+    this.chat.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
   }
 
@@ -266,8 +273,14 @@ class AIWidget {
     this.messagesContainer.appendChild(formDiv);
     this.scrollToBottom();
 
-    formDiv.querySelector('.ai-lead-submit').addEventListener('click', () => this.submitLead(formDiv));
-    formDiv.querySelector('.ai-lead-skip').addEventListener('click', () => {
+    formDiv.querySelector('.ai-lead-submit').addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.submitLead(formDiv);
+    });
+    formDiv.querySelector('.ai-lead-skip').addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
       formDiv.remove();
       this.leadCaptured = true;
     });
@@ -439,7 +452,9 @@ function applyCustomization(customization, widget) {
         const btn = document.createElement('button');
         btn.className = 'ai-quick-reply-btn';
         btn.textContent = text;
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
           widget.addMessage(text, 'user');
           widget.sendToServer(text);
           quickRepliesDiv.remove();
@@ -1062,6 +1077,12 @@ function addWidgetStyles() {
       gap: 8px !important;
       border-bottom: 1px solid #e2e8f0 !important;
       background: #f8fafc !important;
+      scrollbar-width: none !important; /* Firefox */
+      -ms-overflow-style: none !important; /* IE and Edge */
+    }
+
+    .ai-quick-replies::-webkit-scrollbar {
+      display: none !important; /* Chrome, Safari, Opera */
     }
 
     .ai-quick-reply-btn {

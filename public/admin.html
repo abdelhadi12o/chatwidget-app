@@ -278,6 +278,7 @@
           <th>Plan</th>
           <th>Chatbot</th>
           <th>Conversations</th>
+          <th>Features</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -380,6 +381,10 @@
             <td>${user.hasBot ? 'Yes' : 'No'}</td>
             <td>${user.conversationCount}</td>
             <td>
+              <input type="text" class="features-input" id="features-${user.clerkUserId}" value="${(user.features || []).join(', ')}" placeholder="e.g. beta_tester, ai_brain" style="background: #1e1e2e; border: 1px solid #3a3a47; border-radius: 4px; color: #d6d6e6; padding: 6px 10px; font-size: 13px; width: 180px;">
+              <button class="actions-button" onclick="saveFeatures('${user.clerkUserId}')" style="margin-left: 8px;">Save</button>
+            </td>
+            <td>
               <button class="actions-button view-btn" data-user='${JSON.stringify(user).replace(/'/g, "&#39;")}'>View</button>
               <button class="actions-button" data-user-id="${user.clerkUserId}" data-action="upgrade">→ Pro</button>
               <button class="actions-button" data-user-id="${user.clerkUserId}" data-action="delete">Delete</button>
@@ -464,6 +469,37 @@
         modal.classList.remove('show');
       }
     });
+
+    // Save user features
+    async function saveFeatures(userId) {
+      try {
+        const input = document.getElementById(`features-${userId}`);
+        const featuresText = input.value;
+
+        // Split by commas and trim whitespace
+        const features = featuresText
+          .split(',')
+          .map(f => f.trim())
+          .filter(f => f.length > 0);
+
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/admin/users/${userId}/features`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ features })
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `Failed to update features (${res.status})`);
+        }
+
+        showToast('Features updated successfully');
+      } catch (error) {
+        console.error('Error saving features:', error);
+        showToast(error.message, true);
+      }
+    }
 
   </script>
 </body>

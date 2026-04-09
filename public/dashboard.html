@@ -224,7 +224,7 @@
     <div id="mobileHeader" class="mobile-header">
       <a href="/" style="text-decoration: none; font-family: 'Clash Display', sans-serif; font-weight: 700; font-size: 20px; color: white; display: flex; align-items: center; gap: 8px;">
         <svg class="w-5 h-5" style="width:20px;height:20px;color:var(--primary);flex-shrink:0;" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        Ultramora
+        <span style="font-family: 'Clash Display', sans-serif; font-weight: 700 !important; font-size: 24px; letter-spacing: -0.5px;"><span style="color: white;">Ultra</span><span style="color: #00c2cb;">mora</span></span>
       </a>
       <button id="hamburgerBtn" style="background: none; border: none; color: white; cursor: pointer;"><i data-lucide="menu"></i></button>
     </div>
@@ -236,7 +236,7 @@
       <div class="sidebar-logo">
         <a href="/" style="text-decoration: none; font-family: 'Clash Display', sans-serif; font-weight: 700; font-size: 22px; color: white; display: flex; align-items: center; gap: 8px;">
           <svg class="w-6 h-6" style="width:24px;height:24px;color:var(--primary);flex-shrink:0;" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Ultramora
+          <span style="font-family: 'Clash Display', sans-serif; font-weight: 700 !important; font-size: 24px; letter-spacing: -0.5px;"><span style="color: white;">Ultra</span><span style="color: #00c2cb;">mora</span></span>
         </a>
         <button id="closeSidebarBtn" style="margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; display: none;" class="mobile-only-btn"><i data-lucide="x"></i></button>
       </div>
@@ -563,6 +563,7 @@
         </div>
       </div>
 
+      <!-- AI Brain Tab -->
       <div id="tab-brain" class="hidden">
         <div style="margin-bottom: 32px;">
           <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin-bottom: 4px;">AI Brain & Behavior</h2>
@@ -799,6 +800,34 @@
       return token;
     }
 
+    /**
+     * FEATURE FLAG SYSTEM
+     * Check if current user has access to a specific feature.
+     * Features are stored in Clerk user publicMetadata.features array.
+     *
+     * TO ENABLE FEATURES FOR YOURSELF (Admin Setup):
+     * 1. Go to https://dashboard.clerk.com/
+     * 2. Select your application
+     * 3. Go to "Users" in the left sidebar
+     * 4. Find and click on your user profile
+     * 5. Scroll to "Public Metadata" section
+     * 6. Click "Edit" and add: {"features": ["beta_tester", "ai_brain"]}
+     * 7. Save changes - the feature will immediately be available on next page load
+     *
+     * @param {string} featureName - The feature to check for (e.g., 'beta_tester', 'ai_brain')
+     * @returns {boolean} - True if user has the feature, false otherwise
+     */
+    function hasFeature(featureName) {
+      try {
+        if (window.Clerk?.user?.publicMetadata?.features) {
+          return window.Clerk.user.publicMetadata.features.includes(featureName);
+        }
+      } catch (e) {
+        console.error('Error checking feature flag:', e);
+      }
+      return false;
+    }
+
     async function initClerk() {
       return new Promise((resolve) => {
         if (window.Clerk) { resolve(); return; }
@@ -830,6 +859,7 @@
           // Populate account inputs immediately on login
           if (document.getElementById('accountName')) document.getElementById('accountName').value = user.name || '';
           if (document.getElementById('accountEmail')) document.getElementById('accountEmail').value = user.email || '';
+
         } else {
           if (!token) { window.location.href = '/'; return; }
         }

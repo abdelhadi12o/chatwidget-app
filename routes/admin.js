@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { ClerkExpressRequireAuth, clerkClient } = require('@clerk/clerk-sdk-node');
 const Chatbot = require('../models/Chatbot');
+const Lead = require('../models/Lead');
 
 const requireAdmin = async (req, res, next) => {
   try {
@@ -41,20 +42,28 @@ router.get('/dashboard', ClerkExpressRequireAuth(), requireAdmin, async (req, re
       ? userResponse
       : (userResponse?.data || []);
 
-    // Fetch all chatbots from MongoDB
+    // Fetch all chatbots from MongoDB (only those with valid userId - no orphaned bots)
     let allChatbots;
     try {
-      allChatbots = await Chatbot.find({});
+      allChatbots = await Chatbot.find({ userId: { $exists: true, $ne: null } });
     } catch (err) {
       console.error('❌ Failed to fetch chatbots from MongoDB:', err.message);
       allChatbots = [];
+    }
+
+    // Fetch actual lead count from Lead collection
+    let totalLeads;
+    try {
+      totalLeads = await Lead.countDocuments();
+    } catch (err) {
+      console.error('❌ Failed to fetch leads count:', err.message);
+      totalLeads = 0;
     }
 
     // Calculate real metrics
     const totalUsers = usersArray.length;
     const totalBots = allChatbots.length;
     const totalConversations = allChatbots.reduce((sum, bot) => sum + (bot.conversationCount || 0), 0);
-    const totalLeads = totalConversations;
 
     // Map users with their data and bot stats from MongoDB
     const usersData = await Promise.all(
@@ -71,7 +80,8 @@ router.get('/dashboard', ClerkExpressRequireAuth(), requireAdmin, async (req, re
           botNames: userBots.map(bot => bot.botName || 'Unnamed Bot').join(', ') || 'No bots',
           joinedAt: new Date(user.createdAt).toLocaleDateString(),
           lastActive: user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleDateString() : 'Never',
-          location: user.publicMetadata?.country || 'Unknown (Requires IP API)'
+          location: user.publicMetadata?.country || 'Unknown (Requires IP API)',
+          features: user.publicMetadata?.features || []
         };
       })
     );
@@ -114,6 +124,36 @@ router.delete('/user/:userId', ClerkExpressRequireAuth(), requireAdmin, async (r
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).send('Failed to delete user');
+  }
+});
+
+// POST /users/:userId/features - Update user feature flags
+router.post('/users/:userId/features', ClerkExpressRequireAuth(), requireAdmin, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { features } = req.body;
+
+    // Validate features is an array
+    if (!Array.isArray(features)) {
+      return res.status(400).json({ error: 'Features must be an array' });
+    }
+
+    // Get current user metadata to preserve other fields
+    const user = await clerkClient.users.getUser(userId);
+    const currentMetadata = user.publicMetadata || {};
+
+    // Update user with new features array while preserving other metadata
+    await clerkClient.users.update(userId, {
+      publicMetadata: {
+        ...currentMetadata,
+        features: features
+      }
+    });
+
+    res.json({ message: 'Features updated successfully', features });
+  } catch (error) {
+    console.error('Error updating user features:', error);
+    res.status(500).json({ error: 'Failed to update user features' });
   }
 });
 
