@@ -5,6 +5,7 @@ const Lead = require('../models/Lead');
 const User = require('../models/User');
 const { scrapeWebsite } = require('../scraper/scrape');
 const requireAuth = require('../middleware/auth');
+const { checkSubscription } = require('../middleware/subscription');
 const Groq = require('groq-sdk');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -152,10 +153,19 @@ function getTimeAgo(date) {
 }
 
 // Create chatbot
-router.post('/create', strictCors, requireAuth, async (req, res) => {
+router.post('/create', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { websiteUrl } = req.body;
     if (!websiteUrl) return res.status(400).json({ error: 'Website URL is required' });
+
+    // Check max bots limit
+    const botCount = await Chatbot.countDocuments({ userId: req.auth.userId });
+    if (botCount >= req.planLimits.maxBots) {
+        return res.status(403).json({
+            error: 'LIMIT_REACHED',
+            message: `Your ${req.dbUser.plan} plan is limited to ${req.planLimits.maxBots} chatbot(s). Please upgrade to create more.`
+        });
+    }
 
     // Validate URL format
     let parsedUrl;
@@ -200,7 +210,7 @@ router.post('/create', strictCors, requireAuth, async (req, res) => {
 });
 
 // Retrain chatbot - requires widgetId to identify specific bot
-router.post('/retrain', strictCors, requireAuth, async (req, res) => {
+router.post('/retrain', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { widgetId } = req.body;
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
@@ -230,7 +240,7 @@ router.post('/retrain', strictCors, requireAuth, async (req, res) => {
 
 // Get user's chatbot - for backward compatibility returns first bot.
 // For multi-bot, prefer using /list or /:id
-router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
+router.get('/my-bot', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     // For backward compatibility: return first bot
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId });
@@ -436,7 +446,7 @@ ${chatbot.enableBookingFlow === true ? `AUTOMATED BOOKING FUNNEL RULES:
 });
 
 // Delete chatbot (specific by ID)
-router.delete('/delete/:id', strictCors, requireAuth, async (req, res) => {
+router.delete('/delete/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const botIdToDelete = req.params.id;
     const userId = req.auth.userId;
@@ -464,7 +474,7 @@ router.delete('/delete/:id', strictCors, requireAuth, async (req, res) => {
 });
 
 // Update status - requires widgetId in body
-router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
+router.patch('/update-status', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { isActive, widgetId } = req.body;
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
@@ -479,7 +489,7 @@ router.patch('/update-status', strictCors, requireAuth, async (req, res) => {
 });
 
 // LIST ALL BOTS
-router.get('/list', strictCors, requireAuth, async (req, res) => {
+router.get('/list', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt widgetId');
     res.status(200).json(bots);
@@ -489,7 +499,7 @@ router.get('/list', strictCors, requireAuth, async (req, res) => {
 });
 
 // GET SINGLE BOT BY ID
-router.get('/:id', strictCors, requireAuth, async (req, res) => {
+router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
@@ -558,7 +568,7 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
 });
 
 // Add knowledge (Text) - requires widgetId in body
-router.post('/add-knowledge', strictCors, requireAuth, async (req, res) => {
+router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { knowledge, widgetId } = req.body;
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
@@ -578,7 +588,7 @@ router.post('/add-knowledge', strictCors, requireAuth, async (req, res) => {
 });
 
 // Upload PDF and extract text - requires widgetId in body
-router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req, res) => {
+router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -678,7 +688,7 @@ router.get('/settings/:widgetId', publicCors, async (req, res) => {
 });
 
 // Add FAQ - requires widgetId in body
-router.post('/faqs', strictCors, requireAuth, async (req, res) => {
+router.post('/faqs', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { question, answer, widgetId } = req.body;
     if (!question || !answer) return res.status(400).json({ error: 'Question and answer are required' });
@@ -697,7 +707,7 @@ router.post('/faqs', strictCors, requireAuth, async (req, res) => {
 });
 
 // Delete FAQ - uses URL path, no widgetId needed as bot found by index after we get it
-router.delete('/faqs/:index', strictCors, requireAuth, async (req, res) => {
+router.delete('/faqs/:index', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const index = parseInt(req.params.index);
     // Note: For multi-bot, we would need widgetId here too.
@@ -720,7 +730,7 @@ router.delete('/faqs/:index', strictCors, requireAuth, async (req, res) => {
 });
 
 // Update customization (specific bot by ID) - uses route param id (MongoDB _id)
-router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => {
+router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const botIdToUpdate = req.params.id;
     const userId = req.auth.userId;
@@ -827,7 +837,7 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
 });
 
 // Save custom knowledge - requires widgetId in body
-router.patch('/knowledge', strictCors, requireAuth, async (req, res) => {
+router.patch('/knowledge', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { customKnowledge, widgetId } = req.body;
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
@@ -846,7 +856,7 @@ router.patch('/knowledge', strictCors, requireAuth, async (req, res) => {
 });
 
 // Delete a specific knowledge source (Text or File) - requires widgetId to identify bot
-router.delete('/knowledge/:type/:index', strictCors, requireAuth, async (req, res) => {
+router.delete('/knowledge/:type/:index', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { type, index } = req.params;
     const { widgetId } = req.body;

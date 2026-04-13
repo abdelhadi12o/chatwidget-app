@@ -10,7 +10,11 @@ const path = require('path');
 const app = express();
 app.set('trust proxy', 1);
 
-// Middleware
+// 1. Mount webhook BEFORE global JSON parsing (required for signature verification)
+const webhookRoutes = require('./routes/webhook');
+app.use('/api/webhook', webhookRoutes);
+
+// 2. Global JSON parser MUST come after webhook route
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(mongoSanitize()); // Strip MongoDB operator injection attempts

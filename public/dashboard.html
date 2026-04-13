@@ -318,6 +318,28 @@
           </div>
         </div>
 
+        <div id="trialExpiredView" style="display: none; position: fixed; inset: 0; background: var(--bg-main); z-index: 99999; justify-content: center; align-items: center; flex-direction: column; padding: 20px;">
+          <div class="dark-panel" style="max-width: 500px; width: 100%; text-align: center; border-color: var(--primary); box-shadow: 0 25px 50px -12px rgba(6, 182, 212, 0.25);">
+            <div style="width: 64px; height: 64px; background: rgba(6, 182, 212, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; border: 1px solid rgba(6, 182, 212, 0.2);">
+              <i data-lucide="lock" style="width: 32px; height: 32px; color: var(--primary);"></i>
+            </div>
+            <h2 style="font-family: 'Clash Display', sans-serif; font-size: 28px; color: white; margin: 0 0 12px 0;">Your Trial Has Ended</h2>
+            <p style="color: var(--text-muted); font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
+              We hope you loved your 7 days with Ultramora! Your chatbots and collected leads are safely stored, but you need an active plan to access the dashboard and keep your widgets live.
+            </p>
+            <div style="background: var(--bg-sidebar); border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; margin-bottom: 24px; text-align: left;">
+              <div style="color: white; font-weight: 600; font-size: 14px; margin-bottom: 12px;">Unlock everything:</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);"><i data-lucide="check" style="color: var(--success); width: 16px;"></i> Keep all your bots active</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);"><i data-lucide="check" style="color: var(--success); width: 16px;"></i> Unlimited lead capture</div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);"><i data-lucide="check" style="color: var(--success); width: 16px;"></i> Full booking funnel access</div>
+            </div>
+            <a href="/pricing" class="btn-primary" style="width: 100%; text-decoration: none; font-size: 16px; padding: 14px;">
+              View Plans & Upgrade
+            </a>
+            <a href="#" onclick="signOut()" style="display: block; margin-top: 16px; color: var(--text-muted); font-size: 13px; text-decoration: none;">Sign Out</a>
+          </div>
+        </div>
+
         <div id="activeBotSettingsView" style="display: none;">
           <!-- Loading Overlay -->
           <div id="botLoadingOverlay" style="display: none; position: absolute; inset: 0; background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(2px); z-index: 100; justify-content: center; align-items: center; flex-direction: column; gap: 16px;">
@@ -1784,24 +1806,34 @@
     async function initializeDashboard() {
         try {
             const token = await window.Clerk.session.getToken();
-
             const response = await fetch('/api/chatbot/list', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            const bots = await response.json();
+            // Catch Trial Expired
+            if (!response.ok) {
+                const errData = await response.json();
+                if (errData.error === 'TRIAL_EXPIRED') {
+                    document.getElementById('dashboardSidebar').style.display = 'none';
+                    document.getElementById('mobileHeader').style.display = 'none';
+                    showView(document.getElementById('trialExpiredView'));
+                    document.getElementById('trialExpiredView').style.display = 'flex';
+                    if (window.lucide) window.lucide.createIcons();
+                    return;
+                }
+                throw new Error('Failed to load');
+            }
 
+            const bots = await response.json();
             const viewListEl = document.getElementById('botListView');
             const viewCreateEl = document.getElementById('botCreationView');
             const sidebarEl = document.getElementById('dashboardSidebar');
 
             if (bots.length === 0) {
-                // First time user (0 Bots) -> Hide Sidebar, Show Creation Form
                 sidebarEl.style.display = 'none';
                 showView(viewCreateEl);
                 document.getElementById('btnCancelCreate').style.display = 'none';
             } else {
-                // Returning user (1+ Bots) -> Show Sidebar, Show Bot Grid
                 sidebarEl.style.display = 'flex';
                 renderBotGrid(bots);
                 showView(viewListEl);
