@@ -32,15 +32,17 @@ router.post('/lemon-squeezy', express.raw({ type: 'application/json' }), async (
         }
 
         if (eventName === 'subscription_created' || eventName === 'subscription_updated') {
-            // Map Lemon Squeezy variant IDs to plan names
-            // TODO: Replace with your actual Lemon Squeezy variant IDs
             const variantId = obj.variant_id.toString();
-            const variantToPlan = {
-                // 'your_starter_variant_id': 'starter',
-                // 'your_pro_variant_id': 'pro',
-                // 'your_agency_variant_id': 'agency',
-            };
-            let planName = variantToPlan[variantId] || 'pro'; // Default to pro if variant unknown
+            let planName = 'free';
+
+            // Map Lemon Squeezy Variant IDs to Database Plans
+            if (variantId === '1526060') {
+                planName = 'starter';
+            } else if (variantId === '1526083') {
+                planName = 'pro';
+            } else if (variantId === '1526085') {
+                planName = 'agency';
+            }
 
             await User.findOneAndUpdate(
                 { clerkId: clerkId },
@@ -52,7 +54,7 @@ router.post('/lemon-squeezy', express.raw({ type: 'application/json' }), async (
                 },
                 { upsert: true, new: true }
             );
-            console.log(`✅ User ${clerkId} upgraded to ${planName}`);
+            console.log(`✅ User ${clerkId} upgraded to ${planName} (Variant: ${variantId})`);
         } else if (eventName === 'subscription_cancelled' || eventName === 'subscription_expired') {
             await User.findOneAndUpdate(
                 { clerkId: clerkId },

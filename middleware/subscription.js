@@ -2,7 +2,7 @@ const User = require('../models/User');
 
 // Plan Limits Configuration
 const PLAN_LIMITS = {
-    free: { maxBots: 10, maxMessages: 20000 }, // Trial: same limits as Agency for 7 days
+    free: { maxBots: 1, maxMessages: 50 },
     starter: { maxBots: 1, maxMessages: 1000 },
     pro: { maxBots: 3, maxMessages: 5000 },
     agency: { maxBots: 10, maxMessages: 20000 }
