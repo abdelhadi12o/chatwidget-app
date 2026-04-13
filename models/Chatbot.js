@@ -12,6 +12,9 @@ const ChatbotSchema = new mongoose.Schema({
   conversationCount: { type: Number, default: 0 },
   conversations: { type: Array, default: [] },
   faqs: { type: Array, default: [] },
+  bookingQuestions: { type: [String], default: [] },
+  whatsappNumber: { type: String, default: '' },
+  enableBookingFlow: { type: Boolean, default: false },
   customKnowledge: { type: String, default: '' },
   trainedFiles: [{ fileName: String, uploadDate: { type: Date, default: Date.now } }],
   customization: {

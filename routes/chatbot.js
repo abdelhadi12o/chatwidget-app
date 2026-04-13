@@ -248,7 +248,10 @@ router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
       customKnowledge: chatbot.customKnowledge || '',
       trainedFiles: chatbot.trainedFiles || [],
       apiKey: chatbot.apiKey || '',
-      webhookUrl: chatbot.webhookUrl || ''
+      webhookUrl: chatbot.whatsAppNumber || '',
+      bookingQuestions: chatbot.bookingQuestions || [],
+      whatsappNumber: chatbot.whatsappNumber || '',
+      enableBookingFlow: chatbot.enableBookingFlow || false
     });
   } catch (error) {
     console.error('Server error:', error.message);
@@ -258,6 +261,7 @@ router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
 
 // Chat endpoint (Public - No Auth Required)
 router.post('/chat', chatLimiter, publicCors, async (req, res) => {
+  console.log('🚀 CHAT ENDPOINT HIT - widgetId:', req.body?.widgetId, 'message:', req.body?.message);
   try {
     const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
@@ -297,6 +301,7 @@ Free Trial: 7-day free trial with no credit card required. Direct users to /regi
       };
     } else {
       chatbot = await Chatbot.findOne({ widgetId });
+      console.log('✅ Chatbot found in DB:', chatbot?._id, 'Name:', chatbot?.name);
       if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
       // Domain mismatch check (allow localhost and ultramora.com dashboard for testing)
@@ -319,6 +324,36 @@ Free Trial: 7-day free trial with no credit card required. Direct users to /regi
       }
 
       if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
+    }
+
+    // === PROGRAMMATIC BOOKING INTENT DETECTION ===
+    // Detect booking intent BEFORE calling AI to ensure reliable booking flow triggering
+    const bookingKeywords = ['book', 'schedule', 'appointment', 'reserve', 'booking', 'slot', 'consultation', 'session', 'visit', 'table', 'reservation'];
+    const messageLower = message.toLowerCase();
+    const userWantsToBook = bookingKeywords.some(kw => messageLower.includes(kw));
+
+    // Also detect intent patterns like "can i", "i want to", "i'd like to"
+    const intentPatterns = ['i want to', "i'd like to", 'can i', 'could i', 'i would like to', 'i need to', 'i wish to', 'help me'];
+    const hasBookingIntent = intentPatterns.some(pattern => messageLower.includes(pattern)) &&
+                              (messageLower.includes('book') || messageLower.includes('schedule') || messageLower.includes('appointment'));
+
+    const shouldTriggerBooking = userWantsToBook || hasBookingIntent;
+
+    // DEBUG LOGGING
+    console.log('=== BOOKING DEBUG ===');
+    console.log('WidgetId:', widgetId);
+    console.log('User message:', message);
+    console.log('userWantsToBook:', userWantsToBook);
+    console.log('enableBookingFlow:', chatbot.enableBookingFlow);
+    console.log('enableBookingFlow type:', typeof chatbot.enableBookingFlow);
+    console.log('bookingQuestions:', chatbot.bookingQuestions);
+    console.log('bookingQuestions length:', chatbot.bookingQuestions?.length);
+    console.log('=====================');
+
+    // If booking flow is enabled AND user shows intent AND questions exist, trigger immediately
+    if (chatbot.enableBookingFlow === true && shouldTriggerBooking && chatbot.bookingQuestions && chatbot.bookingQuestions.length > 0) {
+      console.log('✅ TRIGGERING BOOKING FLOW - Returning immediately');
+      return res.json({ answer: '[TRIGGER_BOOKING]' });
     }
 
     let context = '';
@@ -348,11 +383,14 @@ STRICT RULES:
 COMPANY KNOWLEDGE BASE:
 ${context.substring(0, 8000)}
 
-ADDITIONAL BUSINESS RULES & CUSTOM KNOWLEDGE (PRIORITIZE THIS INFORMATION):
+ADDITIONAL BUSINESS RULES:
 ${chatbot.customKnowledge ? chatbot.customKnowledge : 'No additional rules provided.'}
 
-BOOKING/ACTION LINK:
-${chatbot.customization.bookingLink ? `If the user wants to book an appointment, ALWAYS give them this exact link: ${chatbot.customization.bookingLink}` : ''}`
+${chatbot.enableBookingFlow === true ? `AUTOMATED BOOKING FUNNEL RULES:
+1. ONLY append the exact string [TRIGGER_BOOKING] to your response IF the user explicitly asks to book, schedule, or reserve an appointment.
+2. NEVER append [TRIGGER_BOOKING] to your initial greeting.
+3. NEVER append [TRIGGER_BOOKING] if you are merely asking the user if they want to book.
+4. You are strictly FORBIDDEN from providing external URLs, links, or phone numbers for scheduling. Let the automated system handle it.` : ''}`
     };
 
     // 3. Build final messages array with system message first
@@ -503,7 +541,10 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
       webhookUrl: chatbot.webhookUrl || '',
       chunkCount: Array.isArray(chatbot.scrapedContent) ? chatbot.scrapedContent.length : 0,
       activityChart: dayCounts,
-      recentMessages: recentMessages
+      recentMessages: recentMessages,
+      bookingQuestions: chatbot.bookingQuestions || [],
+      whatsappNumber: chatbot.whatsappNumber || '',
+      enableBookingFlow: chatbot.enableBookingFlow || false
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -593,10 +634,34 @@ router.post('/upload-pdf', strictCors, requireAuth, upload.single('file'), (req,
 // Get widget settings (public)
 router.get('/settings/:widgetId', publicCors, async (req, res) => {
   try {
+    // Don't use lean() - it can cause issues with boolean type conversion
     const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
-    res.json({ customization: chatbot.customization });
+
+    // Force convert to boolean to ensure correct type
+    const enableBookingFlow = Boolean(chatbot.enableBookingFlow);
+
+    const response = {
+      customization: chatbot.customization || {},
+      enableBookingFlow: enableBookingFlow,
+      bookingQuestions: chatbot.bookingQuestions || [],
+      whatsappNumber: chatbot.whatsappNumber || ''
+    };
+
+    console.log(`📤 SETTINGS endpoint: widgetId=${req.params.widgetId}`);
+    console.log(`   DB enableBookingFlow=${chatbot.enableBookingFlow} (type: ${typeof chatbot.enableBookingFlow})`);
+    console.log(`   Converted enableBookingFlow=${enableBookingFlow} (type: ${typeof enableBookingFlow})`);
+    console.log(`   bookingQuestions=${chatbot.bookingQuestions?.length || 0}`);
+    console.log(`   RESPONSE:`, JSON.stringify(response));
+
+    // Prevent caching - aggressive headers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    res.setHeader('Vary', '*');
+    res.json(response);
   } catch (error) {
     console.error('Server error:', error.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -651,11 +716,17 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
     const botIdToUpdate = req.params.id;
     const userId = req.auth.userId;
 
+    console.log(`📝 CUSTOMIZATION endpoint: botId=${botIdToUpdate}, userId=${userId}`);
+    console.log(`   Body:`, JSON.stringify(req.body));
+
     // Find EXACTLY that bot belonging to this user
     const chatbot = await Chatbot.findOne({ _id: botIdToUpdate, userId });
-    if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
+    if (!chatbot) {
+      console.log(`   ERROR: Bot not found`);
+      return res.status(404).json({ error: 'Chatbot not found' });
+    }
 
-    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage } = req.body;
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage, bookingQuestions, whatsappNumber, enableBookingFlow } = req.body;
     // Validate string field lengths
     if (botName) {
       if (botName.length > 50) return res.status(400).json({ error: 'Bot name is too long' });
@@ -698,9 +769,32 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
       if (typeof launcherImage !== 'string' || launcherImage.length > 500000) return res.status(400).json({ error: 'Invalid launcher image (must be base64 string under 500KB)' });
       chatbot.customization.launcherImage = launcherImage;
     }
+    if (bookingQuestions !== undefined) {
+      if (!Array.isArray(bookingQuestions) || bookingQuestions.length > 10) return res.status(400).json({ error: 'Booking questions must be an array with max 10 items' });
+      for (const q of bookingQuestions) {
+        if (typeof q !== 'string' || q.length > 200) return res.status(400).json({ error: 'Each booking question must be a string under 200 chars' });
+      }
+      chatbot.bookingQuestions = bookingQuestions;
+    }
+    if (whatsappNumber !== undefined) {
+      if (typeof whatsappNumber !== 'string' || (whatsappNumber.length > 20 && whatsappNumber !== '')) return res.status(400).json({ error: 'WhatsApp number is too long' });
+      chatbot.whatsappNumber = whatsappNumber;
+    }
+    if (enableBookingFlow !== undefined) {
+      if (typeof enableBookingFlow !== 'boolean') return res.status(400).json({ error: 'enableBookingFlow must be a boolean' });
+      chatbot.enableBookingFlow = enableBookingFlow;
+      console.log(`💾 SAVING enableBookingFlow=${enableBookingFlow} for bot ${chatbot._id} (widgetId: ${chatbot.widgetId})`);
+    }
+
+    if (bookingQuestions !== undefined) {
+      chatbot.bookingQuestions = bookingQuestions;
+      console.log(`💾 SAVING ${bookingQuestions.length} bookingQuestions for bot ${chatbot._id}`);
+    }
 
     await chatbot.save();
-    res.json({ message: 'Customization updated', customization: chatbot.customization });
+    console.log(`✅ SAVED to database for bot ${chatbot._id}`);
+    console.log(`   Saved values: enableBookingFlow=${chatbot.enableBookingFlow}, whatsappNumber=${chatbot.whatsappNumber}, bookingQuestions=${chatbot.bookingQuestions?.length || 0}`);
+    res.json({ message: 'Customization updated', customization: chatbot.customization, enableBookingFlow: chatbot.enableBookingFlow });
   } catch (error) {
     console.error('Server error:', error.message);
     res.status(500).json({ error: 'Internal server error' });

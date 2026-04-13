@@ -7,6 +7,15 @@ class AIWidget {
     this.messageCount = 0;
     this.leadCaptured = false;
     this.leadFormShown = false;
+    this.isBookingMode = false;
+    this.currentBookingStep = 0;
+    this.bookingAnswers = [];
+    this.bookingCompleted = false; // Track if booking was already done this session
+    this.botConfig = {
+      enableBookingFlow: false,
+      bookingQuestions: [],
+      whatsappNumber: ''
+    };
 
     this.init();
   }
@@ -127,6 +136,86 @@ class AIWidget {
 
     if (!message) return;
 
+    // Booking Mode Intercept: Handle user's answers during booking funnel
+    if (this.isBookingMode) {
+        const lowerMsg = message.toLowerCase();
+
+        // Check for cancel commands
+        if (['cancel', 'stop', 'exit', 'quit', 'no', 'nevermind', 'never mind'].includes(lowerMsg)) {
+            this.addMessage(message, 'user');
+            this.inputField.value = '';
+            this.isBookingMode = false;
+            this.bookingAnswers = [];
+            this.currentBookingStep = 0;
+            setTimeout(() => {
+                this.addMessage('No problem! Booking cancelled. How else can I help you today?', 'ai');
+            }, 500);
+            return;
+        }
+
+        this.addMessage(message, 'user');
+        this.inputField.value = '';
+        this.bookingAnswers.push({
+            question: this.botConfig.bookingQuestions[this.currentBookingStep],
+            answer: message
+        });
+
+        this.currentBookingStep++;
+
+        if (this.currentBookingStep < this.botConfig.bookingQuestions.length) {
+            // Ask the next question
+            if (this.inputField) this.inputField.disabled = true;
+            setTimeout(() => {
+                this.addMessage(this.botConfig.bookingQuestions[this.currentBookingStep], 'ai');
+                if (this.inputField) {
+                    this.inputField.disabled = false;
+                    this.inputField.focus();
+                }
+            }, 800);
+        } else {
+            // Funnel Complete! Generate WhatsApp Link
+            this.isBookingMode = false;
+
+            setTimeout(() => {
+                let waMessage = "New Booking Request:\n\n";
+                this.bookingAnswers.forEach(qa => {
+                    waMessage += `*Q: ${qa.question}*\nA: ${qa.answer}\n\n`;
+                });
+
+                // Clean the phone number and build the link
+                const cleanPhone = (this.botConfig.whatsappNumber || '').replace(/[^0-9]/g, '');
+                const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
+
+            const completeHtml = `
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; text-align: center; font-family: sans-serif;">
+                    <div style="font-size: 28px; margin-bottom: 8px; line-height: 1;">✅</div>
+                    <h4 style="margin: 0 0 6px 0; color: #0f172a; font-size: 16px; font-weight: 700;">You're all set!</h4>
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 13px; line-height: 1.4;">Tap below to send your details to our team.</p>
+                    <a href="${waUrl}" target="_blank" style="display: block; width: 100%; background: #25D366; color: #ffffff; padding: 12px 0; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(37,211,102,0.25); text-align: center;">
+                        Send to WhatsApp
+                    </a>
+                </div>
+            `;
+                this.addMessage(completeHtml, 'bot', true); // true allows HTML rendering
+
+                // Mark booking as completed for this session
+                this.bookingCompleted = true;
+            }, 1000);
+        }
+        return; // Stop here, do not fetch from backend
+    }
+
+    // Check if user already completed booking and is acknowledging it
+    if (this.bookingCompleted) {
+        const lowerMsg = message.toLowerCase();
+        if (['done', 'ok', 'okay', 'great', 'thanks', 'thank you', 'perfect', 'awesome', 'got it'].some(word => lowerMsg.includes(word))) {
+            setTimeout(() => {
+                this.addMessage("Perfect! You're all set. If you haven't sent your booking via WhatsApp yet, tap the button above. Otherwise, is there anything else I can help you with?", 'ai');
+            }, 500);
+            return;
+        }
+    }
+
     this.addMessage(message, 'user');
     this.inputField.value = '';
     this.showTypingIndicator();
@@ -134,7 +223,7 @@ class AIWidget {
     this.sendToServer(message);
   }
 
-  addMessage(content, sender) {
+  addMessage(content, sender, allowHtml = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `ai-widget-message ${sender}-message`;
 
@@ -142,21 +231,30 @@ class AIWidget {
       ? '👤'
       : (this.botLogo ? `<img src="${this.botLogo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '<svg width="16" height="16" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>');
 
-    let text = content.replace(/\n/g, '<br>');
+    let text;
+    if (allowHtml) {
+      // If HTML is allowed, use content as-is (for booking funnel completion)
+      text = content;
+    } else {
+      // Normal text processing
+      text = content.replace(/\n/g, '<br>');
 
-    // 1. Convert Markdown links [Text](URL) into clickable styled links
-    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600;">$1</a>');
+      // 1. Convert Markdown links [Text](URL) into clickable styled links
+      text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600;">$1</a>');
 
-    // 2. Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
-    // We use word-break to ensure long URLs don't break out of the chat bubble
-    text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
+      // 2. Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
+      // We use word-break to ensure long URLs don't break out of the chat bubble
+      text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
+    }
 
     const purify = window.DOMPurify;
+    // When allowing HTML, still sanitize but allow safe tags like div, a, etc.
+    const sanitizeConfig = allowHtml ? { ALLOWED_TAGS: ['div', 'a', 'span', 'br'], ALLOWED_ATTR: ['href', 'target', 'style', 'class'] } : {};
     messageDiv.innerHTML = purify
       ? purify.sanitize(`
       <span class="ai-widget-avatar">${avatarContent}</span>
       <div class="ai-widget-message-content" dir="auto">${text}</div>
-    `)
+    `, sanitizeConfig)
       : `
       <span class="ai-widget-avatar">${avatarContent}</span>
       <div class="ai-widget-message-content" dir="auto">${text}</div>
@@ -201,7 +299,7 @@ class AIWidget {
         content: msg.content
       }));
 
-      const response = await fetch(`https://ultramora.com/api/chatbot/chat`, {
+      const response = await fetch(`/api/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +321,67 @@ class AIWidget {
         this.removeTypingIndicator();
       }
 
-      this.addMessage(data.answer, 'ai');
+      // Check if user mentioned they already booked (from message history)
+      const lastUserMsg = this.messages.filter(m => m.sender === 'user').pop()?.content?.toLowerCase() || '';
+      const alreadyBookedPatterns = ['already booked', 'we just booked', 'we just book', 'already done', 'just finished', 'completed booking', 'done booking'];
+      const userSaysAlreadyBooked = alreadyBookedPatterns.some(pattern => lastUserMsg.includes(pattern));
+
+      // Intercept booking trigger from AI response
+      let displayAnswer = data.answer;
+      const hasBookingTrigger = displayAnswer.includes('[TRIGGER_BOOKING]');
+
+      console.log('🔍 Booking check:', {
+        hasTrigger: hasBookingTrigger,
+        enableBookingFlow: this.botConfig.enableBookingFlow,
+        questionsCount: this.botConfig.bookingQuestions.length,
+        bookingCompleted: this.bookingCompleted,
+        userSaysAlreadyBooked: userSaysAlreadyBooked
+      });
+
+      if (hasBookingTrigger) {
+          displayAnswer = displayAnswer.replace(/\[TRIGGER_BOOKING\]/g, '').trim();
+      }
+
+      // 1. Show the normal AI message first
+      if (displayAnswer) {
+          this.addMessage(displayAnswer, 'ai');
+      }
+
+      // 2. If the trigger is there, AND the funnel is ON, AND there are questions -> Start Funnel
+      // BUT skip if booking was already completed this session OR user says they already booked
+      if (hasBookingTrigger && this.botConfig.enableBookingFlow === true && this.botConfig.bookingQuestions.length > 0) {
+
+          if (this.bookingCompleted) {
+              console.log('⏩ Skipping booking funnel - already completed this session');
+              setTimeout(() => {
+                  this.addMessage("You've already completed a booking request in this chat! ✓ Check the WhatsApp button above to send your booking, or let me know if you need help with something else.", 'ai');
+              }, 800);
+              return;
+          }
+
+          if (userSaysAlreadyBooked) {
+              console.log('⏩ Skipping booking funnel - user says they already booked');
+              setTimeout(() => {
+                  this.addMessage("It sounds like you've already submitted a booking request! Check above for the WhatsApp button to complete it, or let me know if you need help with something else.", 'ai');
+              }, 800);
+              return;
+          }
+
+          console.log('✅ Starting booking funnel');
+          this.isBookingMode = true;
+          this.currentBookingStep = 0;
+          this.bookingAnswers = [];
+
+          // Disable the input field briefly while typing
+          if (this.inputField) this.inputField.disabled = true;
+
+          setTimeout(() => {
+              this.addMessage(this.botConfig.bookingQuestions[0], 'ai');
+              if (this.inputField) this.inputField.disabled = false;
+          }, 1000);
+
+          return; // Stop normal execution
+      }
 
       this.messageCount++;
       if (this.leadCaptureTiming > 0 && this.messageCount === this.leadCaptureTiming && !this.leadCaptured && !this.leadFormShown) {
@@ -300,7 +458,7 @@ class AIWidget {
     }
 
     try {
-      await fetch('https://ultramora.com/api/chatbot/lead', {
+      await fetch('/api/chatbot/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -366,12 +524,22 @@ async function initWidget() {
 
   // 3. Fetch settings BEFORE building the widget to prevent color flashing
   try {
-    const response = await fetch(`https://ultramora.com/api/chatbot/settings/${widgetId}`);
+    // Add timestamp to prevent caching
+    const response = await fetch(`/api/chatbot/settings/${widgetId}?_t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     if (response.ok) {
       settings = await response.json();
+      console.log('📥 RAW settings from API:', JSON.stringify(settings));
+    } else {
+      console.error('❌ Failed to fetch settings, status:', response.status);
     }
   } catch (error) {
-    console.log('Failed to fetch widget settings:', error.message);
+    console.error('❌ Failed to fetch widget settings:', error.message);
   }
 
   // 4. Now build the widget and apply styles synchronously so the browser paints it perfectly on the first frame
@@ -390,6 +558,18 @@ async function initWidget() {
       widget.leadCaptureTiming = settings.customization.leadCaptureTiming;
     }
     applyCustomization(settings.customization, widget);
+    // Load booking funnel config from settings
+    console.log('🔧 Raw settings.enableBookingFlow:', settings.enableBookingFlow, 'type:', typeof settings.enableBookingFlow);
+    widget.botConfig.enableBookingFlow = Boolean(settings.enableBookingFlow);
+    widget.botConfig.bookingQuestions = settings.bookingQuestions || [];
+    widget.botConfig.whatsappNumber = settings.whatsappNumber || '';
+    console.log('📦 Booking config loaded:', {
+      enableBookingFlow: widget.botConfig.enableBookingFlow,
+      bookingQuestions: widget.botConfig.bookingQuestions.length,
+      whatsappNumber: widget.botConfig.whatsappNumber ? 'set' : 'not set'
+    });
+  } else {
+    console.warn('⚠️ No settings received or missing customization:', settings);
   }
 }
 
