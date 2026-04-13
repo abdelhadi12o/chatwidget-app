@@ -100,6 +100,8 @@ class AIWidget {
   }
 
   toggleChat() {
+    // Hide proactive bubble when user manually toggles chat
+    this.hideProactiveBubble();
     if (this.isOpen) {
       this.closeChat();
     } else {
@@ -129,6 +131,72 @@ class AIWidget {
     this.chat.style.setProperty('display', 'none', 'important');
     this.bubble.style.setProperty('display', 'flex', 'important');
     this.inputField.value = '';
+  }
+
+  initProactiveBubble() {
+    if (!this.botConfig.proactiveMessage) return;
+    if (this.botConfig.proactiveEnabled === false) return; // Skip if disabled
+
+    // Create the bubble
+    this.proactiveBubble = document.createElement('div');
+    this.proactiveBubble.className = 'ultramora-proactive-wrapper';
+    this.proactiveBubble.innerHTML = `
+      <button class="ultramora-proactive-close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <p class="ultramora-proactive-text">${this.botConfig.proactiveMessage}</p>
+    `;
+
+    // Append to document.body to ensure it's always visible and above all other elements
+    document.body.appendChild(this.proactiveBubble);
+
+    // Timing Logic
+    const delayMs = (this.botConfig.proactiveDelay !== undefined ? this.botConfig.proactiveDelay : 3) * 1000;
+
+    this.proactiveTimer = setTimeout(() => {
+      // Only pop up if the chat window is closed
+      if (!this.isOpen) {
+        this.proactiveBubble.classList.add('visible');
+      }
+    }, delayMs);
+
+    // Click Logic
+    this.proactiveBubble.addEventListener('click', (e) => {
+      // Stop propagation to prevent document click handler from closing the chat
+      e.stopPropagation();
+
+      // 1. If they clicked the 'X', just hide and stop here (do not open chat)
+      if (e.target.closest('.ultramora-proactive-close')) {
+        this.proactiveBubble.classList.remove('visible');
+        return;
+      }
+
+      // 2. Hide the bubble when clicked
+      this.proactiveBubble.classList.remove('visible');
+
+      // 3. Otherwise, open the chat window!
+      if (!this.isOpen) {
+        // Call the class method that opens the chat (usually toggle() or toggleChat())
+        if (typeof this.toggleChat === 'function') {
+          this.toggleChat();
+        } else if (typeof this.toggle === 'function') {
+          this.toggle();
+        }
+      }
+    });
+  }
+
+  hideProactiveBubble() {
+    // Clear the timeout if still pending
+    if (this.proactiveTimer) {
+      clearTimeout(this.proactiveTimer);
+      this.proactiveTimer = null;
+    }
+
+    // Hide the bubble if it exists
+    if (this.proactiveBubble) {
+      this.proactiveBubble.classList.remove('visible');
+    }
   }
 
   sendMessage() {
@@ -187,12 +255,15 @@ class AIWidget {
                 const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
 
             const completeHtml = `
-                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-top: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; text-align: center; font-family: sans-serif;">
-                    <div style="font-size: 28px; margin-bottom: 8px; line-height: 1;">✅</div>
-                    <h4 style="margin: 0 0 6px 0; color: #0f172a; font-size: 16px; font-weight: 700;">You're all set!</h4>
-                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 13px; line-height: 1.4;">Tap below to send your details to our team.</p>
-                    <a href="${waUrl}" target="_blank" style="display: block; width: 100%; background: #25D366; color: #ffffff; padding: 12px 0; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(37,211,102,0.25); text-align: center;">
-                        Send to WhatsApp
+                <div style="background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 8px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; box-shadow: 0 4px 12px rgba(34,197,94,0.3);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    </div>
+                    <h4 style="margin: 0 0 8px 0; color: #0f172a; font-size: 17px; font-weight: 700;">Booking Ready!</h4>
+                    <p style="margin: 0 0 16px 0; color: #64748b; font-size: 13px; line-height: 1.5;">Your request is prepared. Click to send it via WhatsApp.</p>
+                    <a href="${waUrl}" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: linear-gradient(135deg, #25D366, #128C7E); color: #ffffff; padding: 14px 0; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 14px; box-sizing: border-box; box-shadow: 0 4px 15px rgba(37,211,102,0.4); transition: transform 0.2s, box-shadow 0.2s;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                        Open WhatsApp
                     </a>
                 </div>
             `;
@@ -563,11 +634,17 @@ async function initWidget() {
     widget.botConfig.enableBookingFlow = Boolean(settings.enableBookingFlow);
     widget.botConfig.bookingQuestions = settings.bookingQuestions || [];
     widget.botConfig.whatsappNumber = settings.whatsappNumber || '';
+    widget.botConfig.proactiveMessage = settings.proactiveMessage || '👋 Hi there! Have any questions?';
+    widget.botConfig.proactiveDelay = settings.proactiveDelay !== undefined ? settings.proactiveDelay : 3;
+    widget.botConfig.proactiveEnabled = settings.proactiveEnabled !== undefined ? settings.proactiveEnabled : true;
     console.log('📦 Booking config loaded:', {
       enableBookingFlow: widget.botConfig.enableBookingFlow,
       bookingQuestions: widget.botConfig.bookingQuestions.length,
       whatsappNumber: widget.botConfig.whatsappNumber ? 'set' : 'not set'
     });
+
+    // Initialize proactive welcome bubble
+    widget.initProactiveBubble();
   } else {
     console.warn('⚠️ No settings received or missing customization:', settings);
   }
@@ -1282,6 +1359,83 @@ function addWidgetStyles() {
     .ai-quick-reply-btn:hover {
       background: var(--theme-color, #06b6d4) !important;
       color: white !important;
+    }
+
+    /* Proactive Welcome Bubble */
+    .ultramora-proactive-wrapper {
+      position: fixed !important;
+      bottom: 160px !important;
+      right: 24px !important;
+      background: white !important;
+      border-radius: 12px !important;
+      padding: 14px 40px 14px 16px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+      border: 1px solid #e2e8f0 !important;
+      max-width: 280px !important;
+      width: max-content !important;
+      z-index: 2147483647 !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transform: translateY(10px) !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+    }
+    .ultramora-proactive-wrapper.visible {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(0) !important;
+    }
+    .ultramora-proactive-wrapper::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: -6px !important;
+      right: 20px !important;
+      width: 12px !important;
+      height: 12px !important;
+      background: white !important;
+      border-right: 1px solid #e2e8f0 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      transform: rotate(45deg) !important;
+    }
+    .ultramora-proactive-text {
+      font-family: sans-serif !important;
+      font-size: 14px !important;
+      color: #0f172a !important;
+      margin: 0 !important;
+      line-height: 1.4 !important;
+      font-weight: 500 !important;
+    }
+    .ultramora-proactive-close {
+      position: absolute !important;
+      top: 10px !important;
+      right: 8px !important;
+      background: none !important;
+      border: none !important;
+      color: #94a3b8 !important;
+      cursor: pointer !important;
+      padding: 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 50% !important;
+      transition: background 0.2s !important;
+      pointer-events: auto !important;
+    }
+    .ultramora-proactive-close:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+
+    /* Mobile: position lower since launcher is at bottom: 20px */
+    @media (max-width: 767px) {
+      .ultramora-proactive-wrapper {
+        bottom: 90px !important;
+        right: 20px !important;
+      }
+      .ultramora-proactive-wrapper::after {
+        right: 24px !important;
+      }
     }
   `;
 

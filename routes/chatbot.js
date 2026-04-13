@@ -251,7 +251,10 @@ router.get('/my-bot', strictCors, requireAuth, async (req, res) => {
       webhookUrl: chatbot.whatsAppNumber || '',
       bookingQuestions: chatbot.bookingQuestions || [],
       whatsappNumber: chatbot.whatsappNumber || '',
-      enableBookingFlow: chatbot.enableBookingFlow || false
+      enableBookingFlow: chatbot.enableBookingFlow || false,
+      proactiveMessage: chatbot.proactiveMessage || '👋 Hi there! Have any questions?',
+      proactiveDelay: chatbot.proactiveDelay !== undefined ? chatbot.proactiveDelay : 3,
+      proactiveEnabled: chatbot.proactiveEnabled !== undefined ? chatbot.proactiveEnabled : true
     });
   } catch (error) {
     console.error('Server error:', error.message);
@@ -544,7 +547,10 @@ router.get('/:id', strictCors, requireAuth, async (req, res) => {
       recentMessages: recentMessages,
       bookingQuestions: chatbot.bookingQuestions || [],
       whatsappNumber: chatbot.whatsappNumber || '',
-      enableBookingFlow: chatbot.enableBookingFlow || false
+      enableBookingFlow: chatbot.enableBookingFlow || false,
+      proactiveMessage: chatbot.proactiveMessage || '👋 Hi there! Have any questions?',
+      proactiveDelay: chatbot.proactiveDelay !== undefined ? chatbot.proactiveDelay : 3,
+      proactiveEnabled: chatbot.proactiveEnabled !== undefined ? chatbot.proactiveEnabled : true
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -646,7 +652,10 @@ router.get('/settings/:widgetId', publicCors, async (req, res) => {
       customization: chatbot.customization || {},
       enableBookingFlow: enableBookingFlow,
       bookingQuestions: chatbot.bookingQuestions || [],
-      whatsappNumber: chatbot.whatsappNumber || ''
+      whatsappNumber: chatbot.whatsappNumber || '',
+      proactiveMessage: chatbot.proactiveMessage || '👋 Hi there! Have any questions?',
+      proactiveDelay: chatbot.proactiveDelay !== undefined ? chatbot.proactiveDelay : 3,
+      proactiveEnabled: chatbot.proactiveEnabled !== undefined ? chatbot.proactiveEnabled : true
     };
 
     console.log(`📤 SETTINGS endpoint: widgetId=${req.params.widgetId}`);
@@ -726,7 +735,7 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
       return res.status(404).json({ error: 'Chatbot not found' });
     }
 
-    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage, bookingQuestions, whatsappNumber, enableBookingFlow } = req.body;
+    const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage, bookingQuestions, whatsappNumber, enableBookingFlow, proactiveMessage, proactiveDelay, proactiveEnabled } = req.body;
     // Validate string field lengths
     if (botName) {
       if (botName.length > 50) return res.status(400).json({ error: 'Bot name is too long' });
@@ -784,6 +793,22 @@ router.patch('/customization/:id', strictCors, requireAuth, async (req, res) => 
       if (typeof enableBookingFlow !== 'boolean') return res.status(400).json({ error: 'enableBookingFlow must be a boolean' });
       chatbot.enableBookingFlow = enableBookingFlow;
       console.log(`💾 SAVING enableBookingFlow=${enableBookingFlow} for bot ${chatbot._id} (widgetId: ${chatbot.widgetId})`);
+    }
+    if (proactiveMessage !== undefined) {
+      if (typeof proactiveMessage !== 'string' || proactiveMessage.length > 100) return res.status(400).json({ error: 'Proactive message must be a string under 100 chars' });
+      chatbot.proactiveMessage = proactiveMessage;
+      chatbot.markModified('proactiveMessage');
+    }
+    if (proactiveDelay !== undefined) {
+      if (typeof proactiveDelay !== 'number' || proactiveDelay < 0 || proactiveDelay > 60) return res.status(400).json({ error: 'Delay must be a number between 0 and 60' });
+      chatbot.proactiveDelay = proactiveDelay;
+      chatbot.markModified('proactiveDelay');
+    }
+    if (proactiveEnabled !== undefined) {
+      if (typeof proactiveEnabled !== 'boolean') return res.status(400).json({ error: 'proactiveEnabled must be a boolean' });
+      chatbot.proactiveEnabled = proactiveEnabled;
+      chatbot.markModified('proactiveEnabled');
+      console.log(`💾 SAVING proactiveEnabled=${proactiveEnabled} for bot ${chatbot._id}`);
     }
 
     if (bookingQuestions !== undefined) {

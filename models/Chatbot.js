@@ -15,6 +15,9 @@ const ChatbotSchema = new mongoose.Schema({
   bookingQuestions: { type: [String], default: [] },
   whatsappNumber: { type: String, default: '' },
   enableBookingFlow: { type: Boolean, default: false },
+  proactiveMessage: { type: String, default: '👋 Hi there! Have any questions?' },
+  proactiveDelay: { type: Number, default: 3 },
+  proactiveEnabled: { type: Boolean, default: true },
   customKnowledge: { type: String, default: '' },
   trainedFiles: [{ fileName: String, uploadDate: { type: Date, default: Date.now } }],
   customization: {

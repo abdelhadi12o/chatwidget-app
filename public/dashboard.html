@@ -469,6 +469,19 @@
               <h3 class="dark-panel-title">Welcome Flow</h3>
               <div style="display: flex; flex-direction: column; gap: 16px;">
                 <div>
+                  <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Proactive Pop-up Message</label>
+                  <input type="text" id="customProactive" class="dark-input" placeholder="👋 Hi there! Have any questions?">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Delay before showing (seconds):</span>
+                    <input type="number" id="customProactiveDelay" class="dark-input" style="width: 80px; height: 32px; padding: 0 12px;" value="3" min="0" max="60">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    <input type="checkbox" id="proactiveEnabled" style="width: 16px; height: 16px; cursor: pointer;" checked>
+                    <label for="proactiveEnabled" style="font-size: 12px; color: var(--text-muted); cursor: pointer; user-select: none;">Enable proactive pop-up message</label>
+                  </div>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">Shows a floating bubble above the closed chat widget. Set delay to 0 to show instantly.</span>
+                </div>
+                <div>
                   <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">First Message (Greeting)</label>
                   <input type="text" id="customWelcome" class="dark-input" placeholder="Hi! How can I help you?">
                 </div>
@@ -1186,7 +1199,10 @@
             bookingLink: document.getElementById('customBookingLink').value,
             botLogo: document.getElementById('botLogoBase64').value,
             launcherImage: document.getElementById('launcherImageBase64').value,
-            quickReplies: [document.getElementById('qr1').value, document.getElementById('qr2').value, document.getElementById('qr3').value].filter(Boolean)
+            quickReplies: [document.getElementById('qr1').value, document.getElementById('qr2').value, document.getElementById('qr3').value].filter(Boolean),
+            proactiveMessage: document.getElementById('customProactive').value,
+            proactiveDelay: parseInt(document.getElementById('customProactiveDelay').value) || 0,
+            proactiveEnabled: document.getElementById('proactiveEnabled').checked
           })
         });
         showToast('Appearance settings saved successfully!', 'success');
@@ -1999,6 +2015,9 @@
         document.getElementById('customBotName').value = data.customization.botName || 'AI Assistant';
         document.getElementById('systemPromptInput').value = data.customization.systemPrompt || '';
         document.getElementById('customWelcome').value = data.customization.welcomeMessage || "Hi! How can I help you?";
+        document.getElementById('customProactive').value = data.proactiveMessage || "👋 Hi there! Have any questions?";
+        document.getElementById('customProactiveDelay').value = data.proactiveDelay !== undefined ? data.proactiveDelay : 3;
+        document.getElementById('proactiveEnabled').checked = data.proactiveEnabled !== undefined ? data.proactiveEnabled : true;
         document.getElementById('customColor').value = data.customization.bubbleColor || '#06b6d4';
         document.getElementById('customBookingLink').value = data.customization.bookingLink || '';
         document.getElementById('leadTimingSelect').value = data.customization.leadCaptureTiming ?? 3;
