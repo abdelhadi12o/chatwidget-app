@@ -6,7 +6,7 @@ const User = require('../models/User');
 // Make sure to add this to your .env file later!
 const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || 'your_temporary_secret_key';
 
-router.post('/lemon-squeezy', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
         const signature = req.headers['x-signature'];
         if (!signature) return res.status(401).send('Missing signature');
