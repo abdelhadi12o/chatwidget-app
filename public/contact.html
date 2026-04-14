@@ -100,7 +100,7 @@
                     const response = await fetch('/api/config');
                     if(response.ok) {
                         const config = await response.json();
-                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
                         
                         document.querySelectorAll('[data-clerk-signin]').forEach(el => {
                             if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
@@ -138,7 +138,7 @@
             <nav class="hidden md:flex items-center gap-8">
                 <a href="/#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
                 <a href="/#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
-                <a href="/pricing.html" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
+                <a href="/pricing" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
                 <a href="/#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
             </nav>
             
@@ -171,13 +171,13 @@
             <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium">
                 <a href="/#features" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Features</a>
                 <a href="/#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">How It Works</a>
-                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Pricing</a>
+                <a href="/pricing" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Pricing</a>
                 <a href="/#faq" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">FAQ</a>
             </nav>
             <hr class="border-border/50 my-6">
             <nav class="flex flex-col gap-1 text-lg font-satoshi font-medium mb-6">
                 <a href="#" data-clerk-signin class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Login</a>
-                <a href="/dashboard.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Dashboard</a>
+                <a href="/dashboard" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">Dashboard</a>
             </nav>
             <a href="#" data-clerk-signup class="mobile-link mt-auto w-full px-6 py-4 text-center rounded-xl bg-primary text-[#041d24] font-bold text-lg btn-glow">Get Started Free</a>
         </div>
@@ -328,7 +328,7 @@
                     <ul class="space-y-3">
                         <li><a href="/#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
                         <li><a href="/#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
-                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="/pricing" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
                         <li><a href="/#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
                     </ul>
                 </div>
@@ -337,15 +337,15 @@
                     <ul class="space-y-3">
                         <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
                         <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
-                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                        <li><a href="/dashboard" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
                     </ul>
                 </div>
                 <div>
                     <h4 class="font-clash font-semibold mb-4 text-text">Legal & Support</h4>
                     <ul class="space-y-3">
-                        <li><a href="/privacy.html" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
-                        <li><a href="/terms.html" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
-                        <li><a href="/contact.html" class="text-primary transition-colors text-sm">Contact Us</a></li>
+                        <li><a href="/privacy" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="/terms" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/contact" class="text-primary transition-colors text-sm">Contact Us</a></li>
                     </ul>
                 </div>
             </div>

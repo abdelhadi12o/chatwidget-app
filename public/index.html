@@ -120,7 +120,7 @@
                         const config = await response.json();
                         
                         // 1. Tell Clerk to send them directly to the dashboard after logging in!
-                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard.html');
+                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
                         
                         // Attach sign-in URLs
                         document.querySelectorAll('[data-clerk-signin]').forEach(el => {
@@ -173,7 +173,7 @@
             <nav class="hidden md:flex items-center gap-8">
                 <a href="#features" class="text-muted hover:text-text transition-colors text-sm font-medium">Features</a>
                 <a href="#how-it-works" class="text-muted hover:text-text transition-colors text-sm font-medium">How It Works</a>
-                <a href="/pricing.html" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
+                <a href="/pricing" class="text-muted hover:text-text transition-colors text-sm font-medium">Pricing</a>
                 <a href="#faq" class="text-muted hover:text-text transition-colors text-sm font-medium">FAQ</a>
             </nav>
             
@@ -217,7 +217,7 @@
                     <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     How It Works
                 </a>
-                <a href="/pricing.html" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
+                <a href="/pricing" class="mobile-link flex items-center gap-3 px-3 py-3 text-text hover:text-primary hover:bg-primary/10 rounded-xl transition-all">
                     <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
                     Pricing
                 </a>
@@ -900,7 +900,7 @@
                     <ul class="space-y-3">
                         <li><a href="#features" class="text-muted hover:text-primary transition-colors text-sm">Features</a></li>
                         <li><a href="#how-it-works" class="text-muted hover:text-primary transition-colors text-sm">How It Works</a></li>
-                        <li><a href="/pricing.html" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
+                        <li><a href="/pricing" class="text-muted hover:text-primary transition-colors text-sm">Pricing</a></li>
                         <li><a href="#faq" class="text-muted hover:text-primary transition-colors text-sm">FAQ</a></li>
                     </ul>
                 </div>
@@ -911,7 +911,7 @@
                     <ul class="space-y-3">
                         <li><a href="#" data-clerk-signup class="text-muted hover:text-primary transition-colors text-sm">Get Started</a></li>
                         <li><a href="#" data-clerk-signin class="text-muted hover:text-primary transition-colors text-sm">Login</a></li>
-                        <li><a href="/dashboard.html" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
+                        <li><a href="/dashboard" class="text-muted hover:text-primary transition-colors text-sm">Dashboard</a></li>
                     </ul>
                 </div>
                 
@@ -919,9 +919,9 @@
                 <div>
                     <h4 class="font-clash font-semibold mb-4 text-text">Legal & Support</h4>
                     <ul class="space-y-3">
-                        <li><a href="/privacy.html" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
-                        <li><a href="/terms.html" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
-                        <li><a href="/contact.html" class="text-muted hover:text-primary transition-colors text-sm">Contact Us</a></li>
+                        <li><a href="/privacy" class="text-muted hover:text-primary transition-colors text-sm">Privacy Policy</a></li>
+                        <li><a href="/terms" class="text-muted hover:text-primary transition-colors text-sm">Terms of Service</a></li>
+                        <li><a href="/contact" class="text-muted hover:text-primary transition-colors text-sm">Contact Us</a></li>
                     </ul>
                 </div>
             </div>

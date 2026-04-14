@@ -125,8 +125,8 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Serve static files
-app.use(express.static('public'));
+// Serve static files with clean URLs (no .html extension required)
+app.use(express.static('public', { extensions: ['html'] }));
 
 // Serve admin.html at /admin route
 app.get('/admin', (req, res) => {

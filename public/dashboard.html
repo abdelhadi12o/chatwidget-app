@@ -222,7 +222,7 @@
   <!-- Trial Banner - shown for free plan users -->
   <div id="trial-banner" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); padding: 16px 24px; text-align: center; color: white; font-weight: 500; position: relative;">
     <span style="margin-right: 12px;">Your free trial ends on <strong id="trial-banner-date">DATE</strong>. Upgrade to keep your bots active!</span>
-    <a href="/pricing.html" style="background: white; color: #d97706; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block; transition: all 0.2s;">Upgrade Now</a>
+    <a href="/pricing" style="background: white; color: #d97706; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block; transition: all 0.2s;">Upgrade Now</a>
   </div>
 
   <div class="dashboard-layout">
@@ -339,7 +339,7 @@
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);"><i data-lucide="check" style="color: var(--success); width: 16px;"></i> Unlimited lead capture</div>
               <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);"><i data-lucide="check" style="color: var(--success); width: 16px;"></i> Full booking funnel access</div>
             </div>
-            <a href="/pricing.html" class="btn-primary" style="width: 100%; text-decoration: none; font-size: 16px; padding: 14px;">
+            <a href="/pricing" class="btn-primary" style="width: 100%; text-decoration: none; font-size: 16px; padding: 14px;">
               View Plans & Upgrade
             </a>
             <a href="#" onclick="signOut()" style="display: block; margin-top: 16px; color: var(--text-muted); font-size: 13px; text-decoration: none;">Sign Out</a>
@@ -836,7 +836,7 @@
               <a id="manage-sub-btn" href="https://app.lemonsqueezy.com/my-orders" target="_blank" style="display: none; background: var(--bg-sidebar); border: 1px solid var(--border-light); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 8px;">
                 Manage / Cancel Subscription
               </a>
-              <a id="upgrade-sub-btn" href="/pricing.html" style="display: none; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 8px;">
+              <a id="upgrade-sub-btn" href="/pricing" style="display: none; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 8px;">
                 Upgrade Plan
               </a>
             </div>
@@ -1686,7 +1686,7 @@
         }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = config.clerkSignInUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard.html');
+        window.location.href = config.clerkSignInUrl + '?redirect_url=' + encodeURIComponent(config.appUrl + '/dashboard');
       } catch(e) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
