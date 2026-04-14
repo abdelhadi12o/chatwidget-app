@@ -16,6 +16,12 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             hasSignature: !!req.headers['x-signature']
         });
 
+        console.log("=== ENV DIAGNOSTIC ===");
+        console.log("Variable code expects:", "LEMON_SQUEEZY_WEBHOOK_SECRET");
+        console.log("Is it undefined?:", process.env.LEMON_SQUEEZY_WEBHOOK_SECRET === undefined);
+        console.log("All LEMON keys found in server brain:", Object.keys(process.env).filter(key => key.toLowerCase().includes('lemon')));
+        console.log("======================");
+
         if (!secret) {
             console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
             return res.status(500).json({ error: 'Webhook secret not configured' });
