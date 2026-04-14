@@ -45,7 +45,17 @@
             }
         }
     </script>
-    
+
+    <!-- Clerk Authentication -->
+    <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_c3VpdGVkLW9yYW5ndXRhbi0xMi5jbGVyay5hY2NvdW50cy5kZXYk" src="https://suited-orangutan-12.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"></script>
+    <script>
+        window.addEventListener("load", async function () {
+            if (window.Clerk) {
+                await window.Clerk.load();
+            }
+        });
+    </script>
+
     <style>
         body {
             background-color: #080d14;
@@ -480,7 +490,7 @@
             const clerkReady = await waitForClerk();
 
             if (!clerkReady || !window.Clerk) {
-                alert('Unable to initialize checkout. Please refresh the page and try again.');
+                alert('Unable to connect to authentication service. Please refresh.');
                 if (clickedButton) {
                     clickedButton.innerHTML = originalText;
                     clickedButton.style.pointerEvents = '';
