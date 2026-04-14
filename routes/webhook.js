@@ -3,21 +3,51 @@ const router = express.Router();
 const crypto = require('crypto');
 const User = require('../models/User');
 
-// Make sure to add this to your .env file later!
-const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || 'your_temporary_secret_key';
+const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET;
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
-        const signature = req.headers['x-signature'];
-        if (!signature) return res.status(401).send('Missing signature');
+        // Debug logging - remove after fixing
+        console.log('[Webhook] Received request:', {
+            bodyType: typeof req.body,
+            isBuffer: Buffer.isBuffer(req.body),
+            bodyLength: req.body?.length,
+            contentType: req.headers['content-type'],
+            hasSignature: !!req.headers['x-signature']
+        });
 
+        if (!secret) {
+            console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
+            return res.status(500).json({ error: 'Webhook secret not configured' });
+        }
+
+        const signature = req.headers['x-signature'];
+        if (!signature) {
+            console.error('Missing x-signature header');
+            return res.status(401).send('Missing signature');
+        }
+
+        // req.body MUST be a raw Buffer for signature verification to work
+        if (!Buffer.isBuffer(req.body)) {
+            console.error('[Webhook] req.body is not a Buffer - body was parsed by middleware before reaching webhook route');
+            return res.status(500).json({ error: 'Server configuration error - body already parsed' });
+        }
+
+        // Verify signature using raw body buffer
         const hmac = crypto.createHmac('sha256', secret);
-        const digest = Buffer.from(hmac.update(req.body).digest('hex'), 'utf8');
+        hmac.update(req.body);
+        const digest = hmac.digest('hex');
+
+        // Use timing-safe comparison
+        const digestBuffer = Buffer.from(digest, 'utf8');
         const signatureBuffer = Buffer.from(signature, 'utf8');
 
-        if (digest.length !== signatureBuffer.length || !crypto.timingSafeEqual(digest, signatureBuffer)) {
+        if (digestBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(digestBuffer, signatureBuffer)) {
+            console.error('Signature mismatch:', { expected: digest, received: signature });
             return res.status(401).json({ error: 'Invalid signature' });
         }
+
+        console.log('[Webhook] Signature verified successfully');
 
         const payload = JSON.parse(req.body.toString());
         const eventName = payload.meta.event_name;
