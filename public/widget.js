@@ -383,6 +383,11 @@ class AIWidget {
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          const errorData = await response.json().catch(() => ({ message: 'This chatbot is currently unavailable.' }));
+          // Show friendly message to website visitors instead of technical error
+          throw new Error(errorData.message || 'This chatbot is currently unavailable.');
+        }
         throw new Error('Failed to send message');
       }
 
@@ -474,7 +479,11 @@ class AIWidget {
           lastMessage.remove();
         }
       }
-      this.addMessage('Sorry, I couldn\'t process your message.', 'ai');
+      // Show friendly message for limit errors vs generic errors
+      const errorMessage = error.message?.includes('unavailable')
+        ? 'This chatbot is currently unavailable. Please contact support or upgrade your plan to continue.'
+        : 'Sorry, I couldn\'t process your message.';
+      this.addMessage(errorMessage, 'ai');
     }
   }
 

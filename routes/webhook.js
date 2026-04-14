@@ -58,9 +58,13 @@ router.post('/lemon-squeezy', express.raw({ type: 'application/json' }), async (
         } else if (eventName === 'subscription_cancelled' || eventName === 'subscription_expired') {
             await User.findOneAndUpdate(
                 { clerkId: clerkId },
-                { plan: 'free', lemonSqueezySubscriptionStatus: obj.status }
+                {
+                    plan: 'free',
+                    lemonSqueezySubscriptionStatus: obj.status
+                },
+                { new: true }
             );
-            console.log(`❌ User ${clerkId} downgraded to free (trial expired)`);
+            console.log(`🚫 User ${clerkId} subscription cancelled. Downgraded to free plan.`);
         }
 
         res.status(200).send('OK');

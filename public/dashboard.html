@@ -219,6 +219,12 @@
 </head>
 <body>
 
+  <!-- Trial Banner - shown for free plan users -->
+  <div id="trial-banner" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); padding: 16px 24px; text-align: center; color: white; font-weight: 500; position: relative;">
+    <span style="margin-right: 12px;">Your free trial ends on <strong id="trial-banner-date">DATE</strong>. Upgrade to keep your bots active!</span>
+    <a href="/pricing.html" style="background: white; color: #d97706; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block; transition: all 0.2s;">Upgrade Now</a>
+  </div>
+
   <div class="dashboard-layout">
     
     <div id="mobileHeader" class="mobile-header">
@@ -809,6 +815,31 @@
               <button type="submit" id="savePasswordBtn" style="background: var(--bg-sidebar); border: 1px solid var(--border-light); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 8px;">Update Password</button>
               <div id="passwordMsg" style="font-size: 13px; display: none; text-align: center;"></div>
             </form>
+          </div>
+
+          <!-- Subscription Details -->
+          <div id="subscription-details" class="dark-panel" style="margin-bottom: 0;">
+            <h3 class="dark-panel-title"><i data-lucide="credit-card" style="color: var(--primary);"></i> Subscription</h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                <span style="color: var(--text-muted); font-size: 14px;">Account Created</span>
+                <span id="sub-created-at" style="color: white; font-weight: 500;">--</span>
+              </div>
+              <div id="trial-ends-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                <span style="color: var(--text-muted); font-size: 14px;">Trial Ends</span>
+                <span id="sub-trial-ends" style="color: white; font-weight: 500;">--</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-main); border-radius: 8px;">
+                <span style="color: var(--text-muted); font-size: 14px;">Current Plan</span>
+                <span id="sub-plan" style="color: var(--primary); font-weight: 600; text-transform: capitalize;">--</span>
+              </div>
+              <a id="manage-sub-btn" href="https://app.lemonsqueezy.com/my-orders" target="_blank" style="display: none; background: var(--bg-sidebar); border: 1px solid var(--border-light); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 8px;">
+                Manage / Cancel Subscription
+              </a>
+              <a id="upgrade-sub-btn" href="/pricing.html" style="display: none; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: white; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; margin-top: 8px;">
+                Upgrade Plan
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -1806,6 +1837,10 @@
     async function initializeDashboard() {
         try {
             const token = await window.Clerk.session.getToken();
+
+            // Load user subscription status
+            loadUserStatus();
+
             const response = await fetch('/api/chatbot/list', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -1842,6 +1877,77 @@
         } catch (error) {
             console.error("Failed to load dashboard:", error);
         }
+    }
+
+    // --- USER SUBSCRIPTION STATUS ---
+    async function loadUserStatus() {
+      try {
+        const token = await window.Clerk.session.getToken();
+        const response = await fetch('/api/chatbot/user/status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+          console.error('Failed to load user status:', response.status);
+          return;
+        }
+
+        const userData = await response.json();
+
+        // Format dates nicely (e.g., 'April 14, 2026')
+        const formatDate = (dateString) => {
+          if (!dateString) return 'N/A';
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        };
+
+        const createdAtFormatted = formatDate(userData.createdAt);
+        const trialEndsFormatted = formatDate(userData.trialEndsAt);
+
+        // Populate Account section
+        document.getElementById('sub-created-at').textContent = createdAtFormatted;
+        document.getElementById('sub-trial-ends').textContent = trialEndsFormatted;
+        document.getElementById('sub-plan').textContent = userData.plan || 'free';
+
+        const trialBanner = document.getElementById('trial-banner');
+        const trialBannerDate = document.getElementById('trial-banner-date');
+        const trialEndsRow = document.getElementById('trial-ends-row');
+        const manageSubBtn = document.getElementById('manage-sub-btn');
+        const upgradeSubBtn = document.getElementById('upgrade-sub-btn');
+
+        if (userData.plan === 'free') {
+          // Show trial banner with end date
+          trialBanner.style.display = 'block';
+          trialBannerDate.textContent = trialEndsFormatted;
+
+          // Show trial end date in Account section
+          trialEndsRow.style.display = 'flex';
+
+          // Hide manage/cancel button (user is on free plan)
+          manageSubBtn.style.display = 'none';
+
+          // Show upgrade button
+          upgradeSubBtn.style.display = 'block';
+        } else {
+          // Hide trial banner (user is paid)
+          trialBanner.style.display = 'none';
+
+          // Hide trial end date in Account section
+          trialEndsRow.style.display = 'none';
+
+          // Show manage/cancel button
+          manageSubBtn.style.display = 'flex';
+
+          // Hide upgrade button (user already has paid plan)
+          upgradeSubBtn.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error loading user status:', error);
+      }
     }
 
     // 2. DRAW THE BOT CARDS

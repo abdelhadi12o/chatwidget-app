@@ -5,7 +5,7 @@ const Lead = require('../models/Lead');
 const User = require('../models/User');
 const { scrapeWebsite } = require('../scraper/scrape');
 const requireAuth = require('../middleware/auth');
-const { checkSubscription } = require('../middleware/subscription');
+const { checkSubscription, PLAN_LIMITS } = require('../middleware/subscription');
 const Groq = require('groq-sdk');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -162,8 +162,7 @@ router.post('/create', strictCors, requireAuth, checkSubscription, async (req, r
     const botCount = await Chatbot.countDocuments({ userId: req.auth.userId });
     if (botCount >= req.planLimits.maxBots) {
         return res.status(403).json({
-            error: 'LIMIT_REACHED',
-            message: `Your ${req.dbUser.plan} plan is limited to ${req.planLimits.maxBots} chatbot(s). Please upgrade to create more.`
+            error: 'Plan limit reached. Please upgrade to create more bots.'
         });
     }
 
@@ -337,6 +336,31 @@ Free Trial: 7-day free trial with no credit card required. Direct users to /regi
       }
 
       if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
+
+      // === MESSAGE LIMIT CHECK ===
+      // Only check limits for real chatbots (not demo)
+      if (widgetId !== 'demo-widget') {
+        const owner = await User.findOne({ clerkId: chatbot.userId });
+        if (!owner) {
+          return res.status(404).json({ error: 'Bot owner not found' });
+        }
+
+        // Safely get plan and current count (fallback to 'free' and 0 for old accounts)
+        const userPlan = owner.plan || 'free';
+        const currentMessages = owner.monthlyMessageCount || 0;
+        const messageLimit = PLAN_LIMITS[userPlan].maxMessages;
+
+        // Enforce the Hard Lock
+        if (currentMessages >= messageLimit) {
+          return res.status(403).json({
+            error: 'MESSAGE_LIMIT_REACHED',
+            message: 'This chatbot is currently unavailable.'
+          });
+        }
+
+        // Use the schema helper method to properly increment and save
+        await owner.incrementMessageCount();
+      }
     }
 
     // === PROGRAMMATIC BOOKING INTENT DETECTION ===
@@ -588,8 +612,17 @@ router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async 
 });
 
 // Upload PDF and extract text - requires widgetId in body
-router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), (req, res) => {
+router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), async (req, res) => {
   try {
+    // Check plan permissions for PDF uploads (Pro plan required)
+    const user = await User.findOne({ clerkId: req.auth.userId });
+    // Allow 'free' (trial), 'pro', and 'agency'. Block 'starter'.
+    if (user.plan === 'starter') {
+      return res.status(403).json({
+        error: 'Advanced Knowledge Base (PDF Uploads) requires the Pro plan.'
+      });
+    }
+
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     // Validate file type
@@ -743,6 +776,15 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     if (!chatbot) {
       console.log(`   ERROR: Bot not found`);
       return res.status(404).json({ error: 'Chatbot not found' });
+    }
+
+    // Hard Lock: Check if starter user is trying to access Pro features
+    const user = await User.findOne({ clerkId: req.auth.userId });
+    if (user.plan === 'starter') {
+      // If a starter user tries to sneak in Pro features, block the request
+      if (req.body.systemPrompt !== undefined || req.body.webhookUrl !== undefined || req.body.zapierUrl !== undefined) {
+        return res.status(403).json({ error: 'System Prompt and Automations require the Pro plan.' });
+      }
     }
 
     const { botName, bubbleColor, welcomeMessage, position, leadCaptureTiming, quickReplies, botLogo, bookingLink, systemPrompt, launcherImage, bookingQuestions, whatsappNumber, enableBookingFlow, proactiveMessage, proactiveDelay, proactiveEnabled } = req.body;
@@ -992,6 +1034,13 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
   try {
     const { webhookUrl, widgetId } = req.body;
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+
+    // Hard Lock: Block starter users from using webhook automations
+    const user = await User.findOne({ clerkId: req.auth.userId });
+    if (user.plan === 'starter' && webhookUrl) {
+      return res.status(403).json({ error: 'System Prompt and Automations require the Pro plan.' });
+    }
+
     const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
@@ -1009,6 +1058,23 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Webhook save error:', error);
     res.status(500).json({ error: 'Failed to save webhook' });
+  }
+});
+
+// Get user status - returns plan, createdAt, and trialEndsAt
+router.get('/user/status', strictCors, requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ clerkId: req.auth.userId });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json({
+      plan: user.plan,
+      createdAt: user.createdAt,
+      trialEndsAt: user.trialEndsAt
+    });
+  } catch (error) {
+    console.error('User status error:', error);
+    res.status(500).json({ error: 'Failed to fetch user status' });
   }
 });
 
