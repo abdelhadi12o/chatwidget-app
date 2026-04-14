@@ -528,7 +528,7 @@
                 // 3. User is logged in - append clerk_id and redirect to checkout
                 const userId = user.id;
                 const separator = checkoutLink.includes('?') ? '&' : '?';
-                const checkoutUrlWithClerkId = `${checkoutLink}${separator}custom[clerk_id]=${encodeURIComponent(userId)}`;
+                const checkoutUrlWithClerkId = `${checkoutLink}${separator}checkout[custom][clerk_id]=${encodeURIComponent(userId)}`;
                 window.location.href = checkoutUrlWithClerkId;
             } else {
                 // 4. User is NOT logged in - open Clerk sign up modal
