@@ -455,16 +455,42 @@
 
         // Checkout handler - ensures user is logged in and appends clerk_id to checkout URL
         async function handleCheckout(checkoutLink) {
+            console.log('[handleCheckout] Starting checkout process...');
+
             // 1. Wait for Clerk to be fully loaded and ready
             const waitForClerk = async (maxAttempts = 50) => {
+                console.log('[waitForClerk] Starting Clerk readiness check, maxAttempts:', maxAttempts);
                 let attempts = 0;
                 while (attempts < maxAttempts) {
-                    if (window.Clerk && window.Clerk.isReady && window.Clerk.isReady()) {
+                    // Safer check: Clerk exists and is ready via multiple possible indicators
+                    const clerkExists = !!window.Clerk;
+                    const clerkLoaded = window.Clerk && (window.Clerk.loaded === true);
+                    const clerkIsReadyFn = window.Clerk && typeof window.Clerk.isReady === 'function';
+                    const clerkIsReady = clerkIsReadyFn ? window.Clerk.isReady() : false;
+                    const clerkHasUser = window.Clerk && window.Clerk.user !== undefined;
+
+                    const isReady = clerkExists && (clerkLoaded || clerkIsReady || clerkHasUser);
+
+                    if (attempts % 10 === 0) {
+                        console.log('[waitForClerk] Attempt', attempts, {
+                            clerkExists,
+                            clerkLoaded,
+                            clerkIsReadyFn,
+                            clerkIsReady,
+                            clerkHasUser,
+                            isReady
+                        });
+                    }
+
+                    if (isReady) {
+                        console.log('[waitForClerk] Clerk loaded successfully on attempt', attempts);
                         return true;
                     }
+
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
                 }
+                console.log('[waitForClerk] Clerk failed to load after', maxAttempts, 'attempts');
                 return false;
             };
 
@@ -477,9 +503,12 @@
                 clickedButton.style.opacity = '0.7';
             }
 
+            console.log('[handleCheckout] Waiting for Clerk to be ready...');
             const clerkReady = await waitForClerk();
+            console.log('[handleCheckout] Clerk ready state:', clerkReady, 'window.Clerk exists:', !!window.Clerk);
 
             if (!clerkReady || !window.Clerk) {
+                console.error('[handleCheckout] Clerk failed to load - showing alert');
                 alert('Unable to connect to authentication service. Please refresh.');
                 if (clickedButton) {
                     clickedButton.innerHTML = originalText;
@@ -489,8 +518,11 @@
                 return;
             }
 
+            console.log('[handleCheckout] Clerk loaded successfully');
+
             // 2. Check if user is logged in
             const user = window.Clerk.user;
+            console.log('[handleCheckout] User state:', user ? { id: user.id, email: user.emailAddresses?.[0]?.emailAddress } : 'not logged in');
 
             if (user && user.id) {
                 // 3. User is logged in - append clerk_id and redirect to checkout
