@@ -453,17 +453,65 @@
         window.addEventListener("scroll", reveal);
         reveal();
 
-        // Bouncer function for checkout - ensures user is logged in before payment
-        function handleCheckout(checkoutLink) {
-            // 1. Check if Clerk is loaded and the user is actually logged in
-            if (window.Clerk && window.Clerk.user) {
-                // 2. They are logged in! Attach their ID and send them to the payment page.
-                const userId = window.Clerk.user.id;
-                window.location.href = `${checkoutLink}?custom[clerk_id]=${userId}`;
+        // Checkout handler - ensures user is logged in and appends clerk_id to checkout URL
+        async function handleCheckout(checkoutLink) {
+            // 1. Wait for Clerk to be fully loaded and ready
+            const waitForClerk = async (maxAttempts = 50) => {
+                let attempts = 0;
+                while (attempts < maxAttempts) {
+                    if (window.Clerk && window.Clerk.isReady && window.Clerk.isReady()) {
+                        return true;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                return false;
+            };
+
+            // Show loading state
+            const clickedButton = event.target.closest('a, button');
+            const originalText = clickedButton ? clickedButton.innerHTML : null;
+            if (clickedButton) {
+                clickedButton.innerHTML = 'Loading...';
+                clickedButton.style.pointerEvents = 'none';
+                clickedButton.style.opacity = '0.7';
+            }
+
+            const clerkReady = await waitForClerk();
+
+            if (!clerkReady || !window.Clerk) {
+                alert('Unable to initialize checkout. Please refresh the page and try again.');
+                if (clickedButton) {
+                    clickedButton.innerHTML = originalText;
+                    clickedButton.style.pointerEvents = '';
+                    clickedButton.style.opacity = '';
+                }
+                return;
+            }
+
+            // 2. Check if user is logged in
+            const user = window.Clerk.user;
+
+            if (user && user.id) {
+                // 3. User is logged in - append clerk_id and redirect to checkout
+                const userId = user.id;
+                const separator = checkoutLink.includes('?') ? '&' : '?';
+                const checkoutUrlWithClerkId = `${checkoutLink}${separator}custom[clerk_id]=${encodeURIComponent(userId)}`;
+                window.location.href = checkoutUrlWithClerkId;
             } else {
-                // 3. They are NOT logged in! Force them to sign up first.
-                // This pops open the Clerk login window, and brings them right back here after.
-                window.Clerk.openSignUp({ redirectUrl: window.location.href });
+                // 4. User is NOT logged in - open Clerk sign up modal
+                // After sign up, they'll be redirected back to this page
+                window.Clerk.openSignUp({
+                    redirectUrl: window.location.href,
+                    afterSignUpUrl: window.location.href
+                });
+
+                // Restore button state
+                if (clickedButton) {
+                    clickedButton.innerHTML = originalText;
+                    clickedButton.style.pointerEvents = '';
+                    clickedButton.style.opacity = '';
+                }
             }
         }
     </script>

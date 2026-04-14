@@ -692,7 +692,7 @@
                             </li>
                         </ul>
 
-                        <a href="https://ultramora.lemonsqueezy.com/checkout/buy/de0c0dcc-1e15-4ba8-a037-c3995197a150" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
+                        <a href="#" onclick="handleCheckout('https://ultramora.lemonsqueezy.com/checkout/buy/de0c0dcc-1e15-4ba8-a037-c3995197a150'); return false;" class="block w-full py-4 text-center rounded-xl bg-surface border border-primary hover:bg-primary/10 text-primary font-bold transition-all mb-3 mt-auto">
                             Subscribe Now &rarr;
                         </a>
                         <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
@@ -739,7 +739,7 @@
                                 </li>
                             </ul>
                             
-                            <a href="https://ultramora.lemonsqueezy.com/checkout/buy/73b727ac-88f6-4fe5-bfbf-5dd9f3878a08" data-clerk-signup class="block w-full py-4 text-center rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-bg font-bold btn-glow transition-all mb-3 mt-auto">
+                            <a href="#" onclick="handleCheckout('https://ultramora.lemonsqueezy.com/checkout/buy/73b727ac-88f6-4fe5-bfbf-5dd9f3878a08'); return false;" class="block w-full py-4 text-center rounded-xl bg-gradient-to-r from-primary to-accent hover:opacity-90 text-bg font-bold btn-glow transition-all mb-3 mt-auto">
                                 Subscribe Now &rarr;
                             </a>
                             <p class="text-center text-xs text-muted">Billed monthly, cancel anytime</p>
@@ -1008,6 +1008,68 @@
         window.addEventListener("scroll", reveal);
         // Trigger once on load
         reveal();
+
+        // Checkout handler - ensures user is logged in and appends clerk_id to checkout URL
+        async function handleCheckout(checkoutLink) {
+            // 1. Wait for Clerk to be fully loaded and ready
+            const waitForClerk = async (maxAttempts = 50) => {
+                let attempts = 0;
+                while (attempts < maxAttempts) {
+                    if (window.Clerk && window.Clerk.isReady && window.Clerk.isReady()) {
+                        return true;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                return false;
+            };
+
+            // Show loading state
+            const clickedButton = event.target.closest('a, button');
+            const originalText = clickedButton ? clickedButton.innerHTML : null;
+            if (clickedButton) {
+                clickedButton.innerHTML = 'Loading...';
+                clickedButton.style.pointerEvents = 'none';
+                clickedButton.style.opacity = '0.7';
+            }
+
+            const clerkReady = await waitForClerk();
+
+            if (!clerkReady || !window.Clerk) {
+                alert('Unable to initialize checkout. Please refresh the page and try again.');
+                if (clickedButton) {
+                    clickedButton.innerHTML = originalText;
+                    clickedButton.style.pointerEvents = '';
+                    clickedButton.style.opacity = '';
+                }
+                return;
+            }
+
+            // 2. Check if user is logged in
+            const user = window.Clerk.user;
+
+            if (user && user.id) {
+                // 3. User is logged in - append clerk_id and redirect to checkout
+                const userId = user.id;
+                const separator = checkoutLink.includes('?') ? '&' : '?';
+                const checkoutUrlWithClerkId = `${checkoutLink}${separator}custom[clerk_id]=${encodeURIComponent(userId)}`;
+                window.location.href = checkoutUrlWithClerkId;
+            } else {
+                // 4. User is NOT logged in - open Clerk sign up modal
+                // After sign up, they'll be redirected back to this page
+                window.Clerk.openSignUp({
+                    redirectUrl: window.location.href,
+                    afterSignUpUrl: window.location.href
+                });
+
+                // Restore button state
+                if (clickedButton) {
+                    clickedButton.innerHTML = originalText;
+                    clickedButton.style.pointerEvents = '';
+                    clickedButton.style.opacity = '';
+                }
+            }
+        }
     </script>
     <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
 </body>
