@@ -1328,7 +1328,7 @@ function addWidgetStyles() {
     /* Force Desktop Positioning Above WhatsApp Widget */
     @media (min-width: 768px) {
       html body .ai-widget-bubble {
-        bottom: 85px !important;
+        bottom: 50px !important;
       }
       html body .ai-widget-chat {
         bottom: 160px !important;
@@ -1373,7 +1373,7 @@ function addWidgetStyles() {
     /* Proactive Welcome Bubble */
     .ultramora-proactive-wrapper {
       position: fixed !important;
-      bottom: 160px !important;
+      bottom: 132px !important;
       right: 24px !important;
       background: white !important;
       border-radius: 12px !important;
