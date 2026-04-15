@@ -26,18 +26,8 @@ const globalLimiter = rateLimit({
   message: { error: "Too many requests from this IP, please try again later." }
 });
 
-// Stricter rate limiter for authentication endpoints (prevents brute force)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per 15 minutes
-  message: { error: "Too many authentication attempts, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 // Apply rate limiting
 app.use('/api', globalLimiter);
-app.use('/api/auth', authLimiter);
 
 // Strict CORS for dashboard routes only (auth, chatbot management, config)
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
@@ -52,7 +42,6 @@ const strictCors = cors({
   credentials: true
 });
 
-app.use('/api/auth', strictCors);
 app.use('/api/config', strictCors);
 
 // Seed demo chatbot on startup
@@ -111,7 +100,6 @@ connectDB().then(() => {
 });
 
 // Routes
-app.use('/api/auth', strictCors, require('./routes/auth'));
 app.use('/api/chatbot', require('./routes/chatbot')); // CORS handled per-route inside router
 app.use('/api/admin', require('./routes/admin'));
 

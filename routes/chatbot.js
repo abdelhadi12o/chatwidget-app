@@ -9,50 +9,53 @@ const { checkSubscription, PLAN_LIMITS } = require('../middleware/subscription')
 const Groq = require('groq-sdk');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
-const dns = require('dns');
-const net = require('net');
 
-// SSRF Protection: Validate that a URL does not resolve to a private/internal IP
+// SSRF Protection: Strict Allowlist for Webhook URLs
+const ALLOWED_WEBHOOK_DOMAINS = [
+  'hooks.zapier.com',
+  'zapier.com',
+  'make.com',
+  'integromat.com',
+  'n8n.cloud',
+  'webhook.site',
+  'hook.integromat.com',
+  'pipedream.net',
+  'requestbin.com',
+  'webhookrelay.com',
+  'ngrok.io',
+  'ngrok-free.app',
+  'vercel.app',
+  'netlify.app',
+  'glitch.me',
+  'replit.dev',
+  'railway.app',
+  'render.com',
+  'fly.dev',
+  'workers.dev',
+  'deno.dev'
+];
+
 const validatePublicUrl = (urlString) => {
   try {
     const url = new URL(urlString);
+
+    // 1. Enforce HTTP/HTTPS only
     if (!['http:', 'https:'].includes(url.protocol)) {
       return { valid: false, reason: 'Only HTTP and HTTPS protocols are allowed' };
     }
-    const hostname = url.hostname;
-    // Block obvious internal hostnames
-    if (['localhost', '169.254.169.254', 'metadata.google.internal'].includes(hostname)) {
-      return { valid: false, reason: 'Access to internal services is not allowed' };
+
+    const hostname = url.hostname.toLowerCase();
+
+    // 2. Strict Allowlist: Check if hostname ends with any allowed domain
+    const isAllowed = ALLOWED_WEBHOOK_DOMAINS.some(allowedDomain =>
+      hostname === allowedDomain || hostname.endsWith('.' + allowedDomain)
+    );
+
+    if (!isAllowed) {
+      return { valid: false, reason: 'Webhook blocked: Domain not in allowlist' };
     }
-    // Resolve hostname to IP and check
-    return new Promise((resolve) => {
-      dns.lookup(hostname, { all: true }, (err, addresses) => {
-        if (err || !addresses) {
-          return resolve({ valid: false, reason: 'Could not resolve hostname' });
-        }
-        for (const addr of addresses) {
-          const ip = addr.address;
-          // Check if any IP is private/internal
-          if (
-            ip.startsWith('10.') ||                      // 10.0.0.0/8
-            ip.startsWith('127.') ||                     // 127.0.0.0/8 (loopback)
-            ip === '169.254.169.254' ||                   // AWS metadata
-            ip.startsWith('169.254.') ||                  // 169.254.0.0/16 (link-local)
-            ip.startsWith('::1') ||                       // ::1 (IPv6 loopback)
-            ip.startsWith('fd') ||                         // IPv6 unique local
-            ip.startsWith('fc') ||                         // IPv6 unique local
-            (ip.startsWith('fe80:') && ip.startsWith('fe80:')) || // IPv6 link-local
-            net.isIPv4(ip) && (                          // 172.16.0.0/12 and 192.168.0.0/16
-              ip.split('.')[0] === '172' && parseInt(ip.split('.')[1]) >= 16 && parseInt(ip.split('.')[1]) <= 31 ||
-              ip.startsWith('192.168.')
-            )
-          ) {
-            return resolve({ valid: false, reason: 'Access to internal/private networks is not allowed' });
-          }
-        }
-        resolve({ valid: true });
-      });
-    });
+
+    return { valid: true };
   } catch {
     return { valid: false, reason: 'Invalid URL format' };
   }
@@ -971,22 +974,28 @@ router.post('/lead', publicCors, async (req, res) => {
 
     if (chatbot.webhookUrl && chatbot.webhookUrl.trim() !== '') {
       try {
-        fetch(chatbot.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event: 'new_lead_captured',
-            botName: chatbot.customization?.botName || 'AI Assistant',
-            websiteUrl: chatbot.websiteUrl,
-            lead: {
-              name: name,
-              whatsapp: whatsapp,
-              email: email || 'Not provided',
-              question: question || 'No context'
-            },
-            timestamp: new Date().toISOString()
-          })
-        }).catch(err => console.error('Webhook delivery failed (Network):', err.message));
+        // SSRF Protection: Validate webhook URL before fetching
+        const validation = validatePublicUrl(chatbot.webhookUrl);
+        if (!validation.valid) {
+          console.error(`[SSRF Blocked] ${validation.reason} for URL: ${chatbot.webhookUrl}`);
+        } else {
+          fetch(chatbot.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'new_lead_captured',
+              botName: chatbot.customization?.botName || 'AI Assistant',
+              websiteUrl: chatbot.websiteUrl,
+              lead: {
+                name: name,
+                whatsapp: whatsapp,
+                email: email || 'Not provided',
+                question: question || 'No context'
+              },
+              timestamp: new Date().toISOString()
+            })
+          }).catch(err => console.error('Webhook delivery failed (Network):', err.message));
+        }
       } catch (webhookError) {
         console.error('Webhook execution error:', webhookError.message);
       }
@@ -1045,7 +1054,7 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     if (webhookUrl) {
-      const validation = await validatePublicUrl(webhookUrl);
+      const validation = validatePublicUrl(webhookUrl);
       if (!validation.valid) {
         return res.status(400).json({ error: 'Invalid webhook URL: ' + validation.reason });
       }
