@@ -11,6 +11,20 @@ const escapeHTML = (str) => {
   );
 };
 
+const formatMessage = (text) => {
+  if (!text) return '';
+  // First, escape HTML to prevent XSS
+  let safeText = escapeHTML(text);
+
+  // Convert bold (**text**)
+  safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  // Convert bullet points (* text or - text) into a cleaner format
+  safeText = safeText.replace(/(^|\n)[\*\-]\s+(.*)/g, '$1• $2');
+
+  return safeText;
+};
+
 class AIWidget {
   constructor(widgetId) {
     this.widgetId = widgetId;
@@ -327,15 +341,24 @@ class AIWidget {
     if (allowHtml) {
       // If HTML is allowed, use content as-is (for booking funnel completion)
       text = content;
+    } else if (sender === 'ai') {
+      // AI messages: use formatMessage for Markdown support (bold, bullets)
+      // white-space: pre-wrap in CSS handles line breaks naturally
+      text = formatMessage(content);
+
+      // Convert Markdown links [Text](URL) into clickable styled links
+      text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600;">$1</a>');
+
+      // Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
+      text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
     } else {
-      // Normal text processing
+      // User messages: standard text processing
       text = content.replace(/\n/g, '<br>');
 
       // 1. Convert Markdown links [Text](URL) into clickable styled links
       text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600;">$1</a>');
 
       // 2. Convert plain raw URLs (that aren't already part of an HTML tag) into clickable styled links
-      // We use word-break to ensure long URLs don't break out of the chat bubble
       text = text.replace(/(^|\s)(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" style="color: #06b6d4; text-decoration: underline; font-weight: 600; word-break: break-all;">$2</a>');
     }
 
