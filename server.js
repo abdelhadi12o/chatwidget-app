@@ -3,12 +3,77 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require('helmet');
 const connectDB = require('./database');
 const Chatbot = require('./models/Chatbot');
 const path = require('path');
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
+// HTTPS redirect middleware - only in production
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-proto'] !== 'https') {
+    const targetHost = process.env.NODE_ENV === 'production' ? 'ultramora.com' : req.headers.host;
+    return res.redirect('https://' + targetHost + req.url);
+  }
+  next();
+});
+
+// Security headers with Helmet - configured to allow widget embedding and external resources
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "'unsafe-eval'",
+                "https://cdn.jsdelivr.net",
+                "https://cdn.tailwindcss.com",
+                "https://cdnjs.cloudflare.com",
+                "https://ultramora.com",
+                "http://localhost:3000",
+                "blob:"
+            ],
+            scriptSrcAttr: ["'unsafe-inline'"],
+            workerSrc: ["'self'", "blob:"],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://api.fontshare.com",
+                "https://fonts.googleapis.com",
+                "https://cdn.jsdelivr.net"
+            ],
+            fontSrc: ["*", "data:"],
+            connectSrc: [
+                "'self'",
+                "https://api.clerk.dev",
+                "https://*.clerk.accounts.dev",
+                "https://cdn.jsdelivr.net",
+                "https://cdnjs.cloudflare.com",
+                "http://localhost:3000",
+                "https://ultramora.com"
+            ],
+            imgSrc: ["*", "data:", "blob:"],
+            frameAncestors: ["*"],
+            frameSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: []
+        }
+    },
+    // Allow widget.js to be loaded cross-origin via iframe/script tag
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginEmbedderPolicy: false,
+    // Disable frameguard - frameAncestors directive handles this better for widgets
+    frameguard: false,
+    // HSTS only in production to avoid locking out localhost
+    hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+    // Explicitly enable nosniff
+    xContentTypeOptions: true,
+    // Set Referrer Policy
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+}));
 
 // 1. Mount webhook BEFORE global JSON parsing (required for signature verification)
 const webhookRoutes = require('./routes/webhook');
@@ -19,11 +84,22 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(mongoSanitize()); // Strip MongoDB operator injection attempts
 
-// Global rate limiter for all API routes
+// Anti-Prototype Pollution Middleware - rejects malicious prototype keys
+app.use((req, res, next) => {
+  const payloadStr = JSON.stringify(req.body) + JSON.stringify(req.query);
+  if (payloadStr.includes('__proto__') || payloadStr.includes('constructor"')) {
+    return res.status(400).json({ error: 'Invalid request payload structure' });
+  }
+  next();
+});
+
+// 1. Global API Limiter - 15 minutes, 100 requests per IP
 const globalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  message: { error: "Too many requests from this IP, please try again later." }
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per IP per window
+  message: { error: "Too many requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
 // Apply rate limiting
@@ -53,32 +129,7 @@ const seedDemoChatbot = async () => {
         userId: 'demo',
         websiteUrl: 'chatwidget.com',
         scrapedContent: [
-          `IMPORTANT PRICING INFORMATION:
-
-Starter Plan - $29/month:
-- 1 chatbot
-- 1,000 messages per month
-- Basic knowledge base
-- Email lead capture
-
-Pro Plan (Most Popular) - $79/month:
-- Up to 3 chatbots
-- 5,000 messages per month
-- Advanced knowledge base (PDFs up to 5MB)
-- Automations (Webhooks/Zapier)
-- The AI Brain (custom system prompt)
-
-Agency Plan - $199/month:
-- Up to 10 chatbots
-- 20,000 messages per month
-- Unlimited knowledge base
-- Developer access (API + documentation)
-- White-glove support (1-hour onboarding)
-
-Free Trial:
-- 7-day free trial with no credit card required
-
-When users ask about pricing, be helpful and concise. Provide the exact prices and features as listed above. Always mention that there's a 7-day free trial with no credit card required. Direct users to /register.html to get started.`
+          `I can help answer questions about our platform and its features. For detailed pricing information, please visit our pricing page.`
         ],
         widgetId: 'demo-widget',
         isActive: true,
@@ -129,6 +180,5 @@ app.get('/', (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ SERVER STARTED - Booking Flow Debug Enabled - Port ${PORT}`);
-  console.log(`⏰ ${new Date().toISOString()}`);
+  console.log(`✅ SERVER STARTED - Port ${PORT}`);
 });

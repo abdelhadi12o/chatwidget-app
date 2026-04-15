@@ -7,21 +7,6 @@ const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET;
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
-        // Debug logging - remove after fixing
-        console.log('[Webhook] Received request:', {
-            bodyType: typeof req.body,
-            isBuffer: Buffer.isBuffer(req.body),
-            bodyLength: req.body?.length,
-            contentType: req.headers['content-type'],
-            hasSignature: !!req.headers['x-signature']
-        });
-
-        console.log("=== ENV DIAGNOSTIC ===");
-        console.log("Variable code expects:", "LEMON_SQUEEZY_WEBHOOK_SECRET");
-        console.log("Is it undefined?:", process.env.LEMON_SQUEEZY_WEBHOOK_SECRET === undefined);
-        console.log("All LEMON keys found in server brain:", Object.keys(process.env).filter(key => key.toLowerCase().includes('lemon')));
-        console.log("======================");
-
         if (!secret) {
             console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
             return res.status(500).json({ error: 'Webhook secret not configured' });
@@ -49,11 +34,9 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         const signatureBuffer = Buffer.from(signature, 'utf8');
 
         if (digestBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(digestBuffer, signatureBuffer)) {
-            console.error('Signature mismatch:', { expected: digest, received: signature });
+            console.error('Signature mismatch: Invalid webhook signature');
             return res.status(401).json({ error: 'Invalid signature' });
         }
-
-        console.log('[Webhook] Signature verified successfully');
 
         const payload = JSON.parse(req.body.toString());
         const eventName = payload.meta.event_name;

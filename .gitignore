@@ -1,3 +1,12 @@
 node_modules/
 .env
 db.json
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.s3db
+*.sl3
+*.ldb
+*.mdb
+*.accdb

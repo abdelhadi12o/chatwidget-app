@@ -1,6 +1,110 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { URL } = require('url');
+const dns = require('dns').promises;
+const net = require('net');
+
+// SSRF Protection: Validate URL and resolved IP against private/reserved ranges
+const validateUrl = async (urlString) => {
+  // 1. Parse the URL
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(urlString);
+  } catch (error) {
+    throw new Error('Invalid URL format');
+  }
+
+  // 2. Ensure protocol is strictly http: or https:
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('Only HTTP and HTTPS protocols are allowed');
+  }
+
+  const hostname = parsedUrl.hostname;
+
+  // 3. Resolve hostname to IP address using DNS
+  let resolvedAddresses;
+  try {
+    resolvedAddresses = await dns.lookup(hostname, { all: true });
+  } catch (error) {
+    throw new Error(`DNS resolution failed: ${error.message}`);
+  }
+
+  if (!resolvedAddresses || resolvedAddresses.length === 0) {
+    throw new Error('DNS resolution returned no addresses');
+  }
+
+  // 4. Check each resolved IP against the denylist
+  for (const { address } of resolvedAddresses) {
+    if (isIpBlocked(address)) {
+      throw new Error(`Access to ${address} (${hostname}) is blocked: private/reserved IP range`);
+    }
+  }
+
+  return parsedUrl;
+};
+
+// Helper function to check if an IP is in a CIDR range
+const isIpInCidr = (ip, cidr) => {
+  const [range, prefixLength] = cidr.split('/');
+  const prefix = parseInt(prefixLength, 10);
+
+  // Convert IP to numeric value
+  const ipToNumeric = (addr) => {
+    const parts = addr.split('.').map(Number);
+    return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+  };
+
+  const ipNum = ipToNumeric(ip);
+  const rangeNum = ipToNumeric(range);
+  const mask = ~((1 << (32 - prefix)) - 1);
+
+  return (ipNum & mask) === (rangeNum & mask);
+};
+
+// Check if IP is blocked (private/reserved ranges)
+const isIpBlocked = (ip) => {
+  // IPv6 localhost
+  if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') {
+    return true;
+  }
+
+  // IPv6 private ranges (fc00::/7)
+  if (ip.includes(':')) {
+    // For simplicity, block all IPv6 that aren't globally routable
+    // fc00::/7 - Unique local addresses
+    // fe80::/10 - Link-local addresses
+    // ::/128 - Unspecified
+    // ::1/128 - Loopback
+    // Full IPv6 checking is complex, so we'll be conservative
+    const ipv6BlockedPrefixes = ['fc', 'fd', 'fe', 'ff', '::'];
+    const lowerIp = ip.toLowerCase();
+    if (ipv6BlockedPrefixes.some(prefix => lowerIp.startsWith(prefix))) {
+      return true;
+    }
+    return false;
+  }
+
+  // IPv4 ranges
+  const blockedRanges = [
+    '127.0.0.0/8',    // Localhost
+    '10.0.0.0/8',     // Private network
+    '172.16.0.0/12',  // Private network
+    '192.168.0.0/16', // Private network
+    '169.254.0.0/16', // Link-local / Cloud metadata
+    '0.0.0.0/8',      // Current network
+    '100.64.0.0/10',  // Carrier-grade NAT
+    '192.0.0.0/24',   // IETF protocol assignments
+    '192.0.2.0/24',   // TEST-NET-1 (documentation)
+    '198.18.0.0/15',  // Benchmark testing
+    '198.51.100.0/24',// TEST-NET-2 (documentation)
+    '203.0.113.0/24', // TEST-NET-3 (documentation)
+    '224.0.0.0/4',    // Multicast
+    '240.0.0.0/4',    // Reserved
+    '255.255.255.255/32' // Broadcast
+  ];
+
+  return blockedRanges.some(range => isIpInCidr(ip, range));
+};
 
 // Extract text content from a page, excluding unwanted sections
 const extractTextFromPage = (html, pageUrl) => {
@@ -126,9 +230,13 @@ const findInternalLinks = async (baseUrl, html) => {
 // Main scraping function with multi-page support
 const scrapeWebsite = async (url, onProgress) => {
   try {
+    // SSRF Protection: Validate the URL before making any request
+    const validatedUrl = await validateUrl(url);
+    const validatedBaseUrl = validatedUrl.href; // Use validated URL
+
     onProgress?.('Scraping homepage...');
 
-    const response = await axios.get(url, {
+    const response = await axios.get(validatedBaseUrl, {
       timeout: 15000,
       httpsAgent: new (require('https').Agent)({ rejectUnauthorized: true }),
       headers: {
@@ -164,13 +272,23 @@ const scrapeWebsite = async (url, onProgress) => {
       const pageUrl = pagesArray[i];
 
       if (scrapedPages.has(pageUrl)) continue;
+
+      // SSRF Protection: Validate each internal page URL before scraping
+      let validatedPageUrl;
+      try {
+        validatedPageUrl = await validateUrl(pageUrl);
+      } catch (error) {
+        console.error(`[SSRF Blocked] Skipping ${pageUrl}: ${error.message}`);
+        continue;
+      }
+
       scrapedPages.add(pageUrl);
 
       const path = new URL(pageUrl).pathname;
       onProgress?.(`Scraping${path !== '/' ? ` ${path}` : ' homepage'}... (${i + 1}/${pagesArray.length})`);
 
       try {
-        const pageResponse = await axios.get(pageUrl, {
+        const pageResponse = await axios.get(validatedPageUrl.href, {
           timeout: 10000,
           httpsAgent: new (require('https').Agent)({ rejectUnauthorized: true }),
           headers: {

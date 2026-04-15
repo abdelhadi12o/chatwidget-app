@@ -1,3 +1,16 @@
+const escapeHTML = (str) => {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g,
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag])
+  );
+};
+
 class AIWidget {
   constructor(widgetId) {
     this.widgetId = widgetId;
@@ -144,7 +157,7 @@ class AIWidget {
       <button class="ultramora-proactive-close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-      <p class="ultramora-proactive-text">${this.botConfig.proactiveMessage}</p>
+      <p class="ultramora-proactive-text">${escapeHTML(this.botConfig.proactiveMessage)}</p>
     `;
 
     // Append to document.body to ensure it's always visible and above all other elements
@@ -251,7 +264,15 @@ class AIWidget {
                 });
 
                 // Clean the phone number and build the link
-                const cleanPhone = (this.botConfig.whatsappNumber || '').replace(/[^0-9]/g, '');
+                const cleanPhone = (this.botConfig.whatsappNumber || '').replace(/\D/g, '');
+
+                // Validate phone number - must be at least 7 digits (basic sanity check for international numbers)
+                if (!cleanPhone || cleanPhone.length < 7) {
+                    console.error('ChatWidget: Invalid WhatsApp configuration');
+                    this.addMessage('Sorry, there was an error preparing your booking. Please contact support.', 'bot');
+                    return;
+                }
+
                 const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
 
             const completeHtml = `
@@ -406,13 +427,7 @@ class AIWidget {
       let displayAnswer = data.answer;
       const hasBookingTrigger = displayAnswer.includes('[TRIGGER_BOOKING]');
 
-      console.log('🔍 Booking check:', {
-        hasTrigger: hasBookingTrigger,
-        enableBookingFlow: this.botConfig.enableBookingFlow,
-        questionsCount: this.botConfig.bookingQuestions.length,
-        bookingCompleted: this.bookingCompleted,
-        userSaysAlreadyBooked: userSaysAlreadyBooked
-      });
+      // Booking funnel check logic
 
       if (hasBookingTrigger) {
           displayAnswer = displayAnswer.replace(/\[TRIGGER_BOOKING\]/g, '').trim();
@@ -428,7 +443,6 @@ class AIWidget {
       if (hasBookingTrigger && this.botConfig.enableBookingFlow === true && this.botConfig.bookingQuestions.length > 0) {
 
           if (this.bookingCompleted) {
-              console.log('⏩ Skipping booking funnel - already completed this session');
               setTimeout(() => {
                   this.addMessage("You've already completed a booking request in this chat! ✓ Check the WhatsApp button above to send your booking, or let me know if you need help with something else.", 'ai');
               }, 800);
@@ -436,14 +450,12 @@ class AIWidget {
           }
 
           if (userSaysAlreadyBooked) {
-              console.log('⏩ Skipping booking funnel - user says they already booked');
               setTimeout(() => {
                   this.addMessage("It sounds like you've already submitted a booking request! Check above for the WhatsApp button to complete it, or let me know if you need help with something else.", 'ai');
               }, 800);
               return;
           }
 
-          console.log('✅ Starting booking funnel');
           this.isBookingMode = true;
           this.currentBookingStep = 0;
           this.bookingAnswers = [];
@@ -466,7 +478,7 @@ class AIWidget {
       }
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('ChatWidget: Message processing failed');
       if (this.isTyping) {
         this.removeTypingIndicator();
       }
@@ -598,8 +610,6 @@ async function initWidget() {
   const widgetId = scriptTag.getAttribute('data-chatbot-id') || scriptTag.getAttribute('data-widget-id');
   if (!widgetId) return console.error('ChatWidget: Missing widget ID (look for data-chatbot-id in the embed script)');
 
-  console.log('ChatWidget: Initializing for bot:', widgetId);
-
   let settings = null;
 
   // 3. Fetch settings BEFORE building the widget to prevent color flashing
@@ -614,12 +624,11 @@ async function initWidget() {
     });
     if (response.ok) {
       settings = await response.json();
-      console.log('📥 RAW settings from API:', JSON.stringify(settings));
     } else {
-      console.error('❌ Failed to fetch settings, status:', response.status);
+      console.error('ChatWidget: Failed to load settings');
     }
   } catch (error) {
-    console.error('❌ Failed to fetch widget settings:', error.message);
+    console.error('ChatWidget: Failed to load settings');
   }
 
   // 4. Now build the widget and apply styles synchronously so the browser paints it perfectly on the first frame
@@ -639,23 +648,15 @@ async function initWidget() {
     }
     applyCustomization(settings.customization, widget);
     // Load booking funnel config from settings
-    console.log('🔧 Raw settings.enableBookingFlow:', settings.enableBookingFlow, 'type:', typeof settings.enableBookingFlow);
     widget.botConfig.enableBookingFlow = Boolean(settings.enableBookingFlow);
     widget.botConfig.bookingQuestions = settings.bookingQuestions || [];
     widget.botConfig.whatsappNumber = settings.whatsappNumber || '';
     widget.botConfig.proactiveMessage = settings.proactiveMessage || '👋 Hi there! Have any questions?';
     widget.botConfig.proactiveDelay = settings.proactiveDelay !== undefined ? settings.proactiveDelay : 3;
     widget.botConfig.proactiveEnabled = settings.proactiveEnabled !== undefined ? settings.proactiveEnabled : true;
-    console.log('📦 Booking config loaded:', {
-      enableBookingFlow: widget.botConfig.enableBookingFlow,
-      bookingQuestions: widget.botConfig.bookingQuestions.length,
-      whatsappNumber: widget.botConfig.whatsappNumber ? 'set' : 'not set'
-    });
 
     // Initialize proactive welcome bubble
     widget.initProactiveBubble();
-  } else {
-    console.warn('⚠️ No settings received or missing customization:', settings);
   }
 }
 
