@@ -34,6 +34,7 @@ app.use(helmet({
                 "https://cdnjs.cloudflare.com",
                 "https://ultramora.com",
                 "http://localhost:3000",
+                "https://static.cloudflareinsights.com",
                 "blob:"
             ],
             scriptSrcAttr: ["'unsafe-inline'"],
@@ -53,7 +54,10 @@ app.use(helmet({
                 "https://cdn.jsdelivr.net",
                 "https://cdnjs.cloudflare.com",
                 "http://localhost:3000",
-                "https://ultramora.com"
+                "https://ultramora.com",
+                "https://clerk.ultramora.com",
+                "https://cloudflareinsights.com",
+                "https://static.cloudflareinsights.com"
             ],
             imgSrc: ["*", "data:", "blob:"],
             frameAncestors: ["*"],
