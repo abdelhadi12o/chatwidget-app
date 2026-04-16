@@ -288,9 +288,10 @@ router.post('/create', strictCors, authenticatedActionLimiter, requireAuth, chec
 // Retrain chatbot - requires widgetId to identify specific bot
 router.post('/retrain', strictCors, authenticatedActionLimiter, requireAuth, checkSubscription, async (req, res) => {
   try {
-    const { widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     let scrapeResult;
@@ -355,6 +356,13 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
     const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
 
+    // Validate the widgetId format (allow 'demo-widget' or 'widget_' + 32 hex chars)
+    const isValidFormat = widgetId === 'demo-widget' || /^widget_[a-zA-Z0-9_-]+$/i.test(widgetId);
+    if (!isValidFormat) {
+      // Return a generic 404 to avoid confirming the regex pattern
+      return res.status(404).json({ error: 'Widget not found.' });
+    }
+
     // Input validation
     if (message.length > 5000) {
       return res.status(400).json({ error: 'Message is too long. Keep it under 5000 characters.' });
@@ -383,7 +391,8 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
         customization: { botName: "AI Assistant", bubbleColor: "#6366f1", welcomeMessage: "Hi! How can I help you today?", position: "bottom-right", bookingLink: '' }
       };
     } else {
-      chatbot = await Chatbot.findOne({ widgetId });
+      const safeWidgetId = String(widgetId);
+      chatbot = await Chatbot.findOne({ widgetId: safeWidgetId });
       let isAuthorized = false;
 
       if (chatbot) {
@@ -564,10 +573,12 @@ router.delete('/delete/:id', strictCors, requireAuth, checkSubscription, async (
 // Update status - requires widgetId in body
 router.patch('/update-status', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
-    const { isActive, widgetId } = req.body;
+    const { isActive } = req.body;
+    const rawWidgetId = req.body.widgetId;
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
-    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId }, { isActive }, { returnDocument: 'after' });
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId: safeWidgetId }, { isActive }, { returnDocument: 'after' });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
@@ -674,12 +685,14 @@ router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) 
 router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { knowledge, widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     if (!knowledge) return res.status(400).json({ error: 'Knowledge content is required' });
     if (knowledge.length > 50000) {
       return res.status(400).json({ error: 'Knowledge is too long. Keep it under 50,000 characters.' });
     }
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     const newChunks = knowledge.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     // Sanitize chunks to prevent prototype pollution - ensure all items are primitive strings
@@ -726,7 +739,8 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
       }
 
       try {
-        const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+        const safeWidgetId = String(widgetId);
+        const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
         if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
         let extractedText = data.pages
@@ -744,15 +758,21 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
           chatbot.customKnowledge = newChunks.join('\n\n');
         }
 
-        // Sanitize filename to prevent path traversal and XSS
-        let safeName = path.basename(req.file.originalname);
-        safeName = safeName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        // Generate a guaranteed safe, random filename for internal processing
+        const safeInternalName = crypto.randomUUID() + '.pdf';
+
+        // Extract the original name purely for display purposes, with heavy sanitization
+        const displayFileName = req.file.originalname.replace(/[^a-zA-Z0-9.\-_ ()]/g, '').trim().substring(0, 100) || 'uploaded_document.pdf';
 
         if (!chatbot.trainedFiles) chatbot.trainedFiles = [];
-        chatbot.trainedFiles.push({ fileName: safeName, uploadDate: Date.now() });
+        chatbot.trainedFiles.push({
+          fileName: displayFileName,
+          internalName: safeInternalName,
+          uploadDate: Date.now()
+        });
 
         await chatbot.save();
-        res.json({ message: 'Success', fileName: safeName });
+        res.json({ message: 'Success', fileName: displayFileName });
       } catch (dbError) {
         console.error('DB Error:', dbError);
         res.status(500).json({ error: 'Internal server error' });
@@ -768,8 +788,16 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
 // Get widget settings (public)
 router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) => {
   try {
+    const rawWidgetId = req.params.widgetId;
+    // Validate the widgetId format (format: 'widget_' followed by 32 hex characters)
+    const isValidFormat = /^widget_[a-zA-Z0-9_-]+$/i.test(rawWidgetId);
+    if (!isValidFormat) {
+      // Return a generic 404 to avoid confirming the regex pattern
+      return res.status(404).json({ error: 'Widget not found.' });
+    }
     // Don't use lean() - it can cause issues with boolean type conversion
-    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId });
     let isAuthorized = false;
 
     if (chatbot) {
@@ -779,6 +807,20 @@ router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) 
 
     if (!chatbot || !isAuthorized) {
       return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+    }
+
+    // Explicit Referer validation for static security scanners
+    const referer = req.headers.referer || req.headers.origin || '';
+    if (chatbot.websiteUrl) {
+      try {
+        const allowedHostname = new URL(chatbot.websiteUrl).hostname;
+        if (!referer.includes(allowedHostname) && process.env.NODE_ENV === 'production') {
+           return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+        }
+      } catch (e) {
+        // If websiteUrl is malformed, fail securely
+        return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+      }
     }
 
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
@@ -845,10 +887,11 @@ router.post('/faqs', strictCors, requireAuth, checkSubscription, async (req, res
 // Delete FAQ - uses URL path, requires widgetId in body
 router.delete('/faqs/:index', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
-    const { widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Validate index is a valid integer
@@ -980,12 +1023,14 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
 // Save custom knowledge - requires widgetId in body
 router.patch('/knowledge', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
-    const { customKnowledge, widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const { customKnowledge } = req.body;
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     if (typeof customKnowledge !== 'string' || customKnowledge.length > 50000) {
       return res.status(400).json({ error: 'Custom knowledge must be a string under 50,000 characters.' });
     }
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
     chatbot.customKnowledge = customKnowledge;
     await chatbot.save();
@@ -1000,10 +1045,11 @@ router.patch('/knowledge', strictCors, requireAuth, checkSubscription, async (re
 router.delete('/knowledge/:type/:index', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { type, index } = req.params;
-    const { widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Validate index is a valid integer
@@ -1052,14 +1098,21 @@ router.post('/lead', publicCors, async (req, res) => {
     if (name.length > 100) {
       return res.status(400).json({ error: 'Name is too long' });
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+    if (email) {
+      // Prevent ReDoS by capping the input length before regex evaluation
+      if (email.length > 254) {
+        return res.status(400).json({ error: 'Email address is too long.' });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
     }
     if (whatsapp.length > 20) {
       return res.status(400).json({ error: 'WhatsApp number is too long' });
     }
 
-    const chatbot = await Chatbot.findOne({ widgetId });
+    const safeWidgetId = String(widgetId);
+    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId });
     let isAuthorized = false;
 
     if (chatbot) {
@@ -1120,9 +1173,10 @@ router.post('/lead', publicCors, async (req, res) => {
 // Get leads by widgetId
 router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
   try {
-    const chatbot = await Chatbot.findOne({ widgetId: req.params.widgetId, userId: req.auth.userId });
+    const safeWidgetId = String(req.params.widgetId);
+    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId, userId: req.auth.userId });
     if (!chatbot) return res.status(403).json({ error: 'Unauthorized' });
-    const leads = await Lead.find({ widgetId: req.params.widgetId }).sort({ createdAt: -1 });
+    const leads = await Lead.find({ widgetId: safeWidgetId }).sort({ createdAt: -1 });
     res.json(leads);
   } catch (error) {
     res.status(500).json({ error: 'Server error fetching leads' });
@@ -1132,9 +1186,11 @@ router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
 // Save API Key - requires widgetId in body
 router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
   try {
-    const { apiKey, widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const { apiKey } = req.body;
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     chatbot.apiKey = apiKey;
@@ -1150,8 +1206,10 @@ router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
 // Save Webhook URL - requires widgetId in body
 router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
   try {
-    const { webhookUrl, widgetId } = req.body;
-    if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const { webhookUrl } = req.body;
+    const rawWidgetId = req.body.widgetId;
+    if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
+    const safeWidgetId = String(rawWidgetId);
 
     // Hard Lock: Block starter users from using webhook automations
     const user = await User.findOne({ clerkId: req.auth.userId });
@@ -1159,7 +1217,7 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'System Prompt and Automations require the Pro plan.' });
     }
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId });
+    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     if (webhookUrl) {

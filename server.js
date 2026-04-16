@@ -72,7 +72,7 @@ app.use(helmet({
     // Disable frameguard - frameAncestors directive handles this better for widgets
     frameguard: false,
     // HSTS only in production to avoid locking out localhost
-    hsts: process.env.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+    hsts: process.env.NODE_ENV === 'production' ? { maxAge: 63072000, includeSubDomains: true, preload: true } : false,
     // Explicitly enable nosniff
     xContentTypeOptions: true,
     // Set Referrer Policy
@@ -84,16 +84,33 @@ const webhookRoutes = require('./routes/webhook');
 app.use('/api/webhook', webhookRoutes);
 
 // 2. Global JSON parser MUST come after webhook route
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(mongoSanitize()); // Strip MongoDB operator injection attempts
 
-// Anti-Prototype Pollution Middleware - rejects malicious prototype keys
-app.use((req, res, next) => {
-  const payloadStr = JSON.stringify(req.body) + JSON.stringify(req.query);
-  if (payloadStr.includes('__proto__') || payloadStr.includes('constructor"')) {
-    return res.status(400).json({ error: 'Invalid request payload structure' });
+// Anti-Prototype Pollution Middleware - recursive sanitization
+const sanitizePayload = (obj) => {
+  if (typeof obj !== 'object' || obj === null) return;
+  const badKeys = ['__proto__', 'constructor', 'prototype'];
+
+  for (const key of badKeys) {
+    // Safely check for the key without triggering prototype execution
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      delete obj[key];
+    }
   }
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      sanitizePayload(obj[key]); // Recursively clean nested objects/arrays
+    }
+  }
+};
+
+app.use((req, res, next) => {
+  sanitizePayload(req.body);
+  sanitizePayload(req.query);
+  sanitizePayload(req.params);
   next();
 });
 
@@ -169,7 +186,14 @@ app.get('/api/config', (req, res) => {
 });
 
 // Serve static files with clean URLs (no .html extension required)
-app.use(express.static('public', { extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'],
+  setHeaders: (res, path) => {
+    // Add basic cache control and sniff protection to static assets
+    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+}));
 
 // Serve admin.html at /admin route
 app.get('/admin', (req, res) => {

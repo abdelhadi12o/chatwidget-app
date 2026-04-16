@@ -9,7 +9,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     try {
         if (!secret) {
             console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
-            return res.status(500).json({ error: 'Webhook secret not configured' });
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
         const signature = req.headers['x-signature'];
@@ -21,7 +21,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         // req.body MUST be a raw Buffer for signature verification to work
         if (!Buffer.isBuffer(req.body)) {
             console.error('[Webhook] req.body is not a Buffer - body was parsed by middleware before reaching webhook route');
-            return res.status(500).json({ error: 'Server configuration error - body already parsed' });
+            return res.status(500).json({ error: 'Internal server error' });
         }
 
         // Verify signature using raw body buffer
@@ -29,13 +29,13 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         hmac.update(req.body);
         const digest = hmac.digest('hex');
 
-        // Use timing-safe comparison
-        const digestBuffer = Buffer.from(digest, 'utf8');
-        const signatureBuffer = Buffer.from(signature, 'utf8');
+        // Hash both strings to ensure identical buffer lengths, preventing timing leaks
+        const expectedHash = crypto.createHash('sha256').update(digest || '').digest();
+        const providedHash = crypto.createHash('sha256').update(signature || '').digest();
 
-        if (digestBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(digestBuffer, signatureBuffer)) {
+        if (!crypto.timingSafeEqual(expectedHash, providedHash)) {
             console.error('Signature mismatch: Invalid webhook signature');
-            return res.status(401).json({ error: 'Invalid signature' });
+            return res.status(401).json({ error: 'Invalid webhook signature' });
         }
 
         const payload = JSON.parse(req.body.toString());

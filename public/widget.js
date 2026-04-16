@@ -11,6 +11,29 @@ const escapeHTML = (str) => {
   );
 };
 
+const sanitizeImageUrl = (url) => {
+  if (!url) return '';
+  try {
+    // Check if it's a valid absolute URL
+    const parsed = new URL(url, window.location.origin);
+
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      return parsed.href;
+    }
+    // Allow base64 image data URIs, but block other data types
+    if (parsed.protocol === 'data:' && parsed.pathname.startsWith('image/')) {
+      return url;
+    }
+    return ''; // Reject anything else (like javascript: or vbscript:)
+  } catch (e) {
+    // If URL parsing fails, check if it's a safe relative path
+    if (url.startsWith('/')) {
+      return url;
+    }
+    return '';
+  }
+};
+
 const formatMessage = (text) => {
   if (!text) return '';
   // First, escape HTML to prevent XSS
@@ -335,7 +358,7 @@ class AIWidget {
 
     const avatarContent = sender === 'user'
       ? '👤'
-      : (this.botLogo ? `<img src="${this.botLogo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '<svg width="16" height="16" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>');
+      : (this.botLogo ? `<img src="${sanitizeImageUrl(this.botLogo)}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : '<svg width="16" height="16" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>');
 
     let text;
     if (allowHtml) {
@@ -723,7 +746,7 @@ function applyCustomization(customization, widget) {
     widget.botLogo = customization.botLogo;
     const icon = document.querySelector('.ai-widget-header-avatar');
     if (icon) {
-      const imgHTML = `<img src="${customization.botLogo}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block;">`;
+      const imgHTML = `<img src="${sanitizeImageUrl(customization.botLogo)}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; display: block;">`;
       icon.innerHTML = window.DOMPurify
         ? window.DOMPurify.sanitize(imgHTML, { ALLOWED_TAGS: ['img'], ALLOWED_ATTR: ['src', 'style'] })
         : imgHTML;
@@ -775,7 +798,7 @@ function applyCustomization(customization, widget) {
       if (existingImg) existingImg.remove();
 
       // Insert the launcher image
-      const imgHTML = `<img src="${customization.launcherImage}" class="ai-widget-launcher-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">`;
+      const imgHTML = `<img src="${customization.launcherImage)}" class="ai-widget-launcher-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">`;
       const imgElement = document.createElement('div');
       imgElement.innerHTML = window.DOMPurify
         ? window.DOMPurify.sanitize(imgHTML, { ALLOWED_TAGS: ['img'], ALLOWED_ATTR: ['src', 'style', 'class'] })

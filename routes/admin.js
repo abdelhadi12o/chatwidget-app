@@ -21,7 +21,7 @@ const requireAdmin = async (req, res, next) => {
     }
   } catch (error) {
     console.error('Admin check error:', error);
-    return res.status(500).send('Authentication or server error');
+    return res.status(500).send('Internal server error');
   }
 };
 
