@@ -29,12 +29,15 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         hmac.update(req.body);
         const digest = hmac.digest('hex');
 
-        // Hash both strings to ensure identical buffer lengths, preventing timing leaks
-        const expectedHash = crypto.createHash('sha256').update(digest || '').digest();
-        const providedHash = crypto.createHash('sha256').update(signature || '').digest();
+        const expectedBuf = Buffer.from(digest || '', 'hex');
+        const providedBuf = Buffer.from(signature || '', 'hex');
 
-        if (!crypto.timingSafeEqual(expectedHash, providedHash)) {
-            console.error('Signature mismatch: Invalid webhook signature');
+        // Ensure same length to prevent timingSafeEqual from throwing an error
+        if (expectedBuf.length !== providedBuf.length) {
+            return res.status(401).json({ error: 'Invalid webhook signature' });
+        }
+
+        if (!crypto.timingSafeEqual(expectedBuf, providedBuf)) {
             return res.status(401).json({ error: 'Invalid webhook signature' });
         }
 

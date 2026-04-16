@@ -328,6 +328,17 @@
     </div>
 
   <script>
+    // Security helper to prevent XSS attacks
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     // Toast notification function
     function showToast(message, isError = false) {
       const toast = document.createElement('div');
@@ -375,13 +386,13 @@
         data.users.forEach(user => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${user.name}</td>
-            <td>${user.email}</td>
-            <td>${user.plan}</td>
+            <td>${escapeHTML(user.name)}</td>
+            <td>${escapeHTML(user.email)}</td>
+            <td>${escapeHTML(user.plan)}</td>
             <td>${user.hasBot ? 'Yes' : 'No'}</td>
             <td>${user.conversationCount}</td>
             <td>
-              <input type="text" class="features-input" id="features-${user.clerkUserId}" value="${(user.features || []).join(', ')}" placeholder="e.g. beta_tester, ai_brain" style="background: #1e1e2e; border: 1px solid #3a3a47; border-radius: 4px; color: #d6d6e6; padding: 6px 10px; font-size: 13px; width: 180px;">
+              <input type="text" class="features-input" id="features-${user.clerkUserId}" value="${escapeHTML((user.features || []).join(', '))}" placeholder="e.g. beta_tester, ai_brain" style="background: #1e1e2e; border: 1px solid #3a3a47; border-radius: 4px; color: #d6d6e6; padding: 6px 10px; font-size: 13px; width: 180px;">
               <button class="actions-button" onclick="saveFeatures('${user.clerkUserId}')" style="margin-left: 8px;">Save</button>
             </td>
             <td>

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Chatbot = require('../models/Chatbot');
+const { ObjectId } = require('mongoose').Types;
 const Lead = require('../models/Lead');
 const User = require('../models/User');
 const { scrapeWebsite } = require('../scraper/scrape');
@@ -544,6 +545,10 @@ CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never ou
 
 // Delete chatbot (specific by ID)
 router.delete('/delete/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
+  if (!ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid chatbot ID format' });
+  }
+
   try {
     const botIdToDelete = req.params.id;
     const userId = req.auth.userId;
@@ -599,6 +604,10 @@ router.get('/list', strictCors, requireAuth, checkSubscription, async (req, res)
 
 // GET SINGLE BOT BY ID
 router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
+  if (!ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid chatbot ID format' });
+  }
+
   try {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
@@ -914,6 +923,10 @@ router.delete('/faqs/:index', strictCors, requireAuth, checkSubscription, async 
 
 // Update customization (specific bot by ID) - uses route param id (MongoDB _id)
 router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, async (req, res) => {
+  if (!ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: 'Invalid chatbot ID format' });
+  }
+
   try {
     const botIdToUpdate = req.params.id;
     const userId = req.auth.userId;

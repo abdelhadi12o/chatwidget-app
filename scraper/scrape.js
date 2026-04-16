@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const { URL } = require('url');
 const dns = require('dns');
 const net = require('net');
+const https = require('https');
 
 // SSRF Protection: Strict IP validation against private/reserved ranges
 const isIpBlocked = (ip) => {
@@ -105,7 +106,7 @@ const validateUrl = async (urlString) => {
     if (isIpBlocked(hostname)) {
       throw new Error(`Access to ${hostname} is blocked: private/reserved IP range`);
     }
-    return parsedUrl;
+    return { parsedUrl, resolvedIp: hostname };
   }
 
   // 4. Perform DNS lookup and validate resolved IP to prevent rebinding attacks
@@ -123,14 +124,14 @@ const validateUrl = async (urlString) => {
     if (isIpBlocked(resolvedIp)) {
       throw new Error(`Access to ${resolvedIp} (${hostname}) is blocked: private/reserved IP range`);
     }
+
+    return { parsedUrl, resolvedIp };
   } catch (error) {
     if (error.message.includes('blocked')) {
       throw error;
     }
     throw new Error(`DNS resolution failed: ${error.message}`);
   }
-
-  return parsedUrl;
 };
 
 
@@ -284,18 +285,31 @@ const findInternalLinks = async (baseUrl, html) => {
 const scrapeWebsite = async (url, onProgress) => {
   try {
     // SSRF Protection: Validate the URL before making any request
-    const validatedUrl = await validateUrl(url);
-    const validatedBaseUrl = validatedUrl.href; // Use validated URL
+    const { parsedUrl, resolvedIp } = await validateUrl(url);
+    const validatedBaseUrl = parsedUrl.href;
 
     onProgress?.('Scraping homepage...');
 
-    // SSRF Protection: DNS resolution and IP validation already done in validateUrl
-    // We use the original domain-based URL for the request to ensure proper SNI/SSL handshake
-    const response = await axios.get(validatedBaseUrl, {
-      timeout: 15000,
+    // SSRF Protection: Connect to resolved IP to prevent TOCTOU rebinding attacks
+    // Preserve SNI by setting servername in https.Agent and explicit Host header
+    const targetUrl = new URL(validatedBaseUrl);
+    targetUrl.hostname = resolvedIp;
+
+    const httpsAgent = new https.Agent({
+      servername: parsedUrl.hostname
+    });
+
+    const existingHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    };
+
+    const response = await axios.get(targetUrl.href, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+        ...existingHeaders,
+        'Host': parsedUrl.hostname
+      },
+      httpsAgent: targetUrl.protocol === 'https:' ? httpsAgent : undefined,
+      timeout: 15000
     });
 
     const baseUrl = response.config.url || url;
@@ -342,13 +356,26 @@ const scrapeWebsite = async (url, onProgress) => {
       onProgress?.(`Scraping${path !== '/' ? ` ${path}` : ' homepage'}... (${i + 1}/${pagesArray.length})`);
 
       try {
-        // SSRF Protection: DNS resolution and IP validation already done in validateUrl
-        // We use the original domain-based URL for the request to ensure proper SNI/SSL handshake
-        const pageResponse = await axios.get(validatedPageUrl.href, {
-          timeout: 10000,
+        // SSRF Protection: Connect to resolved IP to prevent TOCTOU rebinding attacks
+        // Preserve SNI by setting servername in https.Agent and explicit Host header
+        const pageTargetUrl = new URL(validatedPageUrl.parsedUrl.href);
+        pageTargetUrl.hostname = validatedPageUrl.resolvedIp;
+
+        const pageHttpsAgent = new https.Agent({
+          servername: validatedPageUrl.parsedUrl.hostname
+        });
+
+        const pageExistingHeaders = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        };
+
+        const pageResponse = await axios.get(pageTargetUrl.href, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
+            ...pageExistingHeaders,
+            'Host': validatedPageUrl.parsedUrl.hostname
+          },
+          httpsAgent: pageTargetUrl.protocol === 'https:' ? pageHttpsAgent : undefined,
+          timeout: 10000
         });
 
         const pageTexts = extractTextFromPage(pageResponse.data, pageUrl);

@@ -798,7 +798,7 @@ function applyCustomization(customization, widget) {
       if (existingImg) existingImg.remove();
 
       // Insert the launcher image
-      const imgHTML = `<img src="${customization.launcherImage)}" class="ai-widget-launcher-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">`;
+      const imgHTML = `<img src="${customization.launcherImage}" class="ai-widget-launcher-img" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">`;
       const imgElement = document.createElement('div');
       imgElement.innerHTML = window.DOMPurify
         ? window.DOMPurify.sanitize(imgHTML, { ALLOWED_TAGS: ['img'], ALLOWED_ATTR: ['src', 'style', 'class'] })

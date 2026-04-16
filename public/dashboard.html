@@ -888,6 +888,17 @@
   </div>
 
   <script>
+    // Security helper to prevent XSS attacks
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     // Initialize standard icons
     if (window.lucide) { lucide.createIcons(); }
 
@@ -1282,8 +1293,8 @@
       }
       tbody.innerHTML = leads.map(l => `
         <tr>
-          <td><div style="font-weight: 600;">${l.name}</div><div style="font-size: 12px; color: var(--text-muted);">${l.email || 'No email'}</div></td>
-          <td><span class="badge-text" style="color: var(--success); border-color: var(--success); font-family: monospace;">${l.whatsapp}</span></td>
+          <td><div style="font-weight: 600;">${escapeHTML(l.name)}</div><div style="font-size: 12px; color: var(--text-muted);">${escapeHTML(l.email) || 'No email'}</div></td>
+          <td><span class="badge-text" style="color: var(--success); border-color: var(--success); font-family: monospace;">${escapeHTML(l.whatsapp)}</span></td>
           <td><div style="font-size: 13px; color: var(--text-muted);">${new Date(l.createdAt).toLocaleDateString()}</div></td>
         </tr>
       `).join('');
@@ -1309,11 +1320,11 @@
 
       if (files && files.length) {
         hasData = true;
-        files.forEach((f, i) => tbody.innerHTML += `<tr><td>${f.fileName}</td><td><span class="badge-pdf">PDF</span></td><td style="color:var(--success);">✓ Trained</td><td style="text-align:right;"><button onclick="deleteKnowledge('file', ${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`);
+        files.forEach((f, i) => tbody.innerHTML += `<tr><td>${escapeHTML(f.fileName)}</td><td><span class="badge-pdf">PDF</span></td><td style="color:var(--success);">✓ Trained</td><td style="text-align:right;"><button onclick="deleteKnowledge('file', ${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`);
       }
       if (textData) {
         hasData = true;
-        textData.split('\n\n').filter(Boolean).forEach((t, i) => tbody.innerHTML += `<tr><td>${t.substring(0, 50)}...</td><td><span class="badge-text">Text</span></td><td style="color:var(--success);">✓ Trained</td><td style="text-align:right;"><button onclick="deleteKnowledge('text', ${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`);
+        textData.split('\n\n').filter(Boolean).forEach((t, i) => tbody.innerHTML += `<tr><td>${escapeHTML(t.substring(0, 50))}...</td><td><span class="badge-text">Text</span></td><td style="color:var(--success);">✓ Trained</td><td style="text-align:right;"><button onclick="deleteKnowledge('text', ${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:16px;"></i></button></td></tr>`);
       }
       if (!hasData) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">No custom knowledge added.</td></tr>`;
       if (window.lucide) window.lucide.createIcons();
