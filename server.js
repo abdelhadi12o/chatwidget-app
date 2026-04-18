@@ -183,6 +183,13 @@ app.use('/api/admin', require('./routes/admin'));
 
 // Config route - returns Clerk and app URLs to frontend
 app.get('/api/config', (req, res) => {
+  const referer = req.headers.referer || req.headers.origin || '';
+
+  // Anti-reconnaissance: Only serve config to our own domain
+  if (!referer.includes('ultramora.com') && !referer.includes('localhost')) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
   res.json({
     clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY,
     clerkSignInUrl: process.env.CLERK_SIGN_IN_URL,

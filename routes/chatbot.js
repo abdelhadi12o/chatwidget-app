@@ -13,6 +13,7 @@ const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 const sanitizeHtml = require('sanitize-html');
 const path = require('path');
+const { Worker } = require('worker_threads');
 
 // Platform origins that are allowed to access widgets (e.g., dashboard preview)
 const PLATFORM_ORIGINS = ['http://localhost:3000', 'https://ultramora.com'];
@@ -75,16 +76,24 @@ const authenticatedActionLimiter = rateLimit({
   skipFailedRequests: true, // Skip failed requests from rate limiting
   // Custom key generator: use authenticated userId if available, otherwise fallback to IP
   keyGenerator: (req, res) => {
-    // Prefer Clerk userId if available (req.auth.userId from ClerkExpressRequireAuth)
+    // 1. Rate limit by User ID if they are logged in
     if (req.auth && req.auth.userId) {
-      return String(req.auth.userId);
+      return req.auth.userId;
     }
-    // Fallback to IP address - IPv6 compatible
-    const ip = req.ip || req.connection.remoteAddress || 'unknown';
-    // Normalize IPv6-mapped IPv4 addresses
-    if (ip.startsWith('::ffff:')) {
-      return ip.substring(7);
+
+    // 2. Extract the true client IP, prioritizing Cloudflare's secure header
+    let ip = req.headers['cf-connecting-ip'] ||
+             req.ip ||
+             req.connection.remoteAddress ||
+             'unknown';
+
+    ip = ip.trim();
+
+    // 3. Strictly normalize IPv4-mapped IPv6 addresses
+    if (ip.includes('::ffff:')) {
+      ip = ip.split('::ffff:').pop();
     }
+
     return ip;
   }
 });
@@ -102,14 +111,22 @@ const settingsLimiter = rateLimit({
 // CORS middleware for public endpoints (chat, lead, settings) —
 // allows ANY origin so embedded widgets work on client sites
 const publicCors = (req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    res.header('Access-Control-Max-Age', '86400');
-    return res.sendStatus(204);
+  const origin = req.headers.origin;
+
+  // Dynamically echo the origin to avoid wildcard flags,
+  // ensuring the embeddable widget works on client domains.
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  res.header('Access-Control-Allow-Origin', '*');
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   next();
 };
 
@@ -153,10 +170,11 @@ const validateWidgetOrigin = (req, chatbot) => {
     return { valid: false, error: 'Origin not authorized for this widget' };
   }
 
-  // Check if origin matches the bot's website URL
-  const isAuthorized = originHostname === botHostname ||
-                       originHostname.endsWith('.' + botHostname) ||
-                       botHostname.endsWith('.' + originHostname);
+  // Strip 'www.' for a fair comparison, then require a strict exact match
+  const cleanOrigin = originHostname.replace(/^www\./, '');
+  const cleanBot = botHostname.replace(/^www\./, '');
+
+  const isAuthorized = cleanOrigin === cleanBot;
 
   if (!isAuthorized) {
     console.warn(`🚨 SECURITY BLOCK: Origin "${requestOrigin}" (hostname: ${originHostname}) tried to use widget for "${botHostname}"`);
@@ -385,60 +403,42 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
       }
     }
 
-    let chatbot;
-    if (widgetId === 'demo-widget') {
-      chatbot = {
-        _id: 'demo',
-        widgetId: 'demo-widget',
-        websiteUrl: 'demo.local',
-        scrapedContent: [`I can help answer questions about our platform and its features. For detailed pricing information, please visit our pricing page.`],
-        isActive: true,
-        conversationCount: 0,
-        faqs: [],
-        customKnowledge: '',
-        customization: { botName: "AI Assistant", bubbleColor: "#6366f1", welcomeMessage: "Hi! How can I help you today?", position: "bottom-right", bookingLink: '' }
-      };
-    } else {
-      const safeWidgetId = String(widgetId);
-      chatbot = await Chatbot.findOne({ widgetId: safeWidgetId });
-      let isAuthorized = false;
+    const safeWidgetId = String(widgetId);
+    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId });
+    let isAuthorized = false;
 
-      if (chatbot) {
-        const originCheck = validateWidgetOrigin(req, chatbot);
-        isAuthorized = originCheck.valid;
-      }
-
-      if (!chatbot || !isAuthorized) {
-        return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
-      }
-
-      if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
-
-      // === MESSAGE LIMIT CHECK ===
-      // Only check limits for real chatbots (not demo)
-      if (widgetId !== 'demo-widget') {
-        const owner = await User.findOne({ clerkId: chatbot.userId });
-        if (!owner) {
-          return res.status(404).json({ error: 'Bot owner not found' });
-        }
-
-        // Safely get plan and current count (fallback to 'free' and 0 for old accounts)
-        const userPlan = owner.plan || 'free';
-        const currentMessages = owner.monthlyMessageCount || 0;
-        const messageLimit = PLAN_LIMITS[userPlan].maxMessages;
-
-        // Enforce the Hard Lock
-        if (currentMessages >= messageLimit) {
-          return res.status(403).json({
-            error: 'MESSAGE_LIMIT_REACHED',
-            message: 'This chatbot is currently unavailable.'
-          });
-        }
-
-        // Use the schema helper method to properly increment and save
-        await owner.incrementMessageCount();
-      }
+    if (chatbot) {
+      const originCheck = validateWidgetOrigin(req, chatbot);
+      isAuthorized = originCheck.valid;
     }
+
+    if (!chatbot || !isAuthorized) {
+      return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+    }
+
+    if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
+
+    // === MESSAGE LIMIT CHECK ===
+    const owner = await User.findOne({ clerkId: chatbot.userId });
+    if (!owner) {
+      return res.status(404).json({ error: 'Bot owner not found' });
+    }
+
+    // Safely get plan and current count (fallback to 'free' and 0 for old accounts)
+    const userPlan = owner.plan || 'free';
+    const currentMessages = owner.monthlyMessageCount || 0;
+    const messageLimit = PLAN_LIMITS[userPlan].maxMessages;
+
+    // Enforce the Hard Lock
+    if (currentMessages >= messageLimit) {
+      return res.status(403).json({
+        error: 'MESSAGE_LIMIT_REACHED',
+        message: 'This chatbot is currently unavailable.'
+      });
+    }
+
+    // Use the schema helper method to properly increment and save
+    await owner.incrementMessageCount();
 
     // === PROGRAMMATIC BOOKING INTENT DETECTION ===
     // Detect booking intent BEFORE calling AI to ensure reliable booking flow triggering
@@ -721,8 +721,62 @@ router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async 
   }
 });
 
+// PDF Extraction Worker Logic (inline for simplicity)
+const createPDFWorker = (pdfBuffer) => {
+  const workerScript = `
+    const { parentPort } = require('worker_threads');
+    const { PDFExtract } = require('pdf.js-extract');
+    const pdfExtract = new PDFExtract();
+
+    pdfExtract.extractBuffer(Buffer.from(${JSON.stringify(Array.from(pdfBuffer))}), {}, (err, data) => {
+      if (err) {
+        parentPort.postMessage({ success: false, error: err.message });
+        return;
+      }
+
+      try {
+        // 1. CPU/Page Exhaustion Protection
+        if (data.pages && data.pages.length > 500) {
+          parentPort.postMessage({ success: false, error: 'PDF exceeds maximum allowed pages (500).' });
+          return;
+        }
+
+        // 2. Memory/Decompression Bomb Protection
+        let extractedText = '';
+        const MAX_CHARS = 1000000; // ~1MB of raw text
+
+        for (const page of data.pages) {
+          const pageText = page.content.map(item => item.str).join(' ');
+          extractedText += pageText + '\n\n';
+
+          if (extractedText.length > MAX_CHARS) {
+            extractedText = extractedText.substring(0, MAX_CHARS);
+            break;
+          }
+        }
+
+        extractedText = extractedText.trim();
+        if (!extractedText) {
+          parentPort.postMessage({ success: false, error: 'No text extracted from PDF' });
+          return;
+        }
+
+        const newChunks = extractedText.split('\n\n').filter(chunk => chunk.trim() !== '');
+        parentPort.postMessage({ success: true, chunks: newChunks, extractedText });
+      } catch (error) {
+        parentPort.postMessage({ success: false, error: error.message });
+      }
+    });
+  `;
+
+  return new Worker(workerScript, { eval: true });
+};
+
 // Upload PDF and extract text - requires widgetId in body
 router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), async (req, res) => {
+  let worker = null;
+  let timeoutId = null;
+
   try {
     // Check plan permissions for PDF uploads (Pro plan required)
     const user = await User.findOne({ clerkId: String(req.auth.userId) });
@@ -748,55 +802,90 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
     const { widgetId } = req.body;
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
 
-    pdfExtract.extractBuffer(req.file.buffer, {}, async (err, data) => {
-      if (err) {
-        console.error('PDF extraction error:', err);
-        return res.status(500).json({ error: 'Failed to read PDF file structure.' });
-      }
+    const safeWidgetId = String(widgetId);
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
+    if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
-      try {
-        const safeWidgetId = String(widgetId);
-        const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
-        if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
+    // Create worker and set timeout
+    const extractionPromise = new Promise((resolve, reject) => {
+      worker = createPDFWorker(req.file.buffer);
 
-        let extractedText = data.pages
-          .map(page => page.content.map(item => item.str).join(' '))
-          .join('\n\n');
-
-        extractedText = extractedText.trim();
-        if (!extractedText) return res.status(400).json({ error: 'No text extracted from PDF' });
-
-        const newChunks = extractedText.split('\n\n').filter(chunk => chunk.trim() !== '');
-
-        if (chatbot.customKnowledge) {
-          chatbot.customKnowledge += '\n\n' + newChunks.join('\n\n');
-        } else {
-          chatbot.customKnowledge = newChunks.join('\n\n');
+      // Strict 7-second timeout to prevent event loop blocking
+      timeoutId = setTimeout(() => {
+        if (worker) {
+          worker.terminate();
+          worker = null;
         }
+        reject(new Error('PDF extraction timeout - possible decompression bomb'));
+      }, 7000);
 
-        // Generate a guaranteed safe, random filename for internal processing
-        const safeInternalName = crypto.randomUUID() + '.pdf';
+      worker.on('message', (result) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (result.success) {
+          resolve(result);
+        } else {
+          reject(new Error(result.error));
+        }
+      });
 
-        // Extract the original name purely for display purposes, with heavy sanitization
-        const displayFileName = req.file.originalname.replace(/[^a-zA-Z0-9.\-_ ()]/g, '').trim().substring(0, 100) || 'uploaded_document.pdf';
+      worker.on('error', (err) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        reject(err);
+      });
 
-        if (!chatbot.trainedFiles) chatbot.trainedFiles = [];
-        chatbot.trainedFiles.push({
-          fileName: displayFileName,
-          internalName: safeInternalName,
-          uploadDate: Date.now()
-        });
-
-        await chatbot.save();
-        res.json({ message: 'Success', fileName: displayFileName });
-      } catch (dbError) {
-        console.error('DB Error:', dbError);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+      worker.on('exit', (code) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (code !== 0) {
+          reject(new Error(`Worker stopped with exit code ${code}`));
+        }
+      });
     });
+
+    const result = await extractionPromise;
+
+    // Update chatbot with extracted text
+    if (chatbot.customKnowledge) {
+      chatbot.customKnowledge += '\n\n' + result.chunks.join('\n\n');
+    } else {
+      chatbot.customKnowledge = result.chunks.join('\n\n');
+    }
+
+    // Generate a guaranteed safe, random filename for internal processing
+    const safeInternalName = crypto.randomUUID() + '.pdf';
+
+    // Extract the original name purely for display purposes, with heavy sanitization
+    const displayFileName = req.file.originalname.replace(/[^a-zA-Z0-9.\-_ ()]/g, '').trim().substring(0, 100) || 'uploaded_document.pdf';
+
+    if (!chatbot.trainedFiles) chatbot.trainedFiles = [];
+    chatbot.trainedFiles.push({
+      fileName: displayFileName,
+      internalName: safeInternalName,
+      uploadDate: Date.now()
+    });
+
+    await chatbot.save();
+    res.json({ message: 'Success', fileName: displayFileName });
+
   } catch (error) {
-    console.error('Upload Error:', error);
-    console.error('Server error:', error.message);
+    if (timeoutId) clearTimeout(timeoutId);
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+
+    console.error('Upload Error:', error.message);
+
+    // Return specific error for timeout/decompression bomb
+    if (error.message.includes('timeout') || error.message.includes('decompression bomb')) {
+      return res.status(400).json({ error: 'PDF processing failed: File may be malformed or too complex.' });
+    }
+    if (error.message.includes('exceeds maximum allowed pages')) {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.message.includes('No text extracted')) {
+      return res.status(400).json({ error: error.message });
+    }
+
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -967,7 +1056,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
       chatbot.customization.quickReplies = quickReplies;
     }
     if (botLogo !== undefined) {
-      if (typeof botLogo !== 'string' || botLogo.length > 500) return res.status(400).json({ error: 'Invalid bot logo URL' });
+      if (typeof botLogo !== 'string' || (!botLogo.startsWith('http') && !botLogo.startsWith('data:image/'))) return res.status(400).json({ error: 'Invalid bot logo (must be URL or base64 image)' });
       chatbot.customization.botLogo = botLogo;
     }
     if (bookingLink !== undefined) {
@@ -980,7 +1069,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
       chatbot.customization.systemPrompt = sanitizeHtml(systemPrompt, { allowedTags: [], allowedAttributes: {} });
     }
     if (launcherImage !== undefined) {
-      if (typeof launcherImage !== 'string' || launcherImage.length > 500000) return res.status(400).json({ error: 'Invalid launcher image (must be base64 string under 500KB)' });
+      if (typeof launcherImage !== 'string' || (!launcherImage.startsWith('http') && !launcherImage.startsWith('data:image/'))) return res.status(400).json({ error: 'Invalid launcher image (must be URL or base64 image)' });
       chatbot.customization.launcherImage = launcherImage;
     }
     if (bookingQuestions !== undefined) {
@@ -1038,7 +1127,7 @@ router.patch('/knowledge', strictCors, requireAuth, checkSubscription, async (re
     const safeWidgetId = String(rawWidgetId);
     const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
-    chatbot.customKnowledge = customKnowledge;
+    chatbot.customKnowledge = String(customKnowledge || '');
     await chatbot.save();
     res.json({ message: 'Knowledge saved' });
   } catch (error) {

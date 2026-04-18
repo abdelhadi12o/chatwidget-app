@@ -13,8 +13,8 @@ const requireAdmin = async (req, res, next) => {
     const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
     const adminEmail = process.env.ADMIN_EMAIL;
 
-    // Allow if email matches env var OR whitelisted email
-    if (userEmail === adminEmail || userEmail === 'abdeouassif10@gmail.com') {
+    // Allow if email matches env var
+    if (userEmail === adminEmail) {
       return next();
     } else {
       return res.status(403).send('Forbidden: Not an admin user');
@@ -116,7 +116,7 @@ router.delete('/user/:userId', ClerkExpressRequireAuth(), requireAdmin, async (r
     await clerkClient.users.delete(userId);
 
     // Delete associated chatbots from MongoDB
-    const deletedBots = await Chatbot.deleteMany({ userId });
+    const deletedBots = await Chatbot.deleteMany({ userId: String(userId) });
 
     console.log(`Deleted user ${userId} and ${deletedBots.deletedCount} associated chatbots`);
 

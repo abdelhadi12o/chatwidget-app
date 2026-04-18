@@ -74,11 +74,12 @@ class AIWidget {
     this.container = document.createElement('div');
     this.container.className = 'ai-widget-container';
     this.container.innerHTML = `
-      <div class="ai-widget-bubble">
-        <span class="ai-widget-icon"><svg width="24" height="24" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
-        <span class="ai-widget-notification-dot"></span>
-      </div>
-      <div class="ai-widget-chat">
+      <div id="ultramora-master-dock">
+        <div class="ai-widget-bubble">
+          <span class="ai-widget-icon"><svg width="24" height="24" fill="#ffffff" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span>
+          <span class="ai-widget-notification-dot"></span>
+        </div>
+        <div class="ai-widget-chat">
         <div class="ai-widget-header">
           <div class="ai-widget-header-left">
             <div class="ai-widget-avatar-wrapper">
@@ -101,6 +102,7 @@ class AIWidget {
             </svg>
           </button>
         </div>
+      </div>
       </div>
     `;
 
@@ -191,8 +193,16 @@ class AIWidget {
       <p class="ultramora-proactive-text">${ultramoraEscapeHTML(this.botConfig.proactiveMessage)}</p>
     `;
 
-    // Append to document.body to ensure it's always visible and above all other elements
-    document.body.appendChild(this.proactiveBubble);
+    // Append to master dock (before the launcher bubble)
+    const masterDock = this.container.querySelector('#ultramora-master-dock');
+    if (masterDock) {
+      const bubble = masterDock.querySelector('.ai-widget-bubble');
+      if (bubble) {
+        masterDock.insertBefore(this.proactiveBubble, bubble);
+      } else {
+        masterDock.appendChild(this.proactiveBubble);
+      }
+    }
 
     // Timing Logic
     const delayMs = (this.botConfig.proactiveDelay !== undefined ? this.botConfig.proactiveDelay : 3) * 1000;
@@ -389,7 +399,7 @@ class AIWidget {
     `, sanitizeConfig)
       : `
       <span class="ai-widget-avatar">${avatarContent}</span>
-      <div class="ai-widget-message-content" dir="auto">${text}</div>
+      <div class="ai-widget-message-content" dir="auto">${ultramoraEscapeHTML(content)}</div>
     `;
 
     this.messagesContainer.appendChild(messageDiv);
@@ -781,7 +791,6 @@ function applyCustomization(customization, widget) {
       bubble.style.setProperty('background', 'transparent', 'important');
       bubble.style.setProperty('padding', '0', 'important');
       bubble.style.setProperty('position', 'relative', 'important');
-      bubble.style.setProperty('overflow', 'hidden', 'important');
 
       // Hide the default icon
       const icon = bubble.querySelector('.ai-widget-icon');
@@ -882,19 +891,33 @@ function addWidgetStyles() {
         left: 0 !important;
         margin: 0 !important;
       }
+      #ultramora-master-dock {
+        bottom: 20px !important;
+        right: 20px !important;
+      }
     }
 
     .ai-widget-container {
       pointer-events: none !important;
     }
-    .ai-widget-bubble,
-    .ai-widget-chat {
+    #ultramora-master-dock {
+      position: fixed !important;
+      bottom: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      pointer-events: none !important;
+      padding-bottom: 10px !important;
+    }
+    #ultramora-master-dock > * {
       pointer-events: auto !important;
     }
+
     .ai-widget-bubble {
-      position: fixed !important;
-      bottom: 24px !important;
-      right: 24px !important;
+      position: relative !important;
+      margin: 0 !important;
       left: auto !important;
       width: 60px !important;
       height: 60px !important;
@@ -912,20 +935,38 @@ function addWidgetStyles() {
       font-size: 20px !important;
     }
 
+    .ai-widget-bubble:has(.ai-widget-launcher-img) {
+      position: relative !important;
+      padding: 0 !important;
+      background: transparent !important;
+    }
+
+    .ai-widget-launcher-img {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 50% !important;
+      object-fit: cover !important;
+      z-index: 1 !important;
+    }
+
     .ai-widget-bubble:hover {
       transform: scale(1.05);
       box-shadow: 0 15px 35px rgba(6, 182, 212, 0.4);
     }
 
     .ai-widget-notification-dot {
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 8px;
-      height: 8px;
-      background: #ef4444;
-      border-radius: 50%;
-      animation: pulse 2s infinite;
+      position: absolute !important;
+      top: 2px !important;
+      right: 2px !important;
+      width: 14px !important;
+      height: 14px !important;
+      background: #ef4444 !important;
+      border-radius: 50% !important;
+      z-index: 99 !important;
+      animation: pulse 2s infinite !important;
     }
 
     @keyframes pulse {
@@ -1206,12 +1247,23 @@ function addWidgetStyles() {
     @media (max-width: 768px) {
       /* Closed bubble positioning on mobile */
       .ai-widget-bubble {
-        bottom: 20px !important;
-        right: 20px !important;
         left: auto !important;
         width: 54px !important;
         height: 54px !important;
         padding: 14px !important;
+      }
+
+      .ai-widget-bubble:has(.ai-widget-launcher-img) {
+        padding: 0 !important;
+      }
+
+      /* Master dock stays fixed in corner on mobile */
+      #ultramora-master-dock {
+        bottom: 20px !important;
+        right: 20px !important;
+        left: auto !important;
+        width: auto !important;
+        padding-bottom: 10px !important;
       }
 
       /* MOBILE FLOATING CARD STYLE */
@@ -1371,6 +1423,9 @@ function addWidgetStyles() {
       html body .ai-widget-bubble {
         bottom: 50px !important;
       }
+      html body .ai-widget-bubble:has(.ai-widget-launcher-img) {
+        position: relative !important;
+      }
       html body .ai-widget-chat {
         bottom: 160px !important;
       }
@@ -1413,9 +1468,10 @@ function addWidgetStyles() {
 
     /* Proactive Welcome Bubble */
     .ultramora-proactive-wrapper {
-      position: fixed !important;
-      bottom: 132px !important;
-      right: 24px !important;
+      position: relative !important;
+      margin-bottom: 80px !important;
+      right: 0 !important;
+      bottom: 0 !important;
       background: white !important;
       border-radius: 12px !important;
       padding: 14px 40px 14px 16px !important;
@@ -1440,7 +1496,7 @@ function addWidgetStyles() {
       content: '' !important;
       position: absolute !important;
       bottom: -6px !important;
-      right: 20px !important;
+      right: 22px !important;
       width: 12px !important;
       height: 12px !important;
       background: white !important;
@@ -1477,14 +1533,16 @@ function addWidgetStyles() {
       color: #0f172a !important;
     }
 
-    /* Mobile: position lower since launcher is at bottom: 20px */
+    /* Mobile: proactive bubble stays pinned above launcher */
     @media (max-width: 767px) {
       .ultramora-proactive-wrapper {
-        bottom: 90px !important;
-        right: 20px !important;
+        position: relative !important;
+        margin-bottom: 28px !important;
+        right: 0 !important;
+        bottom: 0 !important;
       }
       .ultramora-proactive-wrapper::after {
-        right: 24px !important;
+        right: 22px !important;
       }
     }
   `;
