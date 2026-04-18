@@ -1,4 +1,4 @@
-const escapeHTML = (str) => {
+const ultramoraEscapeHTML = (str) => {
   if (!str) return '';
   return str.replace(/[&<>'"]/g,
     tag => ({
@@ -14,19 +14,15 @@ const escapeHTML = (str) => {
 const sanitizeImageUrl = (url) => {
   if (!url) return '';
   try {
-    // Check if it's a valid absolute URL
     const parsed = new URL(url, window.location.origin);
-
     if (['http:', 'https:'].includes(parsed.protocol)) {
       return parsed.href;
     }
-    // Allow base64 image data URIs, but block other data types
     if (parsed.protocol === 'data:' && parsed.pathname.startsWith('image/')) {
       return url;
     }
-    return ''; // Reject anything else (like javascript: or vbscript:)
+    return '';
   } catch (e) {
-    // If URL parsing fails, check if it's a safe relative path
     if (url.startsWith('/')) {
       return url;
     }
@@ -36,13 +32,10 @@ const sanitizeImageUrl = (url) => {
 
 const formatMessage = (text) => {
   if (!text) return '';
-  // First, escape HTML to prevent XSS
-  let safeText = escapeHTML(text);
+  // Use the uniquely named function here!
+  let safeText = ultramoraEscapeHTML(text);
 
-  // Convert bold (**text**)
   safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-  // Convert bullet points (* text or - text) into a cleaner format
   safeText = safeText.replace(/(^|\n)[\*\-]\s+(.*)/g, '$1• $2');
 
   return safeText;

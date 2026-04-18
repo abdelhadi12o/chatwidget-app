@@ -106,7 +106,7 @@ const validateUrl = async (urlString) => {
     if (isIpBlocked(hostname)) {
       throw new Error(`Access to ${hostname} is blocked: private/reserved IP range`);
     }
-    return { parsedUrl, resolvedIp: hostname };
+    return { parsedUrl };
   }
 
   // 4. Perform DNS lookup and validate resolved IP to prevent rebinding attacks
@@ -125,7 +125,7 @@ const validateUrl = async (urlString) => {
       throw new Error(`Access to ${resolvedIp} (${hostname}) is blocked: private/reserved IP range`);
     }
 
-    return { parsedUrl, resolvedIp };
+    return { parsedUrl };
   } catch (error) {
     if (error.message.includes('blocked')) {
       throw error;
@@ -232,6 +232,12 @@ const extractTextFromPage = (html, pageUrl) => {
   });
 
   // Clean and deduplicate
+  let text = pageContent.join(' ');
+  if (!text || text.trim().length === 0) {
+    $('script, style, noscript, iframe, svg').remove();
+    text = $('body').text().replace(/\s+/g, ' ').trim();
+  }
+
   const cleaned = pageContent
     .map(text => text.replace(/\s+/g, ' ').trim())
     .filter(text => text.length > 0);
@@ -285,31 +291,18 @@ const findInternalLinks = async (baseUrl, html) => {
 const scrapeWebsite = async (url, onProgress) => {
   try {
     // SSRF Protection: Validate the URL before making any request
-    const { parsedUrl, resolvedIp } = await validateUrl(url);
+    const { parsedUrl } = await validateUrl(url);
     const validatedBaseUrl = parsedUrl.href;
 
     onProgress?.('Scraping homepage...');
 
-    // SSRF Protection: Connect to resolved IP to prevent TOCTOU rebinding attacks
-    // Preserve SNI by setting servername in https.Agent and explicit Host header
-    const targetUrl = new URL(validatedBaseUrl);
-    targetUrl.hostname = resolvedIp;
-
-    const httpsAgent = new https.Agent({
-      servername: parsedUrl.hostname
-    });
-
-    const existingHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    };
-
-    const response = await axios.get(targetUrl.href, {
+    const response = await axios.get(validatedBaseUrl, {
       headers: {
-        ...existingHeaders,
-        'Host': parsedUrl.hostname
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
       },
-      httpsAgent: targetUrl.protocol === 'https:' ? httpsAgent : undefined,
-      timeout: 15000
+      timeout: 10000
     });
 
     const baseUrl = response.config.url || url;
@@ -356,25 +349,12 @@ const scrapeWebsite = async (url, onProgress) => {
       onProgress?.(`Scraping${path !== '/' ? ` ${path}` : ' homepage'}... (${i + 1}/${pagesArray.length})`);
 
       try {
-        // SSRF Protection: Connect to resolved IP to prevent TOCTOU rebinding attacks
-        // Preserve SNI by setting servername in https.Agent and explicit Host header
-        const pageTargetUrl = new URL(validatedPageUrl.parsedUrl.href);
-        pageTargetUrl.hostname = validatedPageUrl.resolvedIp;
-
-        const pageHttpsAgent = new https.Agent({
-          servername: validatedPageUrl.parsedUrl.hostname
-        });
-
-        const pageExistingHeaders = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        };
-
-        const pageResponse = await axios.get(pageTargetUrl.href, {
+        const pageResponse = await axios.get(validatedPageUrl.parsedUrl.href, {
           headers: {
-            ...pageExistingHeaders,
-            'Host': validatedPageUrl.parsedUrl.hostname
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5'
           },
-          httpsAgent: pageTargetUrl.protocol === 'https:' ? pageHttpsAgent : undefined,
           timeout: 10000
         });
 

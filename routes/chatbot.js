@@ -72,14 +72,20 @@ const authenticatedActionLimiter = rateLimit({
   message: { error: "You have reached the limit for creating or modifying agents. Please wait 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
+  skipFailedRequests: true, // Skip failed requests from rate limiting
   // Custom key generator: use authenticated userId if available, otherwise fallback to IP
   keyGenerator: (req, res) => {
     // Prefer Clerk userId if available (req.auth.userId from ClerkExpressRequireAuth)
     if (req.auth && req.auth.userId) {
       return req.auth.userId;
     }
-    // Fallback to IP address
-    return req.ip || req.connection.remoteAddress || 'unknown';
+    // Fallback to IP address - IPv6 compatible
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    // Normalize IPv6-mapped IPv4 addresses
+    if (ip.startsWith('::ffff:')) {
+      return ip.substring(7);
+    }
+    return ip;
   }
 });
 
@@ -133,13 +139,14 @@ const validateWidgetOrigin = (req, chatbot) => {
   }
 
   // 2. Continue with the standard chatbot.websiteUrl validation for external requests
-  // No origin header - can't validate, reject for security
-  if (!requestOrigin) {
+  // Use origin if available, otherwise fall back to referer for GET requests
+  const sourceHeader = requestOrigin || requestReferer;
+  if (!sourceHeader) {
     return { valid: false, error: 'Origin not authorized for this widget' };
   }
 
   // Compare hostnames (ignoring protocol, www subdomain, paths)
-  const originHostname = extractHostname(requestOrigin);
+  const originHostname = extractHostname(sourceHeader);
   const botHostname = extractHostname(chatbot.websiteUrl);
 
   if (!originHostname || !botHostname) {
@@ -816,20 +823,6 @@ router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) 
 
     if (!chatbot || !isAuthorized) {
       return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
-    }
-
-    // Explicit Referer validation for static security scanners
-    const referer = req.headers.referer || req.headers.origin || '';
-    if (chatbot.websiteUrl) {
-      try {
-        const allowedHostname = new URL(chatbot.websiteUrl).hostname;
-        if (!referer.includes(allowedHostname) && process.env.NODE_ENV === 'production') {
-           return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
-        }
-      } catch (e) {
-        // If websiteUrl is malformed, fail securely
-        return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
-      }
     }
 
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
