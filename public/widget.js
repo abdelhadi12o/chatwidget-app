@@ -16,15 +16,16 @@ const sanitizeImageUrl = (url) => {
   try {
     const parsed = new URL(url, window.location.origin);
     if (['http:', 'https:'].includes(parsed.protocol)) {
-      return parsed.href;
+      // Escape the URL before returning it to prevent attribute breakout
+      return ultramoraEscapeHTML(parsed.href);
     }
     if (parsed.protocol === 'data:' && parsed.pathname.startsWith('image/')) {
-      return url;
+      return ultramoraEscapeHTML(url);
     }
     return '';
   } catch (e) {
     if (url.startsWith('/')) {
-      return url;
+      return ultramoraEscapeHTML(url);
     }
     return '';
   }
@@ -187,7 +188,7 @@ class AIWidget {
       <button class="ultramora-proactive-close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-      <p class="ultramora-proactive-text">${escapeHTML(this.botConfig.proactiveMessage)}</p>
+      <p class="ultramora-proactive-text">${ultramoraEscapeHTML(this.botConfig.proactiveMessage)}</p>
     `;
 
     // Append to document.body to ensure it's always visible and above all other elements

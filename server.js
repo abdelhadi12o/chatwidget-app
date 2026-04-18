@@ -90,21 +90,27 @@ app.use(mongoSanitize()); // Strip MongoDB operator injection attempts
 
 // Anti-Prototype Pollution Middleware - recursive sanitization
 const sanitizePayload = (obj) => {
-  if (typeof obj !== 'object' || obj === null) return;
+  // 1. Base case: If it's not an object or array, it's safe.
+  if (!obj || typeof obj !== 'object') return obj;
+
   const badKeys = ['__proto__', 'constructor', 'prototype'];
 
+  // 2. Erase the dangerous keys directly
   for (const key of badKeys) {
-    // Safely check for the key without triggering prototype execution
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+    if (key in obj) {
       delete obj[key];
     }
   }
 
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+  // 3. Safely iterate ONLY over the object's actual own properties
+  const safeKeys = Object.keys(obj);
+  for (const key of safeKeys) {
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
       sanitizePayload(obj[key]); // Recursively clean nested objects/arrays
     }
   }
+
+  return obj;
 };
 
 app.use((req, res, next) => {

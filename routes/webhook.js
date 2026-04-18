@@ -32,12 +32,12 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
         const expectedBuf = Buffer.from(digest || '', 'hex');
         const providedBuf = Buffer.from(signature || '', 'hex');
 
-        // Ensure same length to prevent timingSafeEqual from throwing an error
-        if (expectedBuf.length !== providedBuf.length) {
-            return res.status(401).json({ error: 'Invalid webhook signature' });
-        }
+        // Hash both buffers to guarantee identical lengths for timingSafeEqual
+        // This completely masks the original length and prevents timing leaks
+        const expectedHash = crypto.createHash('sha256').update(expectedBuf).digest();
+        const providedHash = crypto.createHash('sha256').update(providedBuf).digest();
 
-        if (!crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+        if (!crypto.timingSafeEqual(expectedHash, providedHash)) {
             return res.status(401).json({ error: 'Invalid webhook signature' });
         }
 

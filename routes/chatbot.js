@@ -77,7 +77,7 @@ const authenticatedActionLimiter = rateLimit({
   keyGenerator: (req, res) => {
     // Prefer Clerk userId if available (req.auth.userId from ClerkExpressRequireAuth)
     if (req.auth && req.auth.userId) {
-      return req.auth.userId;
+      return String(req.auth.userId);
     }
     // Fallback to IP address - IPv6 compatible
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -243,7 +243,7 @@ router.post('/create', strictCors, authenticatedActionLimiter, requireAuth, chec
     if (!websiteUrl) return res.status(400).json({ error: 'Website URL is required' });
 
     // Check max bots limit
-    const botCount = await Chatbot.countDocuments({ userId: req.auth.userId });
+    const botCount = await Chatbot.countDocuments({ userId: String(req.auth.userId) });
     if (botCount >= req.planLimits.maxBots) {
         return res.status(403).json({
             error: 'Plan limit reached. Please upgrade to create more bots.'
@@ -274,7 +274,7 @@ router.post('/create', strictCors, authenticatedActionLimiter, requireAuth, chec
     }
 
     const chatbot = new Chatbot({
-      userId: req.auth.userId,
+      userId: String(req.auth.userId),
       websiteUrl,
       scrapedContent: scrapeResult,
       widgetId: generateWidgetId(),
@@ -299,7 +299,7 @@ router.post('/retrain', strictCors, authenticatedActionLimiter, requireAuth, che
     const rawWidgetId = req.body.widgetId;
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     let scrapeResult;
@@ -329,7 +329,7 @@ router.post('/retrain', strictCors, authenticatedActionLimiter, requireAuth, che
 router.get('/my-bot', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     // For backward compatibility: return first bot
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId) });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     res.json({
@@ -558,7 +558,7 @@ router.delete('/delete/:id', strictCors, requireAuth, checkSubscription, async (
 
   try {
     const botIdToDelete = req.params.id;
-    const userId = req.auth.userId;
+    const userId = String(req.auth.userId);
 
     // Validate ID is a non-empty string
     if (!botIdToDelete || typeof botIdToDelete !== 'string') {
@@ -590,7 +590,7 @@ router.patch('/update-status', strictCors, requireAuth, checkSubscription, async
     if (typeof isActive !== 'boolean') return res.status(400).json({ error: 'isActive must be a boolean' });
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
-    const chatbot = await Chatbot.findOneAndUpdate({ userId: req.auth.userId, widgetId: safeWidgetId }, { isActive }, { returnDocument: 'after' });
+    const chatbot = await Chatbot.findOneAndUpdate({ userId: String(req.auth.userId), widgetId: safeWidgetId }, { isActive }, { returnDocument: 'after' });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
@@ -602,7 +602,7 @@ router.patch('/update-status', strictCors, requireAuth, checkSubscription, async
 // LIST ALL BOTS
 router.get('/list', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
-    const bots = await Chatbot.find({ userId: req.auth.userId }).select('_id name createdAt widgetId');
+    const bots = await Chatbot.find({ userId: String(req.auth.userId) }).select('_id name createdAt widgetId');
     res.status(200).json(bots);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch bots' });
@@ -618,7 +618,7 @@ router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) 
   try {
     const chatbot = await Chatbot.findOne({
       _id: req.params.id,
-      userId: req.auth.userId
+      userId: String(req.auth.userId)
     }).slice('conversations', -500); // Fetch last 500 messages only
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
@@ -708,7 +708,7 @@ router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async 
       return res.status(400).json({ error: 'Knowledge is too long. Keep it under 50,000 characters.' });
     }
     const safeWidgetId = String(rawWidgetId);
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
     const newChunks = knowledge.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     // Sanitize chunks to prevent prototype pollution - ensure all items are primitive strings
@@ -725,7 +725,7 @@ router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async 
 router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), async (req, res) => {
   try {
     // Check plan permissions for PDF uploads (Pro plan required)
-    const user = await User.findOne({ clerkId: req.auth.userId });
+    const user = await User.findOne({ clerkId: String(req.auth.userId) });
     // Allow 'free' (trial), 'pro', and 'agency'. Block 'starter'.
     if (user.plan === 'starter') {
       return res.status(403).json({
@@ -756,7 +756,7 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
 
       try {
         const safeWidgetId = String(widgetId);
-        const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+        const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
         if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
         let extractedText = data.pages
@@ -874,7 +874,7 @@ router.post('/faqs', strictCors, requireAuth, checkSubscription, async (req, res
     if (!question || !answer) return res.status(400).json({ error: 'Question and answer are required' });
     if (!widgetId) return res.status(400).json({ error: 'widgetId is required' });
     const chatbot = await Chatbot.findOneAndUpdate(
-      { userId: req.auth.userId, widgetId },
+      { userId: String(req.auth.userId), widgetId },
       { $push: { faqs: { question, answer } } },
       { returnDocument: 'after' }
     );
@@ -893,7 +893,7 @@ router.delete('/faqs/:index', strictCors, requireAuth, checkSubscription, async 
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Validate index is a valid integer
@@ -922,7 +922,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
 
   try {
     const botIdToUpdate = req.params.id;
-    const userId = req.auth.userId;
+    const userId = String(req.auth.userId);
 
     // Find EXACTLY that bot belonging to this user
     const chatbot = await Chatbot.findOne({ _id: botIdToUpdate, userId });
@@ -931,7 +931,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     }
 
     // Hard Lock: Check if starter user is trying to access Pro features
-    const user = await User.findOne({ clerkId: req.auth.userId });
+    const user = await User.findOne({ clerkId: String(req.auth.userId) });
     if (user.plan === 'starter') {
       // If a starter user tries to sneak in Pro features, block the request
       if (req.body.systemPrompt !== undefined || req.body.webhookUrl !== undefined || req.body.zapierUrl !== undefined) {
@@ -1036,7 +1036,7 @@ router.patch('/knowledge', strictCors, requireAuth, checkSubscription, async (re
       return res.status(400).json({ error: 'Custom knowledge must be a string under 50,000 characters.' });
     }
     const safeWidgetId = String(rawWidgetId);
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
     chatbot.customKnowledge = customKnowledge;
     await chatbot.save();
@@ -1055,7 +1055,7 @@ router.delete('/knowledge/:type/:index', strictCors, requireAuth, checkSubscript
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'Chatbot not found' });
 
     // Validate index is a valid integer
@@ -1180,7 +1180,7 @@ router.post('/lead', publicCors, async (req, res) => {
 router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
   try {
     const safeWidgetId = String(req.params.widgetId);
-    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId, userId: req.auth.userId });
+    const chatbot = await Chatbot.findOne({ widgetId: safeWidgetId, userId: String(req.auth.userId) });
     if (!chatbot) return res.status(403).json({ error: 'Unauthorized' });
     const leads = await Lead.find({ widgetId: safeWidgetId }).sort({ createdAt: -1 });
     res.json(leads);
@@ -1196,7 +1196,7 @@ router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
     const rawWidgetId = req.body.widgetId;
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     chatbot.apiKey = apiKey;
@@ -1218,12 +1218,12 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
     const safeWidgetId = String(rawWidgetId);
 
     // Hard Lock: Block starter users from using webhook automations
-    const user = await User.findOne({ clerkId: req.auth.userId });
+    const user = await User.findOne({ clerkId: String(req.auth.userId) });
     if (user.plan === 'starter' && webhookUrl) {
       return res.status(403).json({ error: 'System Prompt and Automations require the Pro plan.' });
     }
 
-    const chatbot = await Chatbot.findOne({ userId: req.auth.userId, widgetId: safeWidgetId });
+    const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
     if (webhookUrl) {
@@ -1246,7 +1246,7 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
 // Get user status - returns plan, createdAt, and trialEndsAt
 router.get('/user/status', strictCors, requireAuth, async (req, res) => {
   try {
-    const user = await User.findOne({ clerkId: req.auth.userId });
+    const user = await User.findOne({ clerkId: String(req.auth.userId) });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
