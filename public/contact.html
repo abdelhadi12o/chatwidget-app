@@ -11,30 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Tailwind Config for Theme -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        bg: '#080d14',
-                        surface: '#0f1823',
-                        primary: '#06b6d4',
-                        accent: '#3b82f6',
-                        text: '#f8fafc',
-                        muted: '#94a3b8',
-                        border: '#1e293b',
-                        success: '#10b981',
-                    },
-                    fontFamily: {
-                        clash: ['Clash Display', 'sans-serif'],
-                        satoshi: ['Satoshi', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="/tailwind-config-simple.js"></script>
     
     <style>
         body {
@@ -92,40 +69,7 @@
 </head>
 <body class="antialiased selection:bg-primary/30 selection:text-text">
 
-    <!-- REQUIRED CONFIG SCRIPT -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                if (window.location.protocol.startsWith('http')) {
-                    const response = await fetch('/api/config');
-                    if(response.ok) {
-                        const config = await response.json();
-                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
-                        
-                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
-                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
-                        });
-                        
-                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
-                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
-                        });
-
-                        const clerkJs = document.createElement('script');
-                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
-                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
-                        clerkJs.crossOrigin = 'anonymous';
-                        document.head.appendChild(clerkJs);
-                        
-                        clerkJs.addEventListener('load', async () => {
-                            await window.Clerk.load();
-                        });
-                    }
-                }
-            } catch (error) {
-                console.warn('Clerk configuration could not be loaded.');
-            }
-        });
-    </script>
+    <script src="/clerk-init.js" defer></script>
 
     <!-- HEADER -->
     <header class="sticky top-0 z-40 bg-bg/80 backdrop-blur-md border-b border-border transition-all duration-300">
@@ -355,75 +299,7 @@
         </div>
     </footer>
 
-    <!-- Interactivity -->
-    <script>
-        const hamburgerBtn = document.getElementById('hamburger-btn');
-        const closeMenuBtn = document.getElementById('close-menu');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const backdrop = document.getElementById('mobile-menu-backdrop');
-
-        function toggleMenu() {
-            mobileMenu.classList.toggle('translate-x-full');
-            document.body.classList.toggle('overflow-hidden');
-            if (backdrop.classList.contains('hidden')) {
-                backdrop.classList.remove('hidden');
-                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
-            } else {
-                backdrop.classList.add('opacity-0');
-                setTimeout(() => backdrop.classList.add('hidden'), 300);
-            }
-        }
-
-        hamburgerBtn.addEventListener('click', toggleMenu);
-        closeMenuBtn.addEventListener('click', toggleMenu);
-        backdrop.addEventListener('click', toggleMenu);
-
-        // Scroll Reveal Animation
-        function reveal() {
-            var reveals = document.querySelectorAll(".reveal");
-            for (var i = 0; i < reveals.length; i++) {
-                var windowHeight = window.innerHeight;
-                var elementTop = reveals[i].getBoundingClientRect().top;
-                var elementVisible = 100;
-                if (elementTop < windowHeight - elementVisible) {
-                    reveals[i].classList.add("active");
-                }
-            }
-        }
-        window.addEventListener("scroll", reveal);
-        reveal();
-
-        // Form Logic
-        const form = document.getElementById('contactForm');
-        const successMsg = document.getElementById('successMessage');
-        const subjectField = document.getElementById('subjectField');
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            // In a real app, you'd send data via fetch() here
-            form.classList.add('hidden');
-            successMsg.classList.remove('hidden');
-        });
-
-        function resetForm() {
-            form.reset();
-            successMsg.classList.add('hidden');
-            form.classList.remove('hidden');
-            // reset select field default empty state if needed
-            subjectField.value = "";
-        }
-
-        function requestDemo() {
-            subjectField.value = 'Demo Request';
-            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Highlight effect to draw attention to the pre-filled field
-            subjectField.classList.add('ring-2', 'ring-primary', 'bg-primary/10');
-            setTimeout(() => {
-                subjectField.classList.remove('ring-2', 'ring-primary', 'bg-primary/10');
-            }, 1500);
-        }
-    </script>
+    <script src="/contact.js" defer></script>
     <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
 </body>
 </html>

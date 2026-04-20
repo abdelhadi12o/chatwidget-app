@@ -38,7 +38,7 @@ const checkSubscription = async (req, res, next) => {
         // 4. If Pro/Agency, or Trial is still active, let them pass
         next();
     } catch (error) {
-        console.error('Subscription Middleware Error:', error);
+        console.error('Subscription Middleware Error:', error.message);
         res.status(500).json({ error: 'Server error checking subscription status' });
     }
 };

@@ -304,17 +304,17 @@ class AIWidget {
                     waMessage += `*Q: ${qa.question}*\nA: ${qa.answer}\n\n`;
                 });
 
-                // Clean the phone number and build the link
-                const cleanPhone = (this.botConfig.whatsappNumber || '').replace(/\D/g, '');
+                // Sanitize WhatsApp number - strictly allow only digits and plus sign
+                const safeWhatsapp = (this.botConfig.whatsappNumber || '').replace(/[^0-9+]/g, '');
 
                 // Validate phone number - must be at least 7 digits (basic sanity check for international numbers)
-                if (!cleanPhone || cleanPhone.length < 7) {
+                if (!safeWhatsapp || safeWhatsapp.replace(/[^0-9]/g, '').length < 7) {
                     console.error('ChatWidget: Invalid WhatsApp configuration');
                     this.addMessage('Sorry, there was an error preparing your booking. Please contact support.', 'bot');
                     return;
                 }
 
-                const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
+                const waUrl = `https://wa.me/${safeWhatsapp}?text=${encodeURIComponent(waMessage)}`;
 
             const completeHtml = `
                 <div style="background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-top: 8px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box; text-align: center; font-family: system-ui, -apple-system, sans-serif;">

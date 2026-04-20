@@ -1,0 +1,20 @@
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg: '#080d14',
+        surface: '#0f1823',
+        primary: '#06b6d4',
+        accent: '#3b82f6',
+        text: '#f8fafc',
+        muted: '#94a3b8',
+        border: '#1e293b',
+        success: '#10b981',
+      },
+      fontFamily: {
+        clash: ['Clash Display', 'sans-serif'],
+        satoshi: ['Satoshi', 'sans-serif'],
+      }
+    }
+  }
+}

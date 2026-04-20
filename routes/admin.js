@@ -5,23 +5,32 @@ const Chatbot = require('../models/Chatbot');
 const Lead = require('../models/Lead');
 
 const requireAdmin = async (req, res, next) => {
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  // 1. Strict existence check: Lock the route if the env var is missing
+  if (!adminEmail) {
+    console.error('CRITICAL: ADMIN_EMAIL is not set in environment variables. Admin routes disabled.');
+    return res.status(500).json({ error: 'Server configuration error.' });
+  }
+
   try {
     if (!req.auth || !req.auth.userId) {
-      return res.status(401).send('Unauthorized: No user session');
+      return res.status(401).json({ error: 'Unauthorized: No user session' });
     }
-    const user = await clerkClient.users.getUser(req.auth.userId);
-    const userEmail = user.emailAddresses?.[0]?.emailAddress || '';
-    const adminEmail = process.env.ADMIN_EMAIL;
 
-    // Allow if email matches env var
-    if (userEmail === adminEmail) {
-      return next();
-    } else {
-      return res.status(403).send('Forbidden: Not an admin user');
+    // 2. Safely extract user email from Clerk
+    const user = await clerkClient.users.getUser(req.auth.userId);
+    const userEmail = user.emailAddresses?.[0]?.emailAddress;
+
+    // 3. Strict, fail-closed comparison
+    if (!userEmail || userEmail.toLowerCase() !== adminEmail.toLowerCase()) {
+      return res.status(403).json({ error: 'Forbidden: Admin access required.' });
     }
+
+    next();
   } catch (error) {
-    console.error('Admin check error:', error);
-    return res.status(500).send('Internal server error');
+    console.error('Admin check error:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -88,7 +97,7 @@ router.get('/dashboard', ClerkExpressRequireAuth(), requireAdmin, async (req, re
 
     res.json({ totalUsers, totalBots, totalConversations, totalLeads, users: usersData });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    console.error('Error fetching dashboard data:', error.message);
     res.status(500).send('Server error');
   }
 });
@@ -102,7 +111,7 @@ router.patch('/upgrade/:userId', ClerkExpressRequireAuth(), requireAdmin, async 
     });
     res.send('User upgraded successfully');
   } catch (error) {
-    console.error('Error upgrading user:', error);
+    console.error('Error upgrading user:', error.message);
     res.status(500).send('Failed to upgrade user');
   }
 });
@@ -122,7 +131,7 @@ router.delete('/user/:userId', ClerkExpressRequireAuth(), requireAdmin, async (r
 
     res.send('User and associated bots deleted successfully');
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error('Error deleting user:', error.message);
     res.status(500).send('Failed to delete user');
   }
 });
@@ -152,7 +161,7 @@ router.post('/users/:userId/features', ClerkExpressRequireAuth(), requireAdmin, 
 
     res.json({ message: 'Features updated successfully', features });
   } catch (error) {
-    console.error('Error updating user features:', error);
+    console.error('Error updating user features:', error.message);
     res.status(500).json({ error: 'Failed to update user features' });
   }
 });

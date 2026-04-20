@@ -21,23 +21,23 @@ app.use((req, res, next) => {
 });
 
 // Security headers with Helmet - configured to allow widget embedding and external resources
+const isDev = process.env.NODE_ENV !== 'production';
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'",
-                "'unsafe-eval'",
                 "https://cdn.jsdelivr.net",
                 "https://cdn.tailwindcss.com",
                 "https://cdnjs.cloudflare.com",
                 "https://ultramora.com",
-                "http://localhost:3000",
                 "https://static.cloudflareinsights.com",
+                "https://*.clerk.accounts.dev",
+                "https://clerk.com",
                 "blob:"
             ],
-            scriptSrcAttr: ["'unsafe-inline'"],
             workerSrc: ["'self'", "blob:"],
             styleSrc: [
                 "'self'",
@@ -53,14 +53,14 @@ app.use(helmet({
                 "https://*.clerk.accounts.dev",
                 "https://cdn.jsdelivr.net",
                 "https://cdnjs.cloudflare.com",
-                "http://localhost:3000",
                 "https://ultramora.com",
                 "https://clerk.ultramora.com",
                 "https://cloudflareinsights.com",
-                "https://static.cloudflareinsights.com"
+                "https://static.cloudflareinsights.com",
+                ...(isDev ? ["http://localhost:3000"] : [])
             ],
             imgSrc: ["*", "data:", "blob:"],
-            frameAncestors: ["*"],
+            frameAncestors: ["'self'"],
             frameSrc: ["'self'"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: []
@@ -88,37 +88,33 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(mongoSanitize()); // Strip MongoDB operator injection attempts
 
-// Anti-Prototype Pollution Middleware - recursive sanitization
-const sanitizePayload = (obj) => {
-  // 1. Base case: If it's not an object or array, it's safe.
-  if (!obj || typeof obj !== 'object') return obj;
+// Anti-Prototype Pollution Middleware - Drop on Sight validation
+const sanitizePayload = (req, res, next) => {
+  const containsPollution = (obj) => {
+    if (!obj || typeof obj !== 'object') return false;
 
-  const badKeys = ['__proto__', 'constructor', 'prototype'];
-
-  // 2. Erase the dangerous keys directly
-  for (const key of badKeys) {
-    if (key in obj) {
-      delete obj[key];
+    // Only check direct properties explicitly passed in the request, ignoring inherited DNA
+    const keys = Object.keys(obj);
+    for (const key of keys) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return true;
+      }
+      if (typeof obj[key] === 'object' && containsPollution(obj[key])) {
+        return true;
+      }
     }
+    return false;
+  };
+
+  if (containsPollution(req.body) || containsPollution(req.query) || containsPollution(req.params)) {
+    console.warn('[SECURITY] Prototype pollution attempt blocked.');
+    return res.status(400).json({ error: 'Invalid payload structure.' });
   }
 
-  // 3. Safely iterate ONLY over the object's actual own properties
-  const safeKeys = Object.keys(obj);
-  for (const key of safeKeys) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      sanitizePayload(obj[key]); // Recursively clean nested objects/arrays
-    }
-  }
-
-  return obj;
+  next();
 };
 
-app.use((req, res, next) => {
-  sanitizePayload(req.body);
-  sanitizePayload(req.query);
-  sanitizePayload(req.params);
-  next();
-});
+app.use(sanitizePayload);
 
 // 1. Global API Limiter - 15 minutes, 100 requests per IP
 const globalLimiter = rateLimit({
@@ -186,7 +182,7 @@ app.get('/api/config', (req, res) => {
   const referer = req.headers.referer || req.headers.origin || '';
 
   // Anti-reconnaissance: Only serve config to our own domain
-  if (!referer.includes('ultramora.com') && !referer.includes('localhost')) {
+  if (!referer.includes('ultramora.com') && !referer.includes('localhost') && !referer.includes('127.0.0.1')) {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -210,7 +206,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // Serve admin.html at /admin route
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 // Landing page

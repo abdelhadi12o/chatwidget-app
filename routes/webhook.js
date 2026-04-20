@@ -7,11 +7,6 @@ const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET;
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
-        if (!secret) {
-            console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
         const signature = req.headers['x-signature'];
         if (!signature) {
             console.error('Missing x-signature header');
@@ -24,10 +19,18 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             return res.status(500).json({ error: 'Internal server error' });
         }
 
-        // Verify signature using raw body buffer
-        const hmac = crypto.createHmac('sha256', secret);
+        // Calculate HMAC unconditionally to prevent timing attacks
+        // Use a dummy secret if the real one is missing so the math takes the same time
+        const hmacSecret = secret || 'dummy_timing_secret';
+        const hmac = crypto.createHmac('sha256', hmacSecret);
         hmac.update(req.body);
         const digest = hmac.digest('hex');
+
+        // Check for missing secret AFTER HMAC calculation to equalize response times
+        if (!secret) {
+            console.error('LEMON_SQUEEZY_WEBHOOK_SECRET is not set in environment');
+            return res.status(500).json({ error: 'Internal server error' });
+        }
 
         const expectedBuf = Buffer.from(digest || '', 'hex');
         const providedBuf = Buffer.from(signature || '', 'hex');
@@ -91,7 +94,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
         res.status(200).send('OK');
     } catch (error) {
-        console.error('Webhook Error:', error);
+        console.error('Webhook Error:', error.message);
         res.status(500).json({ error: 'Server error' });
     }
 });

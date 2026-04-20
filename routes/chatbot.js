@@ -14,6 +14,10 @@ const crypto = require('crypto');
 const sanitizeHtml = require('sanitize-html');
 const path = require('path');
 const { Worker } = require('worker_threads');
+const { encrypt, decrypt } = require('../utils/encryption');
+const validator = require('validator');
+const fs = require('fs');
+const os = require('os');
 
 // Platform origins that are allowed to access widgets (e.g., dashboard preview)
 const PLATFORM_ORIGINS = ['http://localhost:3000', 'https://ultramora.com'];
@@ -26,8 +30,7 @@ const ALLOWED_WEBHOOK_DOMAINS = [
   'hook.us1.make.com',
   'hook.eu1.make.com',
   'n8n.io',
-  'n8n.cloud',
-  'webhook.site'
+  'n8n.cloud'
 ];
 
 const validatePublicUrl = (urlString) => {
@@ -81,11 +84,8 @@ const authenticatedActionLimiter = rateLimit({
       return req.auth.userId;
     }
 
-    // 2. Extract the true client IP, prioritizing Cloudflare's secure header
-    let ip = req.headers['cf-connecting-ip'] ||
-             req.ip ||
-             req.connection.remoteAddress ||
-             'unknown';
+    // 2. Extract the true client IP using Express's secure parsing
+    let ip = req.ip || req.connection.remoteAddress || 'unknown';
 
     ip = ip.trim();
 
@@ -108,26 +108,92 @@ const settingsLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 5. Lead Submission Limiter - 10 minutes, 5 submissions per IP
+// Protects the /lead endpoint from spam and abuse
+const leadRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5, // Limit each IP to 5 lead submissions per 10 minutes
+  message: { error: 'Too many lead submissions from this IP, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // CORS middleware for public endpoints (chat, lead, settings) —
-// allows ANY origin so embedded widgets work on client sites
-const publicCors = (req, res, next) => {
+// Strictly validates origin against widget's allowedDomains before allowing CORS
+const publicCors = async (req, res, next) => {
   const origin = req.headers.origin;
 
-  // Dynamically echo the origin to avoid wildcard flags,
-  // ensuring the embeddable widget works on client domains.
-  if (origin) {
+  // Platform origins that are always allowed
+  const PLATFORM_ORIGINS = ['http://localhost:3000', 'https://ultramora.com', 'https://www.ultramora.com'];
+
+  // If no origin header, proceed without setting CORS (non-browser request)
+  if (!origin) {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    return next();
+  }
+
+  // Check if origin is a platform origin (always allowed)
+  const isPlatformOrigin = PLATFORM_ORIGINS.some(platform => origin.startsWith(platform));
+
+  if (isPlatformOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+    return next();
   }
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Vary', 'Origin');
+  // Extract widgetId from params, body, or query
+  const widgetId = req.params.widgetId || req.body.widgetId || req.query.widgetId;
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (!widgetId) {
+    return res.status(403).json({ error: 'Widget ID is required for CORS validation.' });
   }
 
-  next();
+  try {
+    // Look up the chatbot to validate origin against allowedDomains
+    const chatbot = await Chatbot.findOne({ widgetId: String(widgetId) });
+
+    if (!chatbot) {
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
+    }
+
+    // Check if origin is in allowedDomains
+    const allowedDomains = chatbot.allowedDomains || [];
+    const isAllowedDomain = allowedDomains.some(domain => {
+      // Support both exact string match and hostname-based match
+      if (domain === origin) return true;
+      const domainHostname = extractHostname(domain);
+      const originHostname = extractHostname(origin);
+      return domainHostname && originHostname && domainHostname === originHostname;
+    });
+
+    if (!isAllowedDomain) {
+      return res.status(403).json({ error: 'Origin not allowed for this widget.' });
+    }
+
+    // Origin is allowed - set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Vary', 'Origin');
+
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
+    next();
+  } catch (error) {
+    console.error('CORS validation error:', error.message);
+    return res.status(500).json({ error: 'Internal server error during CORS validation.' });
+  }
 };
 
 // Helper: Extract hostname from URL (removes protocol, path, port)
@@ -146,39 +212,36 @@ const validateWidgetOrigin = (req, chatbot) => {
   const requestOrigin = req.headers.origin || '';
   const requestReferer = req.headers.referer || '';
 
-  // 1. Check if it's our internal dashboard/platform bypassing the check
-  const isPlatform = PLATFORM_ORIGINS.some(platform =>
-    requestOrigin.startsWith(platform) || requestReferer.startsWith(platform)
-  );
-
-  if (isPlatform) {
-    return { valid: true };
-  }
-
-  // 2. Continue with the standard chatbot.websiteUrl validation for external requests
   // Use origin if available, otherwise fall back to referer for GET requests
   const sourceHeader = requestOrigin || requestReferer;
   if (!sourceHeader) {
     return { valid: false, error: 'Origin not authorized for this widget' };
   }
 
-  // Compare hostnames (ignoring protocol, www subdomain, paths)
   const originHostname = extractHostname(sourceHeader);
-  const botHostname = extractHostname(chatbot.websiteUrl);
 
-  if (!originHostname || !botHostname) {
-    return { valid: false, error: 'Origin not authorized for this widget' };
-  }
+  // Add platform URLs to the permitted list so dashboard previews still work
+  const platformOrigins = ['http://localhost:3000', 'https://ultramora.com', 'https://www.ultramora.com'];
+  const isPlatformOrigin = platformOrigins.some(platform => sourceHeader.startsWith(platform));
 
-  // Strip 'www.' for a fair comparison, then require a strict exact match
-  const cleanOrigin = originHostname.replace(/^www\./, '');
-  const cleanBot = botHostname.replace(/^www\./, '');
+  if (!isPlatformOrigin) {
+    // Also check hostname-based matching for the website URL
+    const botHostname = extractHostname(chatbot.websiteUrl);
 
-  const isAuthorized = cleanOrigin === cleanBot;
+    if (!originHostname || !botHostname) {
+      return { valid: false, error: 'Origin not authorized for this widget' };
+    }
 
-  if (!isAuthorized) {
-    console.warn(`🚨 SECURITY BLOCK: Origin "${requestOrigin}" (hostname: ${originHostname}) tried to use widget for "${botHostname}"`);
-    return { valid: false, error: 'Origin not authorized for this widget' };
+    // Strip 'www.' for a fair comparison, then require a strict exact match
+    const cleanOrigin = originHostname.replace(/^www\./, '');
+    const cleanBot = botHostname.replace(/^www\./, '');
+
+    const isAuthorized = cleanOrigin === cleanBot;
+
+    if (!isAuthorized) {
+      console.warn(`🚨 SECURITY BLOCK: Origin "${requestOrigin}" (hostname: ${originHostname}) tried to use widget for "${botHostname}"`);
+      return { valid: false, error: 'Origin not authorized for this widget' };
+    }
   }
 
   return { valid: true };
@@ -361,7 +424,7 @@ router.get('/my-bot', strictCors, requireAuth, checkSubscription, async (req, re
       scrapedContent: chatbot.scrapedContent,
       customKnowledge: chatbot.customKnowledge || '',
       trainedFiles: chatbot.trainedFiles || [],
-      apiKey: chatbot.apiKey || '',
+      apiKey: chatbot.apiKey ? decrypt(chatbot.apiKey) : '',
       webhookUrl: chatbot.whatsAppNumber || '',
       bookingQuestions: chatbot.bookingQuestions || [],
       whatsappNumber: chatbot.whatsappNumber || '',
@@ -383,10 +446,20 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
 
     // Validate the widgetId format (allow 'demo-widget' or 'widget_' + 32 hex chars)
-    const isValidFormat = widgetId === 'demo-widget' || /^widget_[a-zA-Z0-9_-]+$/i.test(widgetId);
+    const isValidFormat = widgetId === 'demo-widget' || /^widget_[a-fA-F0-9]{32}$/i.test(widgetId);
     if (!isValidFormat) {
-      // Return a generic 404 to avoid confirming the regex pattern
-      return res.status(404).json({ error: 'Widget not found.' });
+      // Return generic error to avoid confirming the regex pattern
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
+    }
+
+    const origin = req.headers.origin;
+
+    // Strictly protect the demo widget from being embedded on unauthorized sites
+    if (widgetId === 'demo-widget') {
+      const allowedDemoOrigins = ['http://localhost:3000', 'https://ultramora.com', 'https://www.ultramora.com'];
+      if (origin && !allowedDemoOrigins.includes(origin)) {
+        return res.status(403).json({ error: 'Demo widget can only be used on the official Ultramora website.' });
+      }
     }
 
     // Input validation
@@ -413,7 +486,7 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
     }
 
     if (!chatbot || !isAuthorized) {
-      return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
     }
 
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
@@ -478,8 +551,11 @@ router.post('/chat', chatLimiter, publicCors, async (req, res) => {
     // 2. Build the master system message combining AI Brain + Knowledge Base
     // XML Fence protection: Wrap untrusted user-uploaded data in <knowledge_base> tags
     // with explicit security instructions to ignore any prompt overrides within
-    const safeContext = context.substring(0, 8000);
-    const safeCustomKnowledge = chatbot.customKnowledge ? chatbot.customKnowledge.substring(0, 10000) : '';
+    // Strip XML fence tags to prevent prompt injection breakout
+    const stripFence = (text) => text.replace(/<\/?knowledge_base>/gi, '[REDACTED_TAG]');
+
+    const safeContext = stripFence(context).substring(0, 8000);
+    const safeCustomKnowledge = chatbot.customKnowledge ? stripFence(chatbot.customKnowledge).substring(0, 10000) : '';
 
     const systemMessage = {
       role: "system",
@@ -517,7 +593,9 @@ CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never ou
 
     messages.push({ role: 'user', content: message });
 
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    // Use stored API key (decrypted) if available, otherwise fall back to env var
+    const effectiveApiKey = chatbot.apiKey ? decrypt(chatbot.apiKey) : process.env.GROQ_API_KEY;
+    const groq = new Groq({ apiKey: effectiveApiKey });
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: messages,
@@ -577,7 +655,7 @@ router.delete('/delete/:id', strictCors, requireAuth, checkSubscription, async (
 
     res.json({ success: true, message: "Bot deleted successfully." });
   } catch (error) {
-    console.error("Delete error:", error);
+    console.error("Delete error:", error.message);
     res.status(500).json({ error: "Failed to delete bot." });
   }
 });
@@ -692,7 +770,7 @@ router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) 
 
     res.json(safeChatbot);
   } catch (err) {
-    console.error('Error in /settings:', err);
+    console.error('Error in /settings:', err.message);
     res.status(500).json({ error: 'An internal server error occurred. Please try again later.' });
   }
 });
@@ -721,34 +799,34 @@ router.post('/add-knowledge', strictCors, requireAuth, checkSubscription, async 
   }
 });
 
-// PDF Extraction Worker Logic (inline for simplicity)
+// PDF Extraction Worker Logic - uses eval: true with workerData
 const createPDFWorker = (pdfBuffer) => {
-  const workerScript = `
-    const { parentPort } = require('worker_threads');
+  const workerCode = `
+    const { parentPort, workerData } = require('worker_threads');
     const { PDFExtract } = require('pdf.js-extract');
     const pdfExtract = new PDFExtract();
 
-    pdfExtract.extractBuffer(Buffer.from(${JSON.stringify(Array.from(pdfBuffer))}), {}, (err, data) => {
+    // Reconstruct the buffer securely from workerData
+    const buffer = Buffer.from(workerData);
+
+    pdfExtract.extractBuffer(buffer, {}, (err, data) => {
       if (err) {
         parentPort.postMessage({ success: false, error: err.message });
         return;
       }
 
       try {
-        // 1. CPU/Page Exhaustion Protection
         if (data.pages && data.pages.length > 500) {
           parentPort.postMessage({ success: false, error: 'PDF exceeds maximum allowed pages (500).' });
           return;
         }
 
-        // 2. Memory/Decompression Bomb Protection
         let extractedText = '';
-        const MAX_CHARS = 1000000; // ~1MB of raw text
+        const MAX_CHARS = 1000000;
 
         for (const page of data.pages) {
           const pageText = page.content.map(item => item.str).join(' ');
-          extractedText += pageText + '\n\n';
-
+          extractedText += pageText + String.fromCharCode(10, 10);
           if (extractedText.length > MAX_CHARS) {
             extractedText = extractedText.substring(0, MAX_CHARS);
             break;
@@ -761,7 +839,7 @@ const createPDFWorker = (pdfBuffer) => {
           return;
         }
 
-        const newChunks = extractedText.split('\n\n').filter(chunk => chunk.trim() !== '');
+        const newChunks = extractedText.split(String.fromCharCode(10, 10)).filter(chunk => chunk.trim() !== '');
         parentPort.postMessage({ success: true, chunks: newChunks, extractedText });
       } catch (error) {
         parentPort.postMessage({ success: false, error: error.message });
@@ -769,13 +847,18 @@ const createPDFWorker = (pdfBuffer) => {
     });
   `;
 
-  return new Worker(workerScript, { eval: true });
+  return {
+    worker: new Worker(workerCode, { eval: true, workerData: pdfBuffer }),
+    workerTempFile: null
+  };
 };
 
 // Upload PDF and extract text - requires widgetId in body
 router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.single('file'), async (req, res) => {
   let worker = null;
   let timeoutId = null;
+  let tempFilePath = null;
+  let workerFile = null;
 
   try {
     // Check plan permissions for PDF uploads (Pro plan required)
@@ -794,6 +877,31 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
       return res.status(400).json({ error: 'Only PDF files are allowed' });
     }
 
+    // Verify Magic Bytes (%PDF-)
+    try {
+      let magicBytes;
+
+      if (req.file.buffer) {
+        // Memory storage: read from buffer
+        magicBytes = req.file.buffer.toString('utf8', 0, 4);
+      } else if (req.file.path) {
+        // Disk storage: read first 4 bytes from file
+        const fd = fs.openSync(req.file.path, 'r');
+        const buffer = Buffer.alloc(4);
+        fs.readSync(fd, buffer, 0, 4, 0);
+        fs.closeSync(fd);
+        magicBytes = buffer.toString('utf8');
+      } else {
+        return res.status(400).json({ error: 'Invalid file upload format' });
+      }
+
+      if (magicBytes !== '%PDF') {
+        return res.status(400).json({ error: 'Invalid file format. Only real PDFs are allowed.' });
+      }
+    } catch (err) {
+      return res.status(400).json({ error: 'Failed to validate file format' });
+    }
+
     // Validate file size (5MB limit)
     if (req.file.size > 5 * 1024 * 1024) {
       return res.status(400).json({ error: 'File size exceeds 5MB limit' });
@@ -806,9 +914,28 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
     const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
+    // Unified data variable: strictly extract the buffer
+    let fileBuffer;
+
+    if (req.file.buffer) {
+      fileBuffer = req.file.buffer;
+    } else if (req.file.path) {
+      fileBuffer = require('fs').readFileSync(req.file.path);
+    } else {
+      return res.status(400).json({ error: 'Invalid file upload format' });
+    }
+
     // Create worker and set timeout
     const extractionPromise = new Promise((resolve, reject) => {
-      worker = createPDFWorker(req.file.buffer);
+      let workerResult;
+      try {
+        workerResult = createPDFWorker(fileBuffer);
+      } catch (err) {
+        reject(err);
+        return;
+      }
+      worker = workerResult.worker;
+      workerFile = workerResult.workerTempFile;
 
       // Strict 7-second timeout to prevent event loop blocking
       timeoutId = setTimeout(() => {
@@ -829,6 +956,8 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
       });
 
       worker.on('error', (err) => {
+        console.error('[WORKER ERROR]', err.message);
+        console.error('[WORKER STACK]', err.stack);
         if (timeoutId) clearTimeout(timeoutId);
         reject(err);
       });
@@ -854,7 +983,7 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
     const safeInternalName = crypto.randomUUID() + '.pdf';
 
     // Extract the original name purely for display purposes, with heavy sanitization
-    const displayFileName = req.file.originalname.replace(/[^a-zA-Z0-9.\-_ ()]/g, '').trim().substring(0, 100) || 'uploaded_document.pdf';
+    const displayFileName = path.basename(req.file.originalname).replace(/[^a-zA-Z0-9.\-_ ()]/g, '').trim().substring(0, 100) || 'uploaded_document.pdf';
 
     if (!chatbot.trainedFiles) chatbot.trainedFiles = [];
     chatbot.trainedFiles.push({
@@ -864,16 +993,34 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
     });
 
     await chatbot.save();
+
+    // Clean up temp files if we created them
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+    if (workerFile && fs.existsSync(workerFile)) {
+      fs.unlinkSync(workerFile);
+    }
+
     res.json({ message: 'Success', fileName: displayFileName });
 
   } catch (error) {
+    // Clean up temp files on error
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+    if (workerFile && fs.existsSync(workerFile)) {
+      fs.unlinkSync(workerFile);
+    }
+
     if (timeoutId) clearTimeout(timeoutId);
     if (worker) {
       worker.terminate();
       worker = null;
     }
 
-    console.error('Upload Error:', error.message);
+    console.error('[UPLOAD-PDF ERROR]', error.message);
+    console.error('[UPLOAD-PDF STACK]', error.stack);
 
     // Return specific error for timeout/decompression bomb
     if (error.message.includes('timeout') || error.message.includes('decompression bomb')) {
@@ -895,10 +1042,10 @@ router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) 
   try {
     const rawWidgetId = req.params.widgetId;
     // Validate the widgetId format (format: 'widget_' followed by 32 hex characters)
-    const isValidFormat = /^widget_[a-zA-Z0-9_-]+$/i.test(rawWidgetId);
+    const isValidFormat = /^widget_[a-fA-F0-9]{32}$/i.test(rawWidgetId);
     if (!isValidFormat) {
-      // Return a generic 404 to avoid confirming the regex pattern
-      return res.status(404).json({ error: 'Widget not found.' });
+      // Return generic error to avoid confirming the regex pattern
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
     }
     // Don't use lean() - it can cause issues with boolean type conversion
     const safeWidgetId = String(rawWidgetId);
@@ -911,7 +1058,7 @@ router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) 
     }
 
     if (!chatbot || !isAuthorized) {
-      return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
     }
 
     if (!chatbot.isActive) return res.status(400).json({ error: 'Chatbot is not active' });
@@ -1032,7 +1179,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     // Validate string field lengths
     if (botName) {
       if (botName.length > 50) return res.status(400).json({ error: 'Bot name is too long' });
-      chatbot.customization.botName = botName;
+      chatbot.customization.botName = sanitizeHtml(botName, { allowedTags: [], allowedAttributes: {} });
     }
     if (bubbleColor) {
       if (!/^#[0-9A-Fa-f]{6}$/.test(bubbleColor)) return res.status(400).json({ error: 'Invalid color format (use hex like #6366f1)' });
@@ -1040,7 +1187,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     }
     if (welcomeMessage) {
       if (welcomeMessage.length > 500) return res.status(400).json({ error: 'Welcome message is too long' });
-      chatbot.customization.welcomeMessage = welcomeMessage;
+      chatbot.customization.welcomeMessage = sanitizeHtml(welcomeMessage, { allowedTags: [], allowedAttributes: {} });
     }
     if (position) {
       const validPositions = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
@@ -1053,7 +1200,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
       for (const qr of quickReplies) {
         if (typeof qr !== 'string' || qr.length > 50) return res.status(400).json({ error: 'Quick reply items must be strings under 50 chars' });
       }
-      chatbot.customization.quickReplies = quickReplies;
+      chatbot.customization.quickReplies = quickReplies.map(qr => sanitizeHtml(qr, { allowedTags: [], allowedAttributes: {} }));
     }
     if (botLogo !== undefined) {
       if (typeof botLogo !== 'string' || (!botLogo.startsWith('http') && !botLogo.startsWith('data:image/'))) return res.status(400).json({ error: 'Invalid bot logo (must be URL or base64 image)' });
@@ -1077,7 +1224,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
       for (const q of bookingQuestions) {
         if (typeof q !== 'string' || q.length > 200) return res.status(400).json({ error: 'Each booking question must be a string under 200 chars' });
       }
-      chatbot.bookingQuestions = bookingQuestions;
+      chatbot.bookingQuestions = bookingQuestions.map(q => sanitizeHtml(q, { allowedTags: [], allowedAttributes: {} }));
     }
     if (whatsappNumber !== undefined) {
       if (typeof whatsappNumber !== 'string' || (whatsappNumber.length > 20 && whatsappNumber !== '')) return res.status(400).json({ error: 'WhatsApp number is too long' });
@@ -1089,7 +1236,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     }
     if (proactiveMessage !== undefined) {
       if (typeof proactiveMessage !== 'string' || proactiveMessage.length > 100) return res.status(400).json({ error: 'Proactive message must be a string under 100 chars' });
-      chatbot.proactiveMessage = proactiveMessage;
+      chatbot.proactiveMessage = sanitizeHtml(proactiveMessage, { allowedTags: [], allowedAttributes: {} });
       chatbot.markModified('proactiveMessage');
     }
     if (proactiveDelay !== undefined) {
@@ -1104,7 +1251,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     }
 
     if (bookingQuestions !== undefined) {
-      chatbot.bookingQuestions = bookingQuestions;
+      chatbot.bookingQuestions = bookingQuestions.map(q => sanitizeHtml(q, { allowedTags: [], allowedAttributes: {} }));
     }
 
     await chatbot.save();
@@ -1182,7 +1329,7 @@ router.delete('/knowledge/:type/:index', strictCors, requireAuth, checkSubscript
 });
 
 // Lead capture & Webhook Firing (Public)
-router.post('/lead', publicCors, async (req, res) => {
+router.post('/lead', publicCors, leadRateLimiter, async (req, res) => {
   try {
     const { widgetId, name, whatsapp, email, question } = req.body;
     if (!widgetId || !name || !whatsapp) {
@@ -1194,11 +1341,8 @@ router.post('/lead', publicCors, async (req, res) => {
       return res.status(400).json({ error: 'Name is too long' });
     }
     if (email) {
-      // Prevent ReDoS by capping the input length before regex evaluation
-      if (email.length > 254) {
-        return res.status(400).json({ error: 'Email address is too long.' });
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      // Use validator library to prevent ReDoS vulnerabilities
+      if (!validator.isEmail(email)) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
     }
@@ -1216,7 +1360,7 @@ router.post('/lead', publicCors, async (req, res) => {
     }
 
     if (!chatbot || !isAuthorized) {
-      return res.status(403).json({ error: 'Unauthorized origin or widget not found.' });
+      return res.status(403).json({ error: 'Widget unavailable or unauthorized.' });
     }
 
     const lead = new Lead({
@@ -1279,16 +1423,24 @@ router.get('/leads/:widgetId', strictCors, requireAuth, async (req, res) => {
 });
 
 // Save API Key - requires widgetId in body
-router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
+router.patch('/api-key', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { apiKey } = req.body;
+
+    // Input validation: Ensure it is a string and under a safe length limit
+    if (apiKey !== undefined && apiKey !== null) {
+      if (typeof apiKey !== 'string' || apiKey.length > 250) {
+        return res.status(400).json({ error: 'Invalid API key format or length.' });
+      }
+    }
+
     const rawWidgetId = req.body.widgetId;
     if (!rawWidgetId) return res.status(400).json({ error: 'widgetId is required' });
     const safeWidgetId = String(rawWidgetId);
     const chatbot = await Chatbot.findOne({ userId: String(req.auth.userId), widgetId: safeWidgetId });
     if (!chatbot) return res.status(404).json({ error: 'No chatbot found' });
 
-    chatbot.apiKey = apiKey;
+    chatbot.apiKey = encrypt(apiKey);
     await chatbot.save();
 
     res.json({ message: 'API Key saved successfully' });
@@ -1299,7 +1451,7 @@ router.patch('/api-key', strictCors, requireAuth, async (req, res) => {
 });
 
 // Save Webhook URL - requires widgetId in body
-router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
+router.patch('/webhook', strictCors, requireAuth, checkSubscription, async (req, res) => {
   try {
     const { webhookUrl } = req.body;
     const rawWidgetId = req.body.widgetId;
@@ -1327,7 +1479,7 @@ router.patch('/webhook', strictCors, requireAuth, async (req, res) => {
 
     res.json({ message: 'Webhook saved successfully' });
   } catch (error) {
-    console.error('Webhook save error:', error);
+    console.error('Webhook save error:', error.message);
     res.status(500).json({ error: 'Failed to save webhook' });
   }
 });
@@ -1344,7 +1496,7 @@ router.get('/user/status', strictCors, requireAuth, async (req, res) => {
       trialEndsAt: user.trialEndsAt
     });
   } catch (error) {
-    console.error('User status error:', error);
+    console.error('User status error:', error.message);
     res.status(500).json({ error: 'Failed to fetch user status' });
   }
 });

@@ -12,39 +12,7 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Tailwind Config for Theme -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        bg: '#080d14',
-                        surface: '#0f1823',
-                        primary: '#06b6d4',
-                        accent: '#3b82f6',
-                        text: '#f8fafc',
-                        muted: '#94a3b8',
-                        border: '#1e293b',
-                        success: '#10b981',
-                    },
-                    fontFamily: {
-                        clash: ['Clash Display', 'sans-serif'],
-                        satoshi: ['Satoshi', 'sans-serif'],
-                    },
-                    animation: {
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="/tailwind-config-pricing.js"></script>
 
     <style>
         body {
@@ -94,40 +62,7 @@
 </head>
 <body class="antialiased selection:bg-primary/30 selection:text-text">
 
-    <!-- REQUIRED CONFIG SCRIPT -->
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                if (window.location.protocol.startsWith('http')) {
-                    const response = await fetch('/api/config');
-                    if(response.ok) {
-                        const config = await response.json();
-                        const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
-                        
-                        document.querySelectorAll('[data-clerk-signin]').forEach(el => {
-                            if(config.clerkSignInUrl) el.href = `${config.clerkSignInUrl}?redirect_url=${dashboardUrl}`;
-                        });
-                        
-                        document.querySelectorAll('[data-clerk-signup]').forEach(el => {
-                            if(config.clerkSignUpUrl) el.href = `${config.clerkSignUpUrl}?redirect_url=${dashboardUrl}`;
-                        });
-
-                        const clerkJs = document.createElement('script');
-                        clerkJs.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
-                        clerkJs.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
-                        clerkJs.crossOrigin = 'anonymous';
-                        document.head.appendChild(clerkJs);
-                        
-                        clerkJs.addEventListener('load', async () => {
-                            await window.Clerk.load();
-                        });
-                    }
-                }
-            } catch (error) {
-                console.warn('Clerk configuration could not be loaded.');
-            }
-        });
-    </script>
+    <script src="/clerk-init.js" defer></script>
 
     <!-- 1. ANNOUNCEMENT BAR -->
     <div id="announcement-bar" class="bg-surface border-b border-border py-2 pr-10 pl-4 sm:px-8 z-50 relative flex items-center justify-center transition-all duration-300">
@@ -416,136 +351,7 @@
         </div>
     </footer>
 
-    <script>
-        function toggleFaq(button) {
-            const answer = button.nextElementSibling;
-            const icon = button.querySelector('svg');
-            answer.classList.toggle('hidden');
-            icon.classList.toggle('rotate-180');
-        }
-
-        const hamburgerBtn = document.getElementById('hamburger-btn');
-        const closeMenuBtn = document.getElementById('close-menu');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const backdrop = document.getElementById('mobile-menu-backdrop');
-
-        function toggleMenu() {
-            mobileMenu.classList.toggle('translate-x-full');
-            document.body.classList.toggle('overflow-hidden');
-            if (backdrop.classList.contains('hidden')) {
-                backdrop.classList.remove('hidden');
-                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
-            } else {
-                backdrop.classList.add('opacity-0');
-                setTimeout(() => backdrop.classList.add('hidden'), 300);
-            }
-        }
-
-        if(hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMenu);
-        if(closeMenuBtn) closeMenuBtn.addEventListener('click', toggleMenu);
-        if(backdrop) backdrop.addEventListener('click', toggleMenu);
-
-        function reveal() {
-            document.querySelectorAll(".reveal").forEach(el => {
-                if (el.getBoundingClientRect().top < window.innerHeight - 100) el.classList.add("active");
-            });
-        }
-        window.addEventListener("scroll", reveal);
-        reveal();
-
-        // Checkout handler - ensures user is logged in and appends clerk_id to checkout URL
-        async function handleCheckout(checkoutLink) {
-            console.log('[handleCheckout] Starting checkout process...');
-
-            // 1. Wait for Clerk to be fully loaded and ready
-            const waitForClerk = async (maxAttempts = 50) => {
-                console.log('[waitForClerk] Starting Clerk readiness check, maxAttempts:', maxAttempts);
-                let attempts = 0;
-                while (attempts < maxAttempts) {
-                    // Safer check: Clerk exists and is ready via multiple possible indicators
-                    const clerkExists = !!window.Clerk;
-                    const clerkLoaded = window.Clerk && (window.Clerk.loaded === true);
-                    const clerkIsReadyFn = window.Clerk && typeof window.Clerk.isReady === 'function';
-                    const clerkIsReady = clerkIsReadyFn ? window.Clerk.isReady() : false;
-                    const clerkHasUser = window.Clerk && window.Clerk.user !== undefined;
-
-                    const isReady = clerkExists && (clerkLoaded || clerkIsReady || clerkHasUser);
-
-                    if (attempts % 10 === 0) {
-                        console.log('[waitForClerk] Attempt', attempts, {
-                            clerkExists,
-                            clerkLoaded,
-                            clerkIsReadyFn,
-                            clerkIsReady,
-                            clerkHasUser,
-                            isReady
-                        });
-                    }
-
-                    if (isReady) {
-                        console.log('[waitForClerk] Clerk loaded successfully on attempt', attempts);
-                        return true;
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    attempts++;
-                }
-                console.log('[waitForClerk] Clerk failed to load after', maxAttempts, 'attempts');
-                return false;
-            };
-
-            // Show loading state
-            const clickedButton = event.target.closest('a, button');
-            const originalText = clickedButton ? clickedButton.innerHTML : null;
-            if (clickedButton) {
-                clickedButton.innerHTML = 'Loading...';
-                clickedButton.style.pointerEvents = 'none';
-                clickedButton.style.opacity = '0.7';
-            }
-
-            console.log('[handleCheckout] Waiting for Clerk to be ready...');
-            const clerkReady = await waitForClerk();
-            console.log('[handleCheckout] Clerk ready state:', clerkReady, 'window.Clerk exists:', !!window.Clerk);
-
-            if (!clerkReady || !window.Clerk) {
-                console.error('[handleCheckout] Clerk failed to load - showing alert');
-                alert('Unable to connect to authentication service. Please refresh.');
-                if (clickedButton) {
-                    clickedButton.innerHTML = originalText;
-                    clickedButton.style.pointerEvents = '';
-                    clickedButton.style.opacity = '';
-                }
-                return;
-            }
-
-            console.log('[handleCheckout] Clerk loaded successfully');
-
-            // 2. Check if user is logged in
-            const user = window.Clerk.user;
-            console.log('[handleCheckout] User state:', user ? { id: user.id, email: user.emailAddresses?.[0]?.emailAddress } : 'not logged in');
-
-            if (user && user.id) {
-                // 3. User is logged in - append clerk_id and redirect to checkout
-                const userId = user.id;
-                const separator = checkoutLink.includes('?') ? '&' : '?';
-                const checkoutUrlWithClerkId = `${checkoutLink}${separator}checkout[custom][clerk_id]=${encodeURIComponent(userId)}`;
-                window.location.href = checkoutUrlWithClerkId;
-            } else {
-                // 4. User is NOT logged in - open Clerk sign up modal
-                // After sign up, they'll be redirected back to this page
-                window.Clerk.openSignUp({
-                    redirectUrl: window.location.href,
-                    afterSignUpUrl: window.location.href
-                });
-
-                // Restore button state
-                if (clickedButton) {
-                    clickedButton.innerHTML = originalText;
-                    clickedButton.style.pointerEvents = '';
-                    clickedButton.style.opacity = '';
-                }
-            }
-        }
-    </script>
+    <script src="/pricing.js" defer></script>
+    <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_f5c8v5zi82hmnn6v6cg"></script>
 </body>
 </html>
