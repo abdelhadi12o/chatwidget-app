@@ -50,7 +50,8 @@ async function logAdminAction(req, action, target = {}, details = {}, success = 
 }
 
 const requireAdmin = async (req, res, next) => {
-  const adminEmail = process.env.ADMIN_EMAIL;
+  // Trim and clean the admin email to handle env var whitespace/quotes
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().replace(/^["']|["']$/g, '');
 
   // 1. Strict existence check: Lock the route if the env var is missing
   if (!adminEmail) {
@@ -65,10 +66,14 @@ const requireAdmin = async (req, res, next) => {
 
     // 2. Safely extract user email from Clerk
     const user = await clerkClient.users.getUser(req.auth.userId);
-    const userEmail = user.emailAddresses?.[0]?.emailAddress;
+    const userEmail = user.emailAddresses?.[0]?.emailAddress?.trim().toLowerCase();
+
+    // Debug logging for production troubleshooting
+    console.log('[Admin Check] User email:', userEmail, '| Configured admin:', adminEmail.toLowerCase());
 
     // 3. Strict, fail-closed comparison
-    if (!userEmail || userEmail.toLowerCase() !== adminEmail.toLowerCase()) {
+    if (!userEmail || userEmail !== adminEmail.toLowerCase()) {
+      console.error(`[Admin Check] Access denied for user: ${userEmail} (expected: ${adminEmail.toLowerCase()})`);
       return res.status(403).json({ error: 'Forbidden: Admin access required.' });
     }
 
