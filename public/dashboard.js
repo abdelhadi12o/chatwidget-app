@@ -391,22 +391,36 @@
       btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
       try {
         const freshToken = await window.Clerk.session.getToken();
+
+        // Build payload - only include image fields if they have values (not empty strings)
+        const payload = {
+          botName: document.getElementById('customBotName').value,
+          systemPrompt: document.getElementById('systemPromptInput').value,
+          welcomeMessage: document.getElementById('customWelcome').value,
+          bubbleColor: document.getElementById('customColor').value,
+          bookingLink: document.getElementById('customBookingLink').value,
+          quickReplies: [document.getElementById('qr1').value, document.getElementById('qr2').value, document.getElementById('qr3').value].filter(Boolean),
+          proactiveMessage: document.getElementById('customProactive').value,
+          proactiveDelay: parseInt(document.getElementById('customProactiveDelay').value) || 0,
+          proactiveEnabled: document.getElementById('proactiveEnabled').checked
+        };
+
+        // Only include botLogo if it has a value (URL or base64 data)
+        const botLogoValue = document.getElementById('botLogoBase64').value;
+        if (botLogoValue) {
+          payload.botLogo = botLogoValue;
+        }
+
+        // Only include launcherImage if it has a value (URL or base64 data)
+        const launcherImageValue = document.getElementById('launcherImageBase64').value;
+        if (launcherImageValue) {
+          payload.launcherImage = launcherImageValue;
+        }
+
         const response = await fetch(`/api/chatbot/customization/${currentActiveBotId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${freshToken}` },
-          body: JSON.stringify({
-            botName: document.getElementById('customBotName').value,
-            systemPrompt: document.getElementById('systemPromptInput').value,
-            welcomeMessage: document.getElementById('customWelcome').value,
-            bubbleColor: document.getElementById('customColor').value,
-            bookingLink: document.getElementById('customBookingLink').value,
-            botLogo: document.getElementById('botLogoBase64').value,
-            launcherImage: document.getElementById('launcherImageBase64').value,
-            quickReplies: [document.getElementById('qr1').value, document.getElementById('qr2').value, document.getElementById('qr3').value].filter(Boolean),
-            proactiveMessage: document.getElementById('customProactive').value,
-            proactiveDelay: parseInt(document.getElementById('customProactiveDelay').value) || 0,
-            proactiveEnabled: document.getElementById('proactiveEnabled').checked
-          })
+          body: JSON.stringify(payload)
         });
         if (!response.ok) {
           const errorData = await response.json();
