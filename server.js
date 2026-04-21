@@ -38,6 +38,7 @@ app.use(helmet({
                 "https://clerk.com",
                 "blob:"
             ],
+            scriptSrcAttr: ["'unsafe-inline'"],
             workerSrc: ["'self'", "blob:"],
             styleSrc: [
                 "'self'",
