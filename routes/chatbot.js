@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const cors = require('cors');
 const Chatbot = require('../models/Chatbot');
 const { ObjectId } = require('mongoose').Types;
 const Lead = require('../models/Lead');
 const User = require('../models/User');
+const DailyStats = require('../models/DailyStats');
 const { scrapeWebsite } = require('../scraper/scrape');
 const requireAuth = require('../middleware/auth');
 const { checkSubscription, PLAN_LIMITS } = require('../middleware/subscription');
@@ -116,6 +118,13 @@ const leadRateLimiter = rateLimit({
   message: { error: 'Too many lead submissions from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// Permissive CORS for public widget endpoints (allows embedding on any client website)
+const permissiveCors = cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 });
 
 // CORS middleware for public endpoints (chat, lead, settings) —
@@ -248,9 +257,9 @@ const validateWidgetOrigin = (req, chatbot) => {
 };
 
 // Explicit OPTIONS handlers for public routes (preflight)
-router.options('/chat', publicCors);
-router.options('/settings/:widgetId', publicCors);
-router.options('/lead', publicCors);
+router.options('/chat', permissiveCors);
+router.options('/settings/:widgetId', permissiveCors);
+router.options('/lead', permissiveCors);
 
 // Strict CORS for dashboard/auth routes — only allows specified origins
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',');
@@ -440,7 +449,7 @@ router.get('/my-bot', strictCors, requireAuth, checkSubscription, async (req, re
 });
 
 // Chat endpoint (Public - No Auth Required)
-router.post('/chat', chatLimiter, publicCors, async (req, res) => {
+router.post('/chat', chatLimiter, permissiveCors, async (req, res) => {
   try {
     const { widgetId, message, history } = req.body;
     if (!widgetId || !message) return res.status(400).json({ error: 'Widget ID and message are required' });
@@ -618,6 +627,11 @@ CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never ou
       await Chatbot.findByIdAndUpdate(chatbot._id, {
         $inc: { conversationCount: 1 },
         $push: { conversations: { user: message, bot: cleanedAnswer, timestamp: new Date() } }
+      });
+
+      // Track conversation in daily stats (fire and forget)
+      DailyStats.incrementConversations().catch(err => {
+        console.error('Failed to track conversation stat:', err.message);
       });
     }
 
@@ -1038,7 +1052,7 @@ router.post('/upload-pdf', strictCors, requireAuth, checkSubscription, upload.si
 });
 
 // Get widget settings (public)
-router.get('/settings/:widgetId', publicCors, settingsLimiter, async (req, res) => {
+router.get('/settings/:widgetId', permissiveCors, settingsLimiter, async (req, res) => {
   try {
     const rawWidgetId = req.params.widgetId;
     // Validate the widgetId format (format: 'widget_' followed by 32 hex characters)
@@ -1329,7 +1343,7 @@ router.delete('/knowledge/:type/:index', strictCors, requireAuth, checkSubscript
 });
 
 // Lead capture & Webhook Firing (Public)
-router.post('/lead', publicCors, leadRateLimiter, async (req, res) => {
+router.post('/lead', permissiveCors, leadRateLimiter, async (req, res) => {
   try {
     const { widgetId, name, whatsapp, email, question } = req.body;
     if (!widgetId || !name || !whatsapp) {

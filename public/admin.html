@@ -5,119 +5,480 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/admin-clerk.js" defer></script>
   <style>
-    /* Dark theme styling */
+    :root {
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-tertiary: #252542;
+      --bg-card: #2d2d4a;
+      --border: #3d3d5c;
+      --text-primary: #f0f0ff;
+      --text-secondary: #a0a0c0;
+      --text-muted: #6a6a8a;
+      --accent: #a6e3a1;
+      --accent-hover: #8bd486;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --success: #60a5fa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #1e1e2e;
-      color: #d6d6e6;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      min-height: 100vh;
     }
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
+
+    /* Layout */
+    .admin-layout {
+      display: flex;
+      min-height: 100vh;
     }
-    .dashboard-header {
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-primary);
+    }
+
+    .sidebar-header h1 i {
+      color: var(--accent);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--accent);
+      color: var(--bg-secondary);
+    }
+
+    .nav-item.active i {
+      color: var(--bg-secondary);
+    }
+
+    .nav-item i {
+      width: 20px;
+      height: 20px;
+      color: var(--text-muted);
+    }
+
+    .nav-item:hover i {
+      color: var(--text-primary);
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 24px 32px;
+      min-height: 100vh;
+    }
+
+    .section-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 30px;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
     }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    /* Mobile Header */
+    .mobile-header {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+      align-items: center;
+      padding: 0 16px;
+      justify-content: space-between;
+    }
+
+    .mobile-header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .menu-toggle:hover {
+      background: var(--bg-tertiary);
+    }
+
+    /* Overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+
+    .sidebar-overlay.active {
+      display: block;
+    }
+
+    /* Content Sections */
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    /* Metric Cards */
     .metric-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 20px;
-      margin-top: 20px;
+      margin-bottom: 32px;
     }
+
     .metric-card {
-      background: #2d2d3b;
-      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
       padding: 24px;
       display: flex;
       flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .metric-card .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-bottom: 16px;
     }
+
+    .metric-card.users .icon { background: rgba(166, 227, 161, 0.15); color: var(--accent); }
+    .metric-card.bots .icon { background: rgba(96, 165, 250, 0.15); color: var(--success); }
+    .metric-card.conversations .icon { background: rgba(251, 191, 36, 0.15); color: var(--warning); }
+    .metric-card.leads .icon { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+
     .metric-card h3 {
       margin: 0 0 8px 0;
-      font-size: 14px;
-      color: #888;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
     }
+
     .metric-card .value {
-      font-size: 28px;
-      font-weight: 600;
-      color: #f0f0ff;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
     }
+
+    /* Tables */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 30px;
-      background: #2d2d3b;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    thead {
-      background: #252532;
-    }
-    th {
-      padding: 16px;
-      text-align: left;
-      color: #a6e3a1;
-      font-weight: 500;
-      font-size: 15px;
-    }
-    tbody tr {
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-    tbody tr:hover {
-      opacity: 1;
-    }
-    td {
-      padding: 16px;
-      border-bottom: 1px solid #3a3a47;
-    }
-    .actions-button {
-      background: none;
-      border: none;
-      color: #a6e3a1;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 13px;
-      transition: background 0.2s;
-    }
-    .actions-button:hover {
-      background-color: rgba(166, 227, 161, 0.15);
-    }
-    .status-active {
-      color: #60a5fa;
-    }
-    .status-inactive {
-      color: #f87171;
-    }
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 6px;
-      margin: 10px;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .toast.show {
-      opacity: 1;
     }
 
-    /* Modal styles */
+    thead {
+      background: var(--bg-tertiary);
+    }
+
+    th {
+      padding: 14px 16px;
+      text-align: left;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+      background: rgba(166, 227, 161, 0.05);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 14px;
+    }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--bg-secondary);
+      font-size: 14px;
+    }
+
+    .user-info .name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .user-info .email {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-pro {
+      background: rgba(166, 227, 161, 0.15);
+      color: var(--accent);
+    }
+
+    .badge-free {
+      background: rgba(160, 160, 192, 0.15);
+      color: var(--text-secondary);
+    }
+
+    .badge-yes {
+      background: rgba(96, 165, 250, 0.15);
+      color: var(--success);
+    }
+
+    .badge-no {
+      background: rgba(160, 160, 192, 0.1);
+      color: var(--text-muted);
+    }
+
+    /* Actions */
+    .actions-cell {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-secondary);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.15);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, 0.25);
+    }
+
+    .btn-icon {
+      padding: 8px;
+    }
+
+    /* Features input */
+    .features-input {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 180px;
+    }
+
+    .features-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 20px;
+      color: var(--text-primary);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.success { border-left: 4px solid var(--accent); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .toast.warning { border-left: 4px solid var(--warning); }
+
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
@@ -125,160 +486,1248 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.7);
       z-index: 1000;
       justify-content: center;
       align-items: center;
+      padding: 20px;
     }
+
     .modal.show {
       display: flex;
     }
+
     .modal-content {
-      background: #2d2d3b;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 30px;
       max-width: 500px;
-      width: 90%;
+      width: 100%;
       max-height: 80vh;
       overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      position: relative;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
+
+    .modal-header {
+      padding: 24px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
     .modal-close {
-      position: absolute;
-      top: 15px;
-      right: 15px;
       background: none;
       border: none;
-      color: #a6e3a1;
+      color: var(--text-muted);
       font-size: 24px;
       cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
       width: 32px;
       height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
-      transition: background 0.2s;
     }
+
     .modal-close:hover {
-      background-color: rgba(166, 227, 161, 0.15);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
     }
-    .modal-header {
-      margin-bottom: 20px;
-      border-bottom: 1px solid #3a3a47;
-      padding-bottom: 15px;
-    }
-    .modal-header h2 {
-      margin: 0;
-      font-size: 22px;
-      color: #f0f0ff;
-    }
+
     .modal-body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      padding: 24px;
     }
+
     .modal-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      margin-bottom: 16px;
     }
+
+    .modal-field:last-child {
+      margin-bottom: 0;
+    }
+
     .modal-field label {
-      font-size: 13px;
-      color: #888;
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      margin-bottom: 6px;
     }
+
     .modal-field .value {
-      font-size: 16px;
-      color: #f0f0ff;
+      font-size: 15px;
+      color: var(--text-primary);
       line-height: 1.5;
+    }
+
+    /* Placeholder sections */
+    .placeholder-section {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+    }
+
+    .placeholder-section i {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .placeholder-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .placeholder-section p {
+      margin: 0;
+      font-size: 14px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Health Monitoring Styles */
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .health-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .health-card h3 {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .health-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.healthy {
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(166, 227, 161, 0.5);
+    }
+
+    .status-indicator.warning {
+      background: var(--warning);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+
+    .status-indicator.critical {
+      background: var(--danger);
+      box-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .health-status-text {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .health-status-text.healthy { color: var(--accent); }
+    .health-status-text.warning { color: var(--warning); }
+    .health-status-text.critical { color: var(--danger); }
+
+    .health-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .health-metric {
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .health-metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .health-metric-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .health-metric-value.good { color: var(--accent); }
+    .health-metric-value.warning { color: var(--warning); }
+    .health-metric-value.critical { color: var(--danger); }
+
+    .response-time-chart {
+      height: 150px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin-top: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .response-bar {
+      position: absolute;
+      bottom: 0;
+      background: linear-gradient(to top, var(--accent), rgba(166, 227, 161, 0.3));
+      border-radius: 2px 2px 0 0;
+      transition: height 0.3s ease;
+    }
+
+    .response-bar.warning {
+      background: linear-gradient(to top, var(--warning), rgba(251, 191, 36, 0.3));
+    }
+
+    .response-bar.critical {
+      background: linear-gradient(to top, var(--danger), rgba(248, 113, 113, 0.3));
+    }
+
+    .last-updated {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .refresh-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .refresh-indicator.spinning i {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Analytics Styles */
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .analytics-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .analytics-card h3 {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .analytics-card h3 i {
+      color: var(--accent);
+    }
+
+    .analytics-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stat-value.positive { color: var(--accent); }
+    .stat-value.negative { color: var(--danger); }
+    .stat-value.neutral { color: var(--success); }
+
+    /* Enhanced Table Styles */
+    .table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 400px;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      padding: 10px 12px 10px 40px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .table-filters {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .filter-select {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      padding: 10px 32px 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a6a8a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .plan-select {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      padding: 6px 28px 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a6a8a' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      max-width: 140px;
+    }
+
+    .plan-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .plan-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 4px;
+    }
+
+    .bulk-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Chatbot Grid */
+    .chatbot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      padding: 24px;
+    }
+
+    .chatbot-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .chatbot-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .chatbot-card.inactive {
+      opacity: 0.6;
+    }
+
+    .chatbot-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .chatbot-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .chatbot-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .chatbot-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chatbot-name {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chatbot-url {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chatbot-status {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+
+    .status-toggle {
+      width: 40px;
+      height: 22px;
+      background: var(--border);
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .status-toggle.active {
+      background: var(--accent);
+    }
+
+    .status-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .status-toggle.active::after {
+      transform: translateX(18px);
+    }
+
+    .chatbot-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .chatbot-stat {
+      text-align: center;
+    }
+
+    .chatbot-stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chatbot-stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    .chatbot-owner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .chatbot-owner-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--bg-secondary);
+    }
+
+    .chatbot-owner-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chatbot-owner-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chatbot-owner-email {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .chatbot-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chatbot-actions .btn {
+      flex: 1;
+      justify-content: center;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h4 {
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background: var(--border);
+    }
+
+    .page-btn.active {
+      background: var(--accent);
+      color: var(--bg-secondary);
+      border-color: var(--accent);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Service List */
+    .service-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .service-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+    }
+
+    .service-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .service-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .service-icon.db { background: rgba(96, 165, 250, 0.15); color: var(--success); }
+    .service-icon.api { background: rgba(166, 227, 161, 0.15); color: var(--accent); }
+
+    .service-name {
+      font-weight: 500;
+    }
+
+    .service-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding-top: 80px;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .mobile-header {
+        display: flex;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 10px 12px;
+      }
+
+      .features-input {
+        width: 120px;
+      }
+
+      .actions-cell .btn span {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Clerk Authentication Button -->
-    <div id="clerk"></div>
-
-    <!-- Metric Cards -->
-    <div class="metric-grid">
-      <div class="metric-card">
-        <h3>Total Users</h3>
-        <div class="value" id="metric-users">0</div>
-      </div>
-      <div class="metric-card">
-        <h3>Total Chatbots</h3>
-        <div class="value" id="metric-bots">0</div>
-      </div>
-      <div class="metric-card">
-        <h3>Total Conversations</h3>
-        <div class="value" id="metric-convo">0</div>
-      </div>
-      <div class="metric-card">
-        <h3>Total Leads</h3>
-        <div class="value" id="metric-leads">0</div>
-      </div>
-    </div>
-
-    <!-- Data Table -->
-    <table>
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Email</th>
-          <th>Plan</th>
-          <th>Chatbot</th>
-          <th>Conversations</th>
-          <th>Features</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="data-table-body">
-        <!-- Rows will be inserted here -->
-      </tbody>
-    </table>
-
-    <!-- Toast Notification Area -->
-    <div id="toast-container"></div>
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+      <i data-lucide="menu"></i>
+    </button>
+    <h1>Admin Dashboard</h1>
+    <div style="width: 40px;"></div>
   </div>
 
-    <!-- User Details Modal -->
-    <div id="user-modal" class="modal">
-      <div class="modal-content">
-        <button class="modal-close" id="modal-close">&times;</button>
-        <div class="modal-header">
-          <h2 id="modal-user-name">User Details</h2>
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1>
+          <i data-lucide="shield"></i>
+          Admin Panel
+        </h1>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="users">
+          <i data-lucide="users"></i>
+          Users
+        </button>
+        <button class="nav-item" data-section="chatbots">
+          <i data-lucide="bot"></i>
+          Chatbots
+        </button>
+        <button class="nav-item" data-section="analytics">
+          <i data-lucide="bar-chart-2"></i>
+          Analytics
+        </button>
+        <button class="nav-item" data-section="health">
+          <i data-lucide="activity"></i>
+          System Health
+        </button>
+        <button class="nav-item" data-section="logs">
+          <i data-lucide="scroll-text"></i>
+          Audit Logs
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div id="clerk"></div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Users Section -->
+      <section class="content-section active" id="users-section">
+        <div class="section-header">
+          <h2>Users Management</h2>
         </div>
-        <div class="modal-body">
-          <div class="modal-field">
-            <label>Email</label>
-            <div class="value" id="modal-user-email"></div>
+
+        <!-- Metrics -->
+        <div class="metric-grid">
+          <div class="metric-card users">
+            <div class="icon"><i data-lucide="users"></i></div>
+            <h3>Total Users</h3>
+            <div class="value" id="metric-users">0</div>
           </div>
-          <div class="modal-field">
-            <label>Plan</label>
-            <div class="value" id="modal-user-plan"></div>
+          <div class="metric-card bots">
+            <div class="icon"><i data-lucide="bot"></i></div>
+            <h3>Total Chatbots</h3>
+            <div class="value" id="metric-bots">0</div>
           </div>
-          <div class="modal-field">
-            <label>Joined Date</label>
-            <div class="value" id="modal-user-joined"></div>
+          <div class="metric-card conversations">
+            <div class="icon"><i data-lucide="message-square"></i></div>
+            <h3>Total Conversations</h3>
+            <div class="value" id="metric-convo">0</div>
           </div>
-          <div class="modal-field">
-            <label>Last Active</label>
-            <div class="value" id="modal-user-lastactive"></div>
+          <div class="metric-card leads">
+            <div class="icon"><i data-lucide="users-2"></i></div>
+            <h3>Total Leads</h3>
+            <div class="value" id="metric-leads">0</div>
           </div>
-          <div class="modal-field">
-            <label>Location</label>
-            <div class="value" id="modal-user-location"></div>
+        </div>
+
+        <!-- Users Table with Toolbar -->
+        <div class="table-container">
+          <div class="table-toolbar">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" class="search-input" id="user-search" placeholder="Search users by name or email...">
+            </div>
+            <div class="table-filters">
+              <select class="filter-select" id="plan-filter">
+                <option value="">All Plans</option>
+                <option value="free">Free</option>
+                <option value="pro">Pro</option>
+              </select>
+              <select class="filter-select" id="bot-filter">
+                <option value="">All Bots</option>
+                <option value="has">Has Bot</option>
+                <option value="none">No Bot</option>
+              </select>
+            </div>
           </div>
-          <div class="modal-field">
-            <label>Bot Names</label>
-            <div class="value" id="modal-user-bots"></div>
+
+          <!-- Bulk Actions Bar (hidden by default) -->
+          <div class="table-toolbar" id="bulk-actions-bar" style="display: none; background: rgba(166, 227, 161, 0.05);">
+            <span id="selected-count">0 selected</span>
+            <div class="bulk-actions">
+              <button class="btn btn-primary" id="bulk-upgrade">
+                <i data-lucide="crown" style="width: 14px; height: 14px;"></i>
+                Upgrade to Pro
+              </button>
+              <button class="btn btn-danger" id="bulk-delete">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                Delete
+              </button>
+              <button class="btn btn-secondary" id="bulk-clear">Clear Selection</button>
+            </div>
           </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="select-all" style="margin-right: 8px;">
+                  User
+                </th>
+                <th>Plan</th>
+                <th>Usage</th>
+                <th>Conversations</th>
+                <th>Features</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="data-table-body">
+              <!-- Rows inserted by JS -->
+            </tbody>
+          </table>
+
+          <!-- Pagination -->
+          <div class="pagination" id="users-pagination">
+            <!-- Pagination buttons inserted by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Chatbots Section -->
+      <section class="content-section" id="chatbots-section">
+        <div class="section-header">
+          <h2>Chatbots Management</h2>
+          <div class="table-filters">
+            <div class="search-box">
+              <i data-lucide="search"></i>
+              <input type="text" class="search-input" id="chatbot-search" placeholder="Search chatbots...">
+            </div>
+            <select class="filter-select" id="chatbot-status-filter">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Chatbots Grid -->
+        <div class="chatbot-grid" id="chatbots-grid">
+          <!-- Chatbot cards inserted by JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="chatbots-empty" style="display: none;">
+          <i data-lucide="bot"></i>
+          <h4>No chatbots found</h4>
+          <p>Try adjusting your search or filters</p>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="chatbots-pagination">
+          <!-- Pagination buttons inserted by JS -->
+        </div>
+      </section>
+
+      <!-- Analytics Section -->
+      <section class="content-section" id="analytics-section">
+        <div class="section-header">
+          <h2>Analytics</h2>
+          <div class="last-updated">
+            <span class="refresh-indicator" id="analytics-refresh-indicator">
+              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+              <span id="analytics-last-updated">Loading...</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="analytics-grid">
+          <!-- Conversations Over Time -->
+          <div class="analytics-card full-width">
+            <h3><i data-lucide="message-square" style="width: 18px; height: 18px;"></i> Conversations Over Time</h3>
+            <div class="chart-container">
+              <canvas id="conversationsChart"></canvas>
+            </div>
+          </div>
+
+          <!-- User Signups -->
+          <div class="analytics-card">
+            <h3><i data-lucide="users" style="width: 18px; height: 18px;"></i> User Signups</h3>
+            <div class="chart-container">
+              <canvas id="signupsChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Plan Distribution -->
+          <div class="analytics-card">
+            <h3><i data-lucide="pie-chart" style="width: 18px; height: 18px;"></i> Plan Distribution</h3>
+            <div class="chart-container">
+              <canvas id="planChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Top Chatbots -->
+          <div class="analytics-card">
+            <h3><i data-lucide="trophy" style="width: 18px; height: 18px;"></i> Top Chatbots</h3>
+            <div class="chart-container">
+              <canvas id="topBotsChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Key Metrics Summary -->
+          <div class="analytics-card">
+            <h3><i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> 7-Day Growth</h3>
+            <div class="stat-row">
+              <div class="stat-item">
+                <div class="stat-label">New Users</div>
+                <div class="stat-value positive" id="growth-users">+0</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">New Bots</div>
+                <div class="stat-value positive" id="growth-bots">+0</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-label">Conversations</div>
+                <div class="stat-value neutral" id="growth-conversations">0</div>
+              </div>
+            </div>          </div>
+        </div>
+      </section>
+
+      <!-- System Health Section -->
+      <section class="content-section" id="health-section">
+        <div class="section-header">
+          <h2>System Health</h2>
+          <div class="last-updated">
+            <span class="refresh-indicator" id="health-refresh-indicator">
+              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+              <span id="health-last-updated">Updating...</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Health Overview Cards -->
+        <div class="health-grid">
+          <!-- Overall Status -->
+          <div class="health-card">
+            <h3><i data-lucide="activity" style="width: 16px; height: 16px;"></i> Overall Status</h3>
+            <div class="health-status">
+              <div class="status-indicator healthy" id="overall-status-indicator"></div>
+              <div class="health-status-text healthy" id="overall-status-text">All Systems Operational</div>
+            </div>
+            <div class="health-metrics">
+              <div class="health-metric">
+                <div class="health-metric-label">Uptime</div>
+                <div class="health-metric-value" id="system-uptime">--</div>
+              </div>
+              <div class="health-metric">
+                <div class="health-metric-label">Environment</div>
+                <div class="health-metric-value" id="system-env">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Response Time -->
+          <div class="health-card">
+            <h3><i data-lucide="zap" style="width: 16px; height: 16px;"></i> API Response Time</h3>
+            <div class="health-status">
+              <div class="status-indicator healthy" id="api-status-indicator"></div>
+              <div class="health-status-text" id="api-response-time">-- ms</div>
+            </div>
+            <div class="response-time-chart" id="response-time-chart">
+              <!-- Bars will be inserted by JS -->
+            </div>
+          </div>
+
+          <!-- Memory Usage -->
+          <div class="health-card">
+            <h3><i data-lucide="cpu" style="width: 16px; height: 16px;"></i> Memory Usage</h3>
+            <div class="health-status">
+              <div class="status-indicator healthy" id="memory-status-indicator"></div>
+              <div class="health-status-text" id="memory-usage-text">-- MB</div>
+            </div>
+            <div style="margin-top: 12px;">
+              <div style="background: var(--bg-tertiary); border-radius: 8px; height: 12px; overflow: hidden;">
+                <div id="memory-progress-bar" style="background: var(--accent); height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s ease;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                <span>0 MB</span>
+                <span id="memory-total">-- MB</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Node.js Version -->
+          <div class="health-card">
+            <h3><i data-lucide="code" style="width: 16px; height: 16px;"></i> Runtime Info</h3>
+            <div class="health-metrics">
+              <div class="health-metric">
+                <div class="health-metric-label">Node.js</div>
+                <div class="health-metric-value" id="node-version">--</div>
+              </div>
+              <div class="health-metric">
+                <div class="health-metric-label">Platform</div>
+                <div class="health-metric-value" id="platform-info">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Services Status -->
+        <div class="table-container">
+          <div style="padding: 20px 24px; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; font-size: 16px;">Service Status</h3>
+          </div>
+          <div class="service-list" style="padding: 20px 24px;">
+            <div class="service-item">
+              <div class="service-info">
+                <div class="service-icon api">
+                  <i data-lucide="server" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div>
+                  <div class="service-name">API Server</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Main application server</div>
+                </div>
+              </div>
+              <div class="service-status" id="api-service-status">
+                <div class="status-indicator healthy"></div>
+                <span>Operational</span>
+              </div>
+            </div>
+
+            <div class="service-item">
+              <div class="service-info">
+                <div class="service-icon db">
+                  <i data-lucide="database" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div>
+                  <div class="service-name">MongoDB</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Database connection</div>
+                </div>
+              </div>
+              <div class="service-status" id="db-service-status">
+                <div class="status-indicator healthy"></div>
+                <span>Connected</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Audit Logs Section -->
+      <section class="content-section" id="logs-section">
+        <div class="section-header">
+          <h2>Audit Logs</h2>
+          <button class="btn btn-secondary" id="export-logs-btn">
+            <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+            Export CSV
+          </button>
+        </div>
+
+        <!-- Audit Summary Cards -->
+        <div class="metric-grid" style="margin-bottom: 24px;">
+          <div class="metric-card">
+            <div class="icon" style="background: rgba(166, 227, 161, 0.15); color: var(--accent);"><i data-lucide="activity"></i></div>
+            <h3>Today's Actions</h3>
+            <div class="value" id="audit-today">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="icon" style="background: rgba(96, 165, 250, 0.15); color: var(--success);"><i data-lucide="history"></i></div>
+            <h3>Last 7 Days</h3>
+            <div class="value" id="audit-week">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="icon" style="background: rgba(251, 191, 36, 0.15); color: var(--warning);"><i data-lucide="database"></i></div>
+            <h3>Total Logged</h3>
+            <div class="value" id="audit-total">0</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="table-toolbar">
+          <div class="table-filters">
+            <select class="filter-select" id="audit-action-filter">
+              <option value="">All Actions</option>
+              <option value="USER_UPGRADE">User Upgrade</option>
+              <option value="USER_DELETE">User Delete</option>
+              <option value="USER_FEATURES_UPDATE">Features Update</option>
+              <option value="BOT_STATUS_TOGGLE">Bot Status Toggle</option>
+              <option value="BOT_DELETE">Bot Delete</option>
+            </select>
+            <input type="date" class="filter-select" id="audit-date-from" placeholder="From">
+            <input type="date" class="filter-select" id="audit-date-to" placeholder="To">
+          </div>
+          <button class="btn btn-secondary" id="refresh-logs-btn">
+            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+            Refresh
+          </button>
+        </div>
+
+        <!-- Audit Logs Table -->
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Admin</th>
+                <th>Target</th>
+                <th>IP Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="audit-logs-body">
+              <!-- Rows inserted by JS -->
+            </tbody>
+          </table>
+
+          <!-- Pagination -->
+          <div class="pagination" id="audit-pagination"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- User Details Modal -->
+  <div id="user-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-user-name">User Details</h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label>Email</label>
+          <div class="value" id="modal-user-email"></div>
+        </div>
+        <div class="modal-field">
+          <label>Plan</label>
+          <div class="value" id="modal-user-plan"></div>
+        </div>
+        <div class="modal-field">
+          <label>Joined Date</label>
+          <div class="value" id="modal-user-joined"></div>
+        </div>
+        <div class="modal-field">
+          <label>Last Active</label>
+          <div class="value" id="modal-user-lastactive"></div>
+        </div>
+        <div class="modal-field">
+          <label>Location</label>
+          <div class="value" id="modal-user-location"></div>
+        </div>
+        <div class="modal-field">
+          <label>Bot Names</label>
+          <div class="value" id="modal-user-bots"></div>
         </div>
       </div>
     </div>
+  </div>
 
   <script src="/admin.js" defer></script>
 </body>

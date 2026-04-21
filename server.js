@@ -36,6 +36,7 @@ app.use(helmet({
                 "https://static.cloudflareinsights.com",
                 "https://*.clerk.accounts.dev",
                 "https://clerk.com",
+                "https://unpkg.com",
                 "blob:"
             ],
             scriptSrcAttr: ["'unsafe-inline'"],
@@ -58,6 +59,7 @@ app.use(helmet({
                 "https://clerk.ultramora.com",
                 "https://cloudflareinsights.com",
                 "https://static.cloudflareinsights.com",
+                "https://unpkg.com",
                 ...(isDev ? ["http://localhost:3000"] : [])
             ],
             imgSrc: ["*", "data:", "blob:"],
@@ -177,6 +179,56 @@ connectDB().then(() => {
 // Routes
 app.use('/api/chatbot', require('./routes/chatbot')); // CORS handled per-route inside router
 app.use('/api/admin', require('./routes/admin'));
+
+// Health check endpoint for admin dashboard monitoring
+const mongoose = require('mongoose');
+app.get('/api/health', async (req, res) => {
+  const startTime = Date.now();
+
+  // Check MongoDB connection
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
+  // Check memory usage
+  const memUsage = process.memoryUsage();
+  const memUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+  const memTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+
+  // Check uptime
+  const uptime = process.uptime();
+
+  // Response time
+  const responseTime = Date.now() - startTime;
+
+  // Determine overall status
+  const isHealthy = dbStatus === 'connected';
+  const status = isHealthy ? 'healthy' : 'unhealthy';
+  const statusCode = isHealthy ? 200 : 503;
+
+  res.status(statusCode).json({
+    status,
+    timestamp: new Date().toISOString(),
+    services: {
+      database: {
+        status: dbStatus,
+        type: 'mongodb'
+      },
+      api: {
+        status: 'up',
+        responseTime: `${responseTime}ms`
+      }
+    },
+    system: {
+      uptime: Math.floor(uptime),
+      memory: {
+        used: memUsedMB,
+        total: memTotalMB,
+        unit: 'MB'
+      },
+      nodeVersion: process.version,
+      environment: process.env.NODE_ENV || 'development'
+    }
+  });
+});
 
 // Config route - returns Clerk and app URLs to frontend
 app.get('/api/config', (req, res) => {
