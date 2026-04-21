@@ -746,7 +746,7 @@ router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) 
       }))
       .reverse();
 
-    // Build safe customization object - exclude systemPrompt
+    // Build safe customization object - include systemPrompt for dashboard (auth required)
     const customization = chatbot.customization || {};
     const safeCustomization = {
       botName: customization.botName || 'AI Assistant',
@@ -756,8 +756,8 @@ router.get('/:id', strictCors, requireAuth, checkSubscription, async (req, res) 
       quickReplies: customization.quickReplies || [],
       botLogo: customization.botLogo || '',
       bookingLink: customization.bookingLink || '',
-      launcherImage: customization.launcherImage || ''
-      // Note: systemPrompt is excluded - should only be used server-side
+      launcherImage: customization.launcherImage || '',
+      systemPrompt: customization.systemPrompt || '' // Include for authenticated dashboard users
     };
 
     // Build safe response - exclude sensitive fields

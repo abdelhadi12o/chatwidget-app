@@ -800,7 +800,10 @@
           })
         });
 
-        if (!res.ok) throw new Error("Failed to save");
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Failed to save' }));
+          throw new Error(errorData.error || `Error ${res.status}: Failed to save`);
+        }
 
         // 2. The "Cool" Success State! (Turns Green with a Checkmark)
         btn.style.background = 'var(--success)';
@@ -822,7 +825,7 @@
         console.error("Failed to save AI Brain:", err);
         btn.innerHTML = originalText;
         btn.disabled = false;
-        showToast('Error saving AI Brain. Please try again.', 'warning');
+        showToast(err.message || 'Error saving AI Brain. Please try again.', 'warning');
         if (window.lucide) window.lucide.createIcons();
       }
     });
