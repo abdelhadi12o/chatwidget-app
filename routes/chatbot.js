@@ -592,7 +592,13 @@ ${chatbot.enableBookingFlow === true ? `AUTOMATED BOOKING FUNNEL RULES:
 
 CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never output HTML tags, <script> tags, or executable code under any circumstances.
 
-CRITICAL LANGUAGE & CHARACTER RULE: You MUST respond ENTIRELY in the exact same language the user speaks. If the user speaks Arabic, you must use ONLY standard Arabic letters and punctuation. You are STRICTLY FORBIDDEN from using or outputting any Chinese, Japanese, Korean, or Cyrillic characters under any circumstances.`
+CRITICAL LANGUAGE & CHARACTER RULE:
+- You MUST respond ENTIRELY in the EXACT SAME LANGUAGE as the user's message.
+- If the user writes in Arabic, your ENTIRE response must be in Modern Standard Arabic ONLY. No exceptions.
+- You are STRICTLY FORBIDDEN from inserting any foreign characters into Arabic text. This includes but is not limited to: Chinese (中文), Japanese (日本語), Korean (한국어), Cyrillic (А-я), Vietnamese (Tiếng Việt), Hebrew (אבגד), Hindi (हिन्दी), or any other non-Arabic script.
+- Do NOT romanize Arabic words. Do NOT mix languages within a sentence.
+- If the user writes in English, respond only in English. If in French, only French. One language per response, matching the user exactly.
+- Every single character in your response must belong to the same script/locale as the user's message.`
     };
 
     // 3. Build final messages array with system message first
