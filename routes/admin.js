@@ -198,7 +198,7 @@ router.patch('/users/:userId/plan', ClerkExpressRequireAuth(), requireAdmin, asy
     await User.findOneAndUpdate(
       { clerkId: userId },
       { plan },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Log the action
@@ -383,7 +383,7 @@ router.patch('/chatbots/:widgetId/status', ClerkExpressRequireAuth(), requireAdm
     const bot = await Chatbot.findOneAndUpdate(
       { widgetId },
       { isActive },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!bot) {

@@ -77,7 +77,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                     lemonSqueezySubscriptionId: payload.data.id,
                     lemonSqueezySubscriptionStatus: obj.status
                 },
-                { upsert: true, new: true }
+                { upsert: true, returnDocument: 'after' }
             );
             console.log(`✅ User ${clerkId} upgraded to ${planName} (Variant: ${variantId})`);
         } else if (eventName === 'subscription_cancelled' || eventName === 'subscription_expired') {
@@ -87,7 +87,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
                     plan: 'free',
                     lemonSqueezySubscriptionStatus: obj.status
                 },
-                { new: true }
+                { returnDocument: 'after' }
             );
             console.log(`🚫 User ${clerkId} subscription cancelled. Downgraded to free plan.`);
         }

@@ -1141,6 +1141,9 @@ function addWidgetStyles() {
       max-width: 70%;
       white-space: pre-wrap !important;
       word-break: normal !important;
+      direction: auto !important;
+      text-align: start !important;
+      unicode-bidi: plaintext !important;
     }
 
     /* User messages - WhatsApp style (right aligned, avatar on right) */
@@ -1204,6 +1207,11 @@ function addWidgetStyles() {
       margin: 0 !important;
       background: #f8fafc !important;
       box-shadow: none !important;
+      direction: auto !important;
+      text-align: start !important;
+      unicode-bidi: plaintext !important;
+      box-sizing: border-box !important;
+      height: auto !important;
     }
 
     .ai-widget-input-field::placeholder {
@@ -1233,6 +1241,7 @@ function addWidgetStyles() {
       padding: 0 !important;
       margin: 0 !important;
       transition: transform 0.2s !important;
+      box-sizing: border-box !important;
     }
 
     .ai-widget-send:hover {
@@ -1390,10 +1399,10 @@ function addWidgetStyles() {
     }
 
     /* ===== ISOLATION RULES ===== */
-    /* 1. Allow natural text direction (RTL for Arabic/Hebrew, LTR for others) */
+    /* 1. Force UI shell to remain LTR regardless of host site */
     .ai-widget-container {
-      direction: auto !important;
-      text-align: auto !important;
+      direction: ltr !important;
+      text-align: left !important;
     }
 
     /* 2. Protect all elements inside the widget from host website sizing rules */

@@ -66,7 +66,7 @@ dailyStatsSchema.statics.incrementConversations = async function() {
   return this.findOneAndUpdate(
     { date: today },
     { $inc: { 'conversations.new': 1 } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 };
 
@@ -78,7 +78,7 @@ dailyStatsSchema.statics.incrementUserSignup = async function() {
   return this.findOneAndUpdate(
     { date: today },
     { $inc: { 'users.new': 1 } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 };
 
