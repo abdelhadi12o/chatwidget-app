@@ -917,7 +917,7 @@ GOALS:
 TONE:
 - Professional but approachable
 - Expert but not arrogant
-- Curious and genuinely interested`;
+- Curious and genuinely interested`
       },
       {
         id: 'saas-onboarding',
@@ -949,7 +949,7 @@ GOALS:
 TONE:
 - Enthusiastic but not overbearing
 - Helpful teacher vibe
-- Celebrate their progress`;
+- Celebrate their progress`
       },
       {
         id: 'healthcare-assistant',
@@ -980,7 +980,7 @@ DISCLAIMERS:
 GOALS:
 - Book appointments efficiently
 - Reduce anxiety about the visit
-- Collect necessary information upfront`;
+- Collect necessary information upfront`
       },
       {
         id: 'realestate-agent',
@@ -1016,7 +1016,7 @@ TONE:
 
 ALWAYS:
 - Be honest about market conditions
-- Suggest properties that actually match their criteria`;
+- Suggest properties that actually match their criteria`
       },
       {
         id: 'restaurant-host',
@@ -1047,7 +1047,7 @@ GOALS:
 TONE:
 - Warm and inviting
 - Knowledgeable about the menu
-- Accommodating but clear about policies`;
+- Accommodating but clear about policies`
       },
       {
         id: 'fitness-coach',
@@ -1079,7 +1079,7 @@ GOALS:
 TONE:
 - Energetic but not overwhelming
 - Supportive and understanding
-- Professional but relatable`;
+- Professional but relatable`
       }
     ];
 
