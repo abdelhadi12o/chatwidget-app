@@ -1186,7 +1186,7 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
     const user = await User.findOne({ clerkId: String(req.auth.userId) });
     if (user.plan === 'starter') {
       // If a starter user tries to sneak in Pro features, block the request
-      if (req.body.systemPrompt !== undefined || req.body.webhookUrl !== undefined || req.body.zapierUrl !== undefined) {
+      if (req.body.systemPrompt || req.body.webhookUrl || req.body.zapierUrl) {
         return res.status(403).json({ error: 'System Prompt and Automations require the Pro plan.' });
       }
     }
@@ -1264,10 +1264,6 @@ router.patch('/customization/:id', strictCors, requireAuth, checkSubscription, a
       if (typeof proactiveEnabled !== 'boolean') return res.status(400).json({ error: 'proactiveEnabled must be a boolean' });
       chatbot.proactiveEnabled = proactiveEnabled;
       chatbot.markModified('proactiveEnabled');
-    }
-
-    if (bookingQuestions !== undefined) {
-      chatbot.bookingQuestions = bookingQuestions.map(q => sanitizeHtml(q, { allowedTags: [], allowedAttributes: {} }));
     }
 
     await chatbot.save();
