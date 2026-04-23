@@ -45,14 +45,18 @@ async function handleCheckout(checkoutLink) {
         clickedButton.style.opacity = '0.7';
     }
 
-    // Wait for clerk-loaded event before accessing Clerk
+    // Wait for clerk-ready flag or event
     const clerkReady = await new Promise((resolve) => {
-        if (window.Clerk && window.Clerk.load) {
+        if (window.clerkReady) {
+            resolve(true);
+            return;
+        }
+        if (window.Clerk && window.Clerk.load && window.Clerk.user !== undefined) {
             resolve(true);
             return;
         }
         window.addEventListener('clerk-loaded', () => resolve(true), { once: true });
-        setTimeout(() => resolve(false), 6000);
+        setTimeout(() => resolve(false), 8000);
     });
 
     if (!clerkReady || !window.Clerk) {
@@ -65,16 +69,19 @@ async function handleCheckout(checkoutLink) {
         return;
     }
 
-    try {
-        await window.Clerk.load();
-    } catch(e) {
-        alert('Unable to connect to authentication service. Please refresh.');
-        if (clickedButton) {
-            clickedButton.innerHTML = originalText;
-            clickedButton.style.pointerEvents = '';
-            clickedButton.style.opacity = '';
+    // If Clerk exists but not yet loaded, load it
+    if (!window.clerkReady && window.Clerk.load) {
+        try {
+            await window.Clerk.load();
+        } catch(e) {
+            alert('Unable to connect to authentication service. Please refresh.');
+            if (clickedButton) {
+                clickedButton.innerHTML = originalText;
+                clickedButton.style.pointerEvents = '';
+                clickedButton.style.opacity = '';
+            }
+            return;
         }
-        return;
     }
 
     const user = window.Clerk.user;

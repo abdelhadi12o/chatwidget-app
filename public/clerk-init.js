@@ -1,12 +1,11 @@
 // Clerk initialization for pages
-document.addEventListener('DOMContentLoaded', async () => {
+(async () => {
     try {
         if (!window.location.protocol.startsWith('http')) return;
 
         const response = await fetch('/api/config');
         if (!response.ok) {
             console.error('[clerk-init] Config fetch failed:', response.status);
-            // Set fallback: redirect to dashboard for manual auth
             document.querySelectorAll('[data-clerk-signin], [data-clerk-signup]').forEach(el => {
                 el.href = '/dashboard';
             });
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const config = await response.json();
 
-        // Load Clerk library dynamically
         const clerkScript = document.createElement('script');
         clerkScript.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
         clerkScript.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
@@ -23,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         clerkScript.crossOrigin = 'anonymous';
         document.head.appendChild(clerkScript);
 
-        // Wait for Clerk to load before setting up auth links
         await new Promise((resolve, reject) => {
             clerkScript.addEventListener('load', resolve);
             clerkScript.addEventListener('error', () => {
@@ -38,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             signUpUrl: config.clerkSignUpUrl,
         });
 
+        window.clerkReady = true;
         window.dispatchEvent(new Event('clerk-loaded'));
 
         const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
@@ -51,9 +49,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     } catch (error) {
         console.error('[clerk-init] Failed:', error);
-        // Set fallback: redirect to dashboard for manual auth
         document.querySelectorAll('[data-clerk-signin], [data-clerk-signup]').forEach(el => {
             el.href = '/dashboard';
         });
     }
-});
+})();
