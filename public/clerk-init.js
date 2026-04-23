@@ -14,6 +14,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const config = await response.json();
+
+        // Load Clerk library dynamically
+        const clerkScript = document.createElement('script');
+        clerkScript.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
+        clerkScript.setAttribute('data-clerk-publishable-key', config.clerkPublishableKey);
+        clerkScript.async = true;
+        clerkScript.crossOrigin = 'anonymous';
+        document.head.appendChild(clerkScript);
+
+        // Wait for Clerk to load before setting up auth links
+        await new Promise((resolve, reject) => {
+            clerkScript.addEventListener('load', resolve);
+            clerkScript.addEventListener('error', () => {
+                console.error('[clerk-init] Failed to load Clerk library');
+                reject(new Error('Clerk load failed'));
+            });
+        });
+
+        await window.Clerk.load({
+            publishableKey: config.clerkPublishableKey,
+            signInUrl: config.clerkSignInUrl,
+            signUpUrl: config.clerkSignUpUrl,
+        });
+
         const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
 
         document.querySelectorAll('[data-clerk-signin]').forEach(el => {
