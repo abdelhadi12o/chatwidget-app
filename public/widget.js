@@ -1390,10 +1390,10 @@ function addWidgetStyles() {
     }
 
     /* ===== ISOLATION RULES ===== */
-    /* 1. Force the widget to ignore Arabic Right-to-Left layout */
+    /* 1. Allow natural text direction (RTL for Arabic/Hebrew, LTR for others) */
     .ai-widget-container {
-      direction: ltr !important;
-      text-align: left !important;
+      direction: auto !important;
+      text-align: auto !important;
     }
 
     /* 2. Protect all elements inside the widget from host website sizing rules */

@@ -61,11 +61,11 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
             let planName = 'free';
 
             // Map Lemon Squeezy Variant IDs to Database Plans
-            if (variantId === '1526060') {
+            if (variantId === '1565069') {
                 planName = 'starter';
-            } else if (variantId === '1526083') {
+            } else if (variantId === '1565060') {
                 planName = 'pro';
-            } else if (variantId === '1526085') {
+            } else if (variantId === '1565070') {
                 planName = 'agency';
             }
 

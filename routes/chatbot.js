@@ -590,7 +590,9 @@ ${chatbot.enableBookingFlow === true ? `AUTOMATED BOOKING FUNNEL RULES:
 3. NEVER append [TRIGGER_BOOKING] if you are merely asking the user if they want to book.
 4. You are strictly FORBIDDEN from providing external URLs, links, or phone numbers for scheduling. Let the automated system handle it.` : ''}
 
-CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never output HTML tags, <script> tags, or executable code under any circumstances.`
+CRITICAL INSTRUCTION: You must respond in plain text or basic Markdown. Never output HTML tags, <script> tags, or executable code under any circumstances.
+
+IMPORTANT LANGUAGE RULE: You MUST respond in the SAME language that the user used in their message. Detect the user's language and respond accordingly.`
     };
 
     // 3. Build final messages array with system message first
