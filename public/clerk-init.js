@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             signUpUrl: config.clerkSignUpUrl,
         });
 
+        window.dispatchEvent(new Event('clerk-loaded'));
+
         const dashboardUrl = encodeURIComponent(window.location.origin + '/dashboard');
 
         document.querySelectorAll('[data-clerk-signin]').forEach(el => {

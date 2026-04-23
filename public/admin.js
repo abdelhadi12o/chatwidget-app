@@ -47,18 +47,28 @@ async function getAuthHeaders() {
 
 // Wait for Clerk to be ready before loading data
 function waitForClerk(callback, maxAttempts = 50) {
-  let attempts = 0;
-  const check = () => {
-    attempts++;
-    if (window.Clerk && window.Clerk.session) {
-      callback();
-    } else if (attempts < maxAttempts) {
-      setTimeout(check, 100);
-    } else {
+  // If Clerk is already ready, run immediately
+  if (window.Clerk && window.Clerk.load) {
+    window.Clerk.load().then(callback).catch(() => {
       console.error('Clerk failed to initialize');
-    }
+    });
+    return;
+  }
+
+  // Otherwise wait for clerk-loaded event
+  const handler = () => {
+    window.removeEventListener('clerk-loaded', handler);
+    window.Clerk.load().then(callback).catch(() => {
+      console.error('Clerk failed to initialize');
+    });
   };
-  check();
+  window.addEventListener('clerk-loaded', handler);
+
+  // Fallback timeout after 6 seconds
+  setTimeout(() => {
+    window.removeEventListener('clerk-loaded', handler);
+    console.error('Clerk failed to initialize');
+  }, 6000);
 }
 
 // --- SECTION NAVIGATION ---

@@ -37,16 +37,6 @@ reveal();
 
 // Checkout handler - redirects with clerk_id if logged in
 async function handleCheckout(checkoutLink) {
-    const waitForClerk = async (maxAttempts = 50) => {
-        let attempts = 0;
-        while (attempts < maxAttempts) {
-            if (window.Clerk && window.Clerk.user !== undefined) return true;
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        return false;
-    };
-
     const clickedButton = event.target.closest('a, button');
     const originalText = clickedButton ? clickedButton.innerHTML : null;
     if (clickedButton) {
@@ -55,9 +45,29 @@ async function handleCheckout(checkoutLink) {
         clickedButton.style.opacity = '0.7';
     }
 
-    const clerkReady = await waitForClerk();
+    // Wait for clerk-loaded event before accessing Clerk
+    const clerkReady = await new Promise((resolve) => {
+        if (window.Clerk && window.Clerk.load) {
+            resolve(true);
+            return;
+        }
+        window.addEventListener('clerk-loaded', () => resolve(true), { once: true });
+        setTimeout(() => resolve(false), 6000);
+    });
 
     if (!clerkReady || !window.Clerk) {
+        alert('Unable to connect to authentication service. Please refresh.');
+        if (clickedButton) {
+            clickedButton.innerHTML = originalText;
+            clickedButton.style.pointerEvents = '';
+            clickedButton.style.opacity = '';
+        }
+        return;
+    }
+
+    try {
+        await window.Clerk.load();
+    } catch(e) {
         alert('Unable to connect to authentication service. Please refresh.');
         if (clickedButton) {
             clickedButton.innerHTML = originalText;
