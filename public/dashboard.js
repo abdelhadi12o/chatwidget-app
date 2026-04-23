@@ -856,7 +856,7 @@ GOALS:
 NEVER:
 - Be pushy or aggressive
 - Apologize excessively
-- Make up product details you don't know`;
+- Make up product details you don't know`,
       },
       {
         id: 'support-patient',
@@ -886,7 +886,7 @@ GOALS:
 
 ALWAYS:
 - Verify the solution worked before ending
-- Provide documentation links when helpful`;
+- Provide documentation links when helpful`,
       },
       {
         id: 'consultant-discovery',
