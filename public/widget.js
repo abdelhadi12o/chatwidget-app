@@ -1,3 +1,5 @@
+const API_BASE_URL = 'https://ultramora.com';
+
 const ultramoraEscapeHTML = (str) => {
   if (!str) return '';
   return str.replace(/[&<>'"]/g,
@@ -441,7 +443,7 @@ class AIWidget {
         content: msg.content
       }));
 
-      const response = await fetch(`/api/chatbot/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -600,7 +602,7 @@ class AIWidget {
     }
 
     try {
-      await fetch('/api/chatbot/lead', {
+      await fetch(`${API_BASE_URL}/api/chatbot/lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -665,7 +667,7 @@ async function initWidget() {
   // 3. Fetch settings BEFORE building the widget to prevent color flashing
   try {
     // Add timestamp to prevent caching
-    const response = await fetch(`/api/chatbot/settings/${widgetId}?_t=${Date.now()}`, {
+    const response = await fetch(`${API_BASE_URL}/api/chatbot/settings/${widgetId}?_t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

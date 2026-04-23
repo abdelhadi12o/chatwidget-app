@@ -603,7 +603,14 @@
           <h3 class="dark-panel-title"><i data-lucide="cpu" style="color: var(--primary);"></i> Master System Prompt</h3>
           <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">This is the secret core instruction that guides your AI. Tell it how to act, what limits to have, and what its primary goal is.</p>
 
-          <label style="display: block; font-size: 13px; font-weight: 600; color: white; margin-bottom: 8px;">Custom Instructions</label>
+          <!-- Prompt Library Button -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; font-weight: 600; color: white;">Custom Instructions</label>
+            <button id="openPromptLibraryBtn" style="background: var(--bg-sidebar); color: var(--primary); border: 1px solid var(--primary); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+              <i data-lucide="library" style="width: 14px;"></i> Browse Prompt Library
+            </button>
+          </div>
+
           <textarea id="systemPromptInput" class="dark-input" style="height: 250px; resize: vertical; padding: 16px; margin-bottom: 16px; font-family: monospace; font-size: 13px; line-height: 1.6;" placeholder="Example: You are an aggressive sales closer. Always speak in a friendly but persuasive tone. Keep answers under 3 sentences. Never mention competitors. Your primary goal is to collect the user's phone number."></textarea>
 
           <button id="saveBrainBtn" class="btn-primary" style="width: 100%;"><i data-lucide="save"></i> Update AI Brain</button>
@@ -848,6 +855,36 @@
     </div>
   </div>
 
+  <!-- Prompt Library Modal -->
+  <div id="promptLibraryModal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.9); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px); overflow-y: auto;">
+    <div class="dark-panel" style="width: 100%; max-width: 700px; margin: 40px 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-height: 85vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+        <div>
+          <h3 style="color: white; font-size: 20px; margin: 0 0 4px 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="library" style="color: var(--primary);"></i> Prompt Library</h3>
+          <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Choose a template to get started. You can edit it after applying.</p>
+        </div>
+        <button id="closePromptLibraryBtn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 6px; hover: color: white;">
+          <i data-lucide="x" style="width: 20px;"></i>
+        </button>
+      </div>
+
+      <!-- Category Tabs -->
+      <div id="promptCategoryTabs" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+        <button class="prompt-tab active" data-category="all" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">All</button>
+        <button class="prompt-tab" data-category="sales" style="background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Sales</button>
+        <button class="prompt-tab" data-category="support" style="background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Support</button>
+        <button class="prompt-tab" data-category="consulting" style="background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Consulting</button>
+        <button class="prompt-tab" data-category="healthcare" style="background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Healthcare</button>
+        <button class="prompt-tab" data-category="realestate" style="background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Real Estate</button>
+      </div>
+
+      <!-- Prompt Cards Grid -->
+      <div id="promptLibraryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+        <!-- Prompt cards will be injected here by JavaScript -->
+      </div>
+    </div>
+  </div>
+
   <div id="deleteBotModal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
     <div class="dark-panel" style="width: 100%; max-width: 400px; margin: 20px; border-color: #7f1d1d; box-shadow: 0 25px 50px -12px rgba(220,38,38,0.15);">
       <div style="width: 48px; height: 48px; background: rgba(239,68,68,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 1px solid rgba(239,68,68,0.2);"><i data-lucide="alert-triangle" style="color: var(--danger);"></i></div>
@@ -874,7 +911,7 @@
     </div>
   </div>
 
-  <script src="/dashboard.js?v=3" defer></script>
+  <script src="/dashboard.js?v=4" defer></script>
 <script src="https://ultramora.com/widget.js" data-chatbot-id="widget_a03b47844478f51a600f4be6fc3d7a45"></script>
 </body>
 </html>
